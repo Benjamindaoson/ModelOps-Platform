@@ -256,7 +256,23 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			},
 		}
 		if err := r.GatewayClient.RegisterModel(ctx, model); err != nil {
-			log.Error(err, "failed to register model with gateway")
+			log.Error(err, "model serving pods ready but Gateway registration failed")
+			// Do not report Ready while gateway consumers cannot route requests.
+			latest := &v1alpha1.ModelDeployment{}
+			if getErr := r.Get(ctx, req.NamespacedName, latest); getErr != nil {
+				return ctrl.Result{}, getErr
+			}
+			latest.Status.Phase = "Degraded"
+			setCondition(&latest.Status.Conditions, metav1.Condition{
+				Type: "GatewayReady", Status: metav1.ConditionFalse,
+				Reason: "GatewayRegistrationFailed",
+				Message: "Serving pods exist but model registration with LiteLLM failed",
+				ObservedGeneration: latest.Generation, LastTransitionTime: metav1.Now(),
+			})
+			if statusErr := r.Status().Update(ctx, latest); statusErr != nil {
+				return ctrl.Result{}, statusErr
+			}
+			return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 		}
 	}
 

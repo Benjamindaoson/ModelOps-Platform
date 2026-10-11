@@ -30,6 +30,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -180,7 +181,16 @@ func main() {
 		})
 	}
 
+	watchNamespace := os.Getenv("WATCH_NAMESPACE")
+	if watchNamespace == "" {
+		setupLog.Error(nil, "WATCH_NAMESPACE is required: refusing cluster-wide cache/watch")
+		os.Exit(1)
+	}
+	cacheOptions := cache.Options{
+		DefaultNamespaces: map[string]cache.Config{watchNamespace: {}},
+	}
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Cache:                  cacheOptions,
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -204,17 +214,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Configure LiteLLM gateway client.
-	// If GATEWAY_URL is set, use real HTTP client; otherwise fall back to NoopClient.
+	// Fail closed when production Gateway is unavailable. Noop is test-only.
+	// We never report ModelDeployment Ready without real Gateway registration.
 	var gatewayClient gateway.Client
 	gatewayURL := os.Getenv("GATEWAY_URL")
 	gatewayMasterKey := os.Getenv("GATEWAY_MASTER_KEY")
 	if gatewayURL != "" {
 		gatewayClient = gateway.NewHTTPClient(gatewayURL, gatewayMasterKey)
 		setupLog.Info("LiteLLM gateway client enabled", "url", gatewayURL)
-	} else {
+	} else if os.Getenv("MODELOPS_ALLOW_NOOP_GATEWAY") == "1" && os.Getenv("MODELOPS_ENV") != "production" {
 		gatewayClient = &gateway.NoopClient{}
-		setupLog.Info("LiteLLM gateway client disabled (GATEWAY_URL not set)")
+		setupLog.Info("explicit development-only no-op Gateway enabled")
+	} else {
+		setupLog.Error(nil, "GATEWAY_URL missing; refusing to report fake deployment success")
+		os.Exit(1)
 	}
 
 	if err = (&controller.ModelDeploymentReconciler{
@@ -225,14 +238,22 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ModelDeployment")
 		os.Exit(1)
 	}
-	if err = (&controller.LLMPlatformReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		HelmClient: &helmbridge.SDKClient{},
-		ChartPath:  os.Getenv("CHART_PATH"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LLMPlatform")
-		os.Exit(1)
+	// Cluster-scoped Helm component installation is a separate bootstrap step.
+	// The namespace-scoped runtime must NOT silently acquire cluster-admin.
+	if os.Getenv("MODELOPS_ENABLE_HELM_BOOTSTRAP") == "1" {
+		if os.Getenv("MODELOPS_ENV") == "production" {
+			setupLog.Error(nil, "Helm bootstrap from runtime Operator is forbidden in production")
+			os.Exit(1)
+		}
+		if err = (&controller.LLMPlatformReconciler{
+			Client: mgr.GetClient(), Scheme: mgr.GetScheme(),
+			HelmClient: &helmbridge.SDKClient{}, ChartPath: os.Getenv("CHART_PATH"),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "LLMPlatform")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("Helm bootstrap reconciler disabled; platform bootstrapped separately")
 	}
 	if err = (&controller.FineTuneRunReconciler{
 		Client:      mgr.GetClient(),

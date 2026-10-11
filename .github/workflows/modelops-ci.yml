@@ -73,7 +73,7 @@ jobs:
       - run: helm dependency update charts/kube-llmops-stack
       - name: Verify model resolution and Helm contract tests
         run: |
-          python -m pytest images/model-resolver/tests/ tests/helm/ -q --tb=short
+          python -m pytest images/model-resolver/tests/ tests/helm/ tests/operator_security/ -q --tb=short
 
   evidence-boundary:
     runs-on: ubuntu-latest

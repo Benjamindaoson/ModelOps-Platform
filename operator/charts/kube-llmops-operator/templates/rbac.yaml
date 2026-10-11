@@ -1,11 +1,45 @@
+# Tenant-local ModelOps controller: no ClusterRoleBinding and no cluster-admin.
+# Namespace/CRD/Argo installation is a privileged bootstrap responsibility.
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: Role
 metadata:
   name: {{ .Release.Name }}-operator
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "services"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+  - apiGroups: ["llmops.kubellmops.io"]
+    resources: ["modeldeployments", "finetuneruns", "llmplatforms"]
+    verbs: ["get", "list", "watch", "create", "patch", "update"]
+  - apiGroups: ["llmops.kubellmops.io"]
+    resources: ["modeldeployments/status", "finetuneruns/status", "llmplatforms/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["llmops.kubellmops.io"]
+    resources: ["modeldeployments/finalizers", "finetuneruns/finalizers"]
+    verbs: ["update"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "list", "watch", "create"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtemplates"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-operator
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
+  kind: Role
+  name: {{ .Release.Name }}-operator
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.serviceAccount.name }}
