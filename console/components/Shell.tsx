@@ -13,7 +13,8 @@ const NAV = [
   { path: "/deployments", label: "Deployments", icon: Server },
   { path: "/datasets", label: "Datasets", icon: Database },
   { path: "/training", label: "Training jobs", icon: Layers3 },
-  { path: "/evaluations", label: "Evaluations", icon: ChartNoAxesCombined },\n  { path: "/approvals", label: "Release approvals", icon: ClipboardCheck },
+  { path: "/evaluations", label: "Evaluations", icon: ChartNoAxesCombined },
+  { path: "/approvals", label: "Release approvals", icon: ClipboardCheck },
   { path: "/audit", label: "Audit events", icon: ClipboardList },
   { path: "/settings", label: "Environment", icon: Settings2 },
 ];
