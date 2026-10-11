@@ -1,3 +1,20 @@
+# ModelOps Platform — local development instructions (highest priority)
+
+This repository is an adaptation of GaeaRuiW/kube-llmops (pinned upstream SHA recorded in docs/UPSTREAM_PROVENANCE.md). The inherited instructions below describe the **upstream baseline**, not the verified status of this repository.
+
+1. Work in the existing ModelOps Platform tree. **Do not clone a second project, replace the entire framework, or rename all Kubernetes APIs at once.**
+2. Prioritize the JD: (a) real vLLM/SGLang serving and quantization/KV/batch benchmarks, (b) real LoRA/QLoRA train->evaluate->serve pipelines, (c) production reliability and security.
+3. Preserve upstream Apache-2.0 attribution and file-level notices. Mark inherited vs newly implemented functionality honestly.
+4. For each change, identify its module, runtime evidence, reproduction command, limitations and regression test. Green YAML/Helm tests do not prove a GPU training or serving result.
+5. Never fabricate benchmark outputs, model quality improvements, GPU compatibility or high-availability claims. Persist raw logs and hardware/software metadata for real trials outside committed sensitive data.
+6. Only run destructive changes, public network exposure or actual deployment with explicit permission. No credentials in code, Helm values, logs or PRs.
+7. Start with: `python -m unittest discover -s benchmarks/inference -p 'test_*.py' -v` ; `helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml` ; `cd operator && go test ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...`.
+8. Use docs/IMPLEMENTATION_PLAN.md gates M0–M6. Solve M1 reliability first and move incrementally through serving, benchmarking, fine-tuning and release.
+
+---
+
+## Upstream AGENTS.md instructions (retained for reference)
+
 # AGENTS.md — Project Knowledge for AI Assistants
 
 ## Project Overview
