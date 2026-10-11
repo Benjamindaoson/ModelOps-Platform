@@ -117,3 +117,27 @@ def make_session_factory(url: str):
     opts = {"check_same_thread": False} if url.startswith("sqlite") else {}
     engine = create_engine(url, connect_args=opts, pool_pre_ping=True)
     return engine, sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+class EvaluationRecord(Base):
+    __tablename__ = "evaluation_records"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant: Mapped[str] = mapped_column(String(40), ForeignKey("tenants.slug"), index=True)
+    artifact_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_artifacts.id"))
+    dataset_id: Mapped[str] = mapped_column(String(36), ForeignKey("dataset_versions.id"))
+    report_sha256: Mapped[str] = mapped_column(String(64))
+    metrics_json: Mapped[str] = mapped_column(Text)
+    verified: Mapped[bool] = mapped_column(default=False)
+    passed: Mapped[bool] = mapped_column(default=False)
+    submitted_by: Mapped[str] = mapped_column(String(150))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ReleaseApproval(Base):
+    __tablename__ = "release_approvals"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant: Mapped[str] = mapped_column(String(40), ForeignKey("tenants.slug"), index=True)
+    artifact_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_artifacts.id"))
+    evaluation_id: Mapped[str] = mapped_column(String(36), ForeignKey("evaluation_records.id"))
+    approver: Mapped[str] = mapped_column(String(150))
+    reason: Mapped[str] = mapped_column(String(1000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
