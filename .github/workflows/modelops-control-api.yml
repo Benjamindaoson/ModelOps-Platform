@@ -1,0 +1,40 @@
+name: ModelOps Control API
+on:
+  push:
+    branches: [main]
+    paths:
+      - "control-plane/**"
+      - ".github/workflows/modelops-control-api.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "control-plane/**"
+      - ".github/workflows/modelops-control-api.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+jobs:
+  control-api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: control-plane/pyproject.toml
+      - name: Install API
+        working-directory: control-plane
+        run: python -m pip install -e ".[dev]"
+      - name: Test control API and explicit Kubernetes contracts
+        working-directory: control-plane
+        env:
+          MODELOPS_ENV: test
+          MODELOPS_AUTH_MODE: dev
+          MODELOPS_JWT_SECRET: only-for-tests-32-chars-plus-000000000
+          MODELOPS_ATTESTATION_KEY: only-for-tests-32-chars-plus-sign-key
+        run: |
+          python -m pytest -q
+          python -m compileall -q modelops
