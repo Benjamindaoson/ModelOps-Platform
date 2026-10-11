@@ -54,12 +54,20 @@ def fetch_owned(db: Session, klass, tenant: str, key: str):
 def ensure_tenant(db: Session, tenant: str) -> None:
     if db.get(TenantRecord, tenant) is None:
         db.add(TenantRecord(slug=tenant))
-        db.flush()
+        flush_record(db)
 
 
 def audit(db: Session, principal: Principal, action: str, kind: str, key: str, detail: dict | None = None):
     db.add(AuditEvent(tenant=principal.tenant, actor=principal.subject, action=action,
                       object_kind=kind, object_id=key, detail=json.dumps(detail or {})))
+
+
+def flush_record(db: Session):
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Duplicate name/version or conflicting update") from exc
 
 
 def commit(db: Session):
@@ -165,7 +173,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         ensure_tenant(db, p.tenant)
         record = ModelArtifact(tenant=p.tenant, created_by=p.subject, **req.model_dump())
         db.add(record)
-        db.flush()
+        flush_record(db)
         audit(db, p, "artifact.register", "model", record.id,
               {"name": record.name, "version": record.version, "digest_verified": False})
         commit(db)
@@ -187,7 +195,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         ensure_tenant(db, p.tenant)
         record = DatasetVersion(tenant=p.tenant, created_by=p.subject, **req.model_dump())
         db.add(record)
-        db.flush()
+        flush_record(db)
         audit(db, p, "dataset.register", "dataset", record.id, {"name": record.name, "version": record.version})
         commit(db)
         return render(record, *DATASET_FIELDS)
@@ -213,7 +221,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                          engine=req.engine, replicas=req.replicas, gpu=req.gpu,
                          created_by=p.subject)
         db.add(row)
-        db.flush()
+        flush_record(db)
         app.state.runtime.create_deployment(row, artifact)
         db.add(DeploymentRevision(deployment_id=row.id, generation=1, artifact_id=artifact.id,
                                   operation="create", requested_by=p.subject))
@@ -280,7 +288,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                                metrics_json=json.dumps(metrics), verified=True,
                                passed=passed, submitted_by=p.subject)
         db.add(row)
-        db.flush()
+        flush_record(db)
         audit(db, p, "evaluation.attest", "evaluation", row.id,
               {"passed": row.passed, "report_sha256": row.report_sha256})
         commit(db)
@@ -309,7 +317,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row = ReleaseApproval(tenant=p.tenant, artifact_id=artifact.id,
                               evaluation_id=eval_record.id, approver=p.subject, reason=req.reason)
         db.add(row)
-        db.flush()
+        flush_record(db)
         audit(db, p, "release.approve", "approval", row.id, {"artifact_id": artifact.id})
         commit(db)
         return {"id": row.id, "artifact_id": row.artifact_id,
@@ -411,7 +419,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                          parameters_json=req.model_dump_json(), workflow_name=req.name + "-ft",
                          created_by=p.subject)
         db.add(row)
-        db.flush()
+        flush_record(db)
         app.state.runtime.submit_finetune(row, artifact, dataset, req.model_dump())
         audit(db, p, "training.submit", "train_job", row.id,
               {"method": req.method, "dataset_id": dataset.id})
