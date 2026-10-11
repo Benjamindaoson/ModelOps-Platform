@@ -24,6 +24,7 @@ var engines = map[string]engineConfig{
 	"vllm":     {Image: "vllm/vllm-openai:v0.19.0", Port: 8000},
 	"tei":      {Image: "ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.3", Port: 8080},
 	"llamacpp": {Image: "ghcr.io/ggml-org/llama.cpp:server-b8672", Port: 8080},
+	"sglang": {Image: "lmsysorg/sglang:latest-runtime", Port: 30000},
 }
 
 // acceleratorResources maps accelerator vendor to the Kubernetes device plugin resource name.
@@ -92,6 +93,11 @@ func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1al
 		LivenessProbe:  probe.DeepCopy(),
 	}
 
+	// SGLang runtime needs an explicit module invocation rather than vLLM entrypoint semantics.
+	if engine == "sglang" {
+		mainContainer.Command = []string{"python3", "-m", "sglang.launch_server"}
+	}
+
 	// --- Init container (model-loader) ---
 	initContainers := buildInitContainers(md, platform, slug)
 
@@ -155,6 +161,13 @@ func buildEngineArgs(md *v1alpha1.ModelDeployment, engine, slug string, port int
 		if md.Spec.PrefixCaching {
 			args = append(args, "--enable-prefix-caching")
 		}
+	case "sglang":
+		args = []string{
+			"--model-path", modelPath,
+			"--served-model-name", md.Name,
+			"--host", "0.0.0.0",
+			"--port", fmt.Sprintf("%d", port),
+		}
 	case "tei":
 		args = []string{
 			"--model-id", modelPath,
@@ -212,7 +225,7 @@ func buildVolumes(engine, mdName string) ([]corev1.Volume, []corev1.VolumeMount)
 		{Name: "model-cache", MountPath: "/models"},
 	}
 
-	if engine == "vllm" {
+	if engine == "vllm" || engine == "sglang" {
 		shmSize := resource.MustParse("8Gi")
 		volumes = append(volumes, corev1.Volume{
 			Name: "dshm",

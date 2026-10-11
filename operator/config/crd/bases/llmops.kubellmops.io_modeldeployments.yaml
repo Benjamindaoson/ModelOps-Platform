@@ -113,6 +113,7 @@ spec:
                 - vllm
                 - tei
                 - llamacpp
+                - sglang
                 type: string
               engineArgs:
                 additionalProperties:

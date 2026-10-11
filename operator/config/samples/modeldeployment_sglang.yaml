@@ -1,0 +1,14 @@
+apiVersion: llmops.kubellmops.io/v1alpha1
+kind: ModelDeployment
+metadata:
+  name: modelops-sglang-demo
+spec:
+  source: Qwen/Qwen2.5-0.5B-Instruct
+  engine: sglang
+  resources:
+    gpu: 1
+    cpu: "4"
+    memory: 16Gi
+  replicas: 1
+  engineArgs:
+    --max-running-requests: "16"

@@ -28,7 +28,7 @@ type ModelDeploymentSpec struct {
 	Source string `json:"source"`
 
 	// Engine selects the inference engine. "auto" detects from source name.
-	// +kubebuilder:validation:Enum=auto;vllm;tei;llamacpp
+	// +kubebuilder:validation:Enum=auto;vllm;sglang;tei;llamacpp
 	// +kubebuilder:default="auto"
 	// +optional
 	Engine string `json:"engine,omitempty"`
