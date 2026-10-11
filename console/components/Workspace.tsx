@@ -14,7 +14,8 @@ const TITLES: Record<string, [string, string]> = {
   datasets: ["Dataset registry", "Versioned datasets, immutable checksums and heldout coverage."],
   training: ["Fine-tuning jobs", "Submit independent, parameterized Argo workflows and inspect real status."],
   evaluations: ["Evaluation evidence", "Signed benchmark records and independently approved quality results."],
-  approvals: ["Release approvals", "Human-reviewed, independently evaluated model release decisions."],\n  audit: ["Audit trail", "Traceable, tenant-scoped changes to model and infrastructure resources."],
+  approvals: ["Release approvals", "Human-reviewed, independently evaluated model release decisions."],
+  audit: ["Audit trail", "Traceable, tenant-scoped changes to model and infrastructure resources."],
   settings: ["Environment", "Security, API mode and runtime connection prerequisites."],
 };
 
