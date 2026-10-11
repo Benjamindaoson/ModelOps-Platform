@@ -9,6 +9,9 @@ function sameOrigin(req: NextRequest): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  if (process.env.MODELOPS_ENV === "production" && process.env.MODELOPS_CONSOLE_AUTH !== "oidc") {
+    return NextResponse.json({detail:"OIDC login required in production"},{status:503});
+  }
   if (process.env.MODELOPS_CONSOLE_AUTH === "oidc") {
     return NextResponse.json({detail:"Manual token login disabled; use SSO"},{status:403});
   }
@@ -35,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
     const response = NextResponse.json({ user: principal });
     response.cookies.set(SESSION, token, {
-      httpOnly: true, secure: process.env.NODE_ENV === "production",
+      httpOnly: true, secure: process.env.MODELOPS_PUBLIC_ORIGIN?.startsWith("https://") ?? false,
       sameSite: "strict", path: "/", maxAge: 60 * 60,
     });
     return response;

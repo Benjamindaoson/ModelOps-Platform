@@ -24,3 +24,14 @@ The API is not a cluster administrator, and the user interface does not possess 
 ### Software evidence gate
 
 `python -m pytest control-plane/tests` and `cd console && npm run build` pass on CI. These validate metadata workflows and UI compilation; they are not GPU workload tests. The dynamic Argo template is Helm-rendered/tested without executing a model. The GPU/HA issue trackers remain open until real independent evidence exists.
+
+### Corporate single sign-on
+
+Set the console service environment to
+`MODELOPS_ENV=production`, `MODELOPS_CONSOLE_AUTH=oidc`,
+`MODELOPS_OIDC_ISSUER`, `MODELOPS_OIDC_CLIENT_ID`
+and `MODELOPS_PUBLIC_ORIGIN=https://...`.
+Register the OIDC PKCE callback URL with the IdP and ensure access JWT
+contains `sub`, `tenant`, and `role`. The API separately needs its
+OIDC JWKS URL, expected issuer and audience. Development-token login is
+disabled for a production console.

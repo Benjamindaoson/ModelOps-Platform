@@ -37,7 +37,7 @@ test("authenticates and registers real metadata; refuses disconnected Kubernetes
   await page.getByRole("button", { name: "New deployment" }).click();
   await page.getByLabel("Deployment name").fill("qwen-k8s-smoke");
   await page.getByRole("button", { name: "Submit" }).click();
-  await expect(page.getByRole("alert")).toContainText("Runtime not connected");
+  await expect(page.locator(".message.error[role='alert']")).toContainText("Runtime not connected");
   await expect(page.getByText("No deployments have been submitted to Kubernetes.")).toBeVisible();
 
   await page.getByRole("link", { name: "Audit events" }).click();

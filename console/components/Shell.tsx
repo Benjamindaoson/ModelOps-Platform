@@ -21,10 +21,10 @@ const NAV = [
 
 function Login({ onLogin }: { onLogin: (p: Principal) => void }) {
   const [jwt, setJwt] = useState("");
-  const [authMode, setAuthMode] = useState("development-token");
+  const [authMode, setAuthMode] = useState("unavailable");
   useEffect(() => {
     fetch("/api/auth/config", { cache: "no-store" }).then(r => r.json())
-      .then(d => setAuthMode(d.mode === "oidc" ? "oidc" : "development-token"))
+      .then(d => setAuthMode(d.mode === "oidc" ? "oidc" : d.mode === "development-token" ? "development-token" : "unavailable"))
       .catch(() => setAuthMode("oidc"));
   }, []);
   const [busy, setBusy] = useState(false);
@@ -53,6 +53,8 @@ function Login({ onLogin }: { onLogin: (p: Principal) => void }) {
         <p className="muted">One control plane for your model registry, deployments, training and operational evidence.</p>
         {authMode === "oidc" ? (
           <a href="/api/auth/start" className="primary-button wide">Continue with enterprise SSO</a>
+        ) : authMode === "unavailable" ? (
+          <p className="error-inline">Enterprise OIDC is required but not configured. Contact the platform administrator.</p>
         ) : <form onSubmit={submit}>
           <label htmlFor="token-input">OIDC or local development access token</label>
           <textarea id="token-input" rows={4} value={jwt}

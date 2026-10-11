@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   }
   const response = NextResponse.json({ authenticated: false });
   response.cookies.set("modelops_session", "", {
-    httpOnly: true, secure: process.env.NODE_ENV === "production",
+    httpOnly: true, secure: process.env.MODELOPS_PUBLIC_ORIGIN?.startsWith("https://") ?? false,
     sameSite: "strict", path: "/", maxAge: 0,
   });
   return response;
