@@ -608,6 +608,21 @@ spec:
             DEPLOY_NAME="vllm-${OUTPUT_NAME}-ft"
             SVC_NAME="${DEPLOY_NAME}"
             MODEL_SLUG=$(echo "{{ .Values.baseModel }}" | tr '/' '--')
+            # If any part of canary routing fails, restore the exact prior gateway
+            # configuration and remove the just-created candidate resources.
+            rollback_canary() {
+              set +e
+              echo "ERROR: Canary rollout failed; restoring previous state" >&2
+              if [ -s /tmp/litellm-config.original.yaml ]; then
+                kubectl create configmap ${RELEASE}-litellm-config \
+                  --from-file=config.yaml=/tmp/litellm-config.original.yaml \
+                  -n ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                kubectl rollout restart deployment/${RELEASE}-litellm -n ${NAMESPACE}
+              fi
+              kubectl delete deployment ${DEPLOY_NAME} -n ${NAMESPACE} --ignore-not-found
+              kubectl delete service ${SVC_NAME} -n ${NAMESPACE} --ignore-not-found
+            }
+            trap rollback_canary ERR
 
             cat > /tmp/canary-deployment.yaml << DEPLOYYAML
             apiVersion: apps/v1
@@ -791,6 +806,8 @@ spec:
 
             # Get existing config, add canary entry with weights
             kubectl get configmap ${RELEASE}-litellm-config -n ${NAMESPACE} -o jsonpath='{.data.config\.yaml}' > /tmp/litellm-config.yaml
+            test -s /tmp/litellm-config.yaml
+            cp /tmp/litellm-config.yaml /tmp/litellm-config.original.yaml
 
             # Find the base model name that matches our fine-tune base
             BASE_MODEL_NAME=""
@@ -857,13 +874,15 @@ spec:
 
               # Step 4: Restart LiteLLM to pick up new config
               echo "Restarting LiteLLM to load canary config..."
-              kubectl rollout restart statefulset/${RELEASE}-litellm -n ${NAMESPACE} 2>/dev/null || \
-              kubectl rollout restart deployment/${RELEASE}-litellm -n ${NAMESPACE} 2>/dev/null || \
-              { echo "ERROR: Could not restart LiteLLM"; exit 1; }
+              kubectl rollout restart deployment/${RELEASE}-litellm -n ${NAMESPACE}
+              kubectl rollout status deployment/${RELEASE}-litellm -n ${NAMESPACE} --timeout=300s
+              # Deployment readiness is necessary but not sufficient: probe the live gateway.
+              python3 -c "import urllib.request; urllib.request.urlopen('http://${RELEASE}-litellm:4000/health/liveliness',timeout=15).read()"
+              trap - ERR
 
             else
-              echo "WARNING: No base vLLM model found — canary routing not configured"
-              echo "Fine-tuned model is deployed at: http://${SVC_NAME}:8000/v1"
+              echo "ERROR: No stable base model found: cannot establish verifiable canary traffic split" >&2
+              false
             fi
 
             echo ""
