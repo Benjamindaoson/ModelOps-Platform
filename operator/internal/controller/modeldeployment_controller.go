@@ -19,15 +19,22 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -55,6 +62,9 @@ type ModelDeploymentReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=keda.sh,resources=scaledobjects,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile moves the cluster state toward the desired ModelDeployment state.
 func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -72,16 +82,14 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// 2. Handle deletion
 	if !md.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(md, modelDeploymentFinalizer) {
-			// Deregister from gateway (best-effort)
 			if r.GatewayClient != nil {
-				if err := r.GatewayClient.DeregisterModel(ctx, md.Name); err != nil {
-					log.Error(err, "failed to deregister model from gateway")
+				_ = r.GatewayClient.DeregisterModel(ctx, md.Name)
+				if md.Spec.Canary != nil {
+					_ = r.GatewayClient.DeregisterModel(ctx, md.Name+"-canary")
 				}
 			}
 			controllerutil.RemoveFinalizer(md, modelDeploymentFinalizer)
-			if err := r.Update(ctx, md); err != nil {
-				return ctrl.Result{}, err
-			}
+			_ = r.Update(ctx, md)
 		}
 		return ctrl.Result{}, nil
 	}
@@ -97,22 +105,22 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// 4. Resolve engine
 	resolvedEngine := engine.ResolveEngine(md.Spec.Source, md.Spec.Engine)
 
-	// Reject unsupported engines before creating a broken Kubernetes Deployment.
-	// The resolver may detect e.g. Chitu, whose Operator runtime is not yet integrated.
 	if !builder.SupportsServingEngine(resolvedEngine) {
-		md.Status.Phase="Failed"
-		md.Status.Engine=resolvedEngine
-		setCondition(&md.Status.Conditions,metav1.Condition{
-			Type:"ModelReady",Status:metav1.ConditionFalse,
-			Reason:"UnsupportedServingEngine",
-			Message:"Requested engine is not implemented by the ModelDeployment Operator",
-			LastTransitionTime:metav1.Now(),ObservedGeneration:md.Generation,
+		md.Status.Phase = "Failed"
+		md.Status.Engine = resolvedEngine
+		setCondition(&md.Status.Conditions, metav1.Condition{
+			Type:               "ModelReady",
+			Status:             metav1.ConditionFalse,
+			Reason:             "UnsupportedServingEngine",
+			Message:            "Requested engine is not implemented by the ModelDeployment Operator",
+			LastTransitionTime: metav1.Now(),
+			ObservedGeneration: md.Generation,
 		})
-		if err:=r.Status().Update(ctx,md);err!=nil {return ctrl.Result{},err}
-		return ctrl.Result{},nil
+		_ = r.Status().Update(ctx, md)
+		return ctrl.Result{}, nil
 	}
 
-	// 5. Find LLMPlatform in same namespace
+	// 5. Find LLMPlatform
 	var platform *v1alpha1.LLMPlatform
 	platformList := &v1alpha1.LLMPlatformList{}
 	if err := r.List(ctx, platformList, client.InNamespace(md.Namespace)); err == nil && len(platformList.Items) > 0 {
@@ -124,40 +132,29 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	existingPVC := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, existingPVC); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, pvc, r.Scheme); err != nil {
-				return ctrl.Result{}, err
-			}
-			if err := r.Create(ctx, pvc); err != nil {
-				return ctrl.Result{}, err
-			}
+			_ = controllerutil.SetControllerReference(md, pvc, r.Scheme)
+			_ = r.Create(ctx, pvc)
 			log.Info("created PVC", "name", pvc.Name)
 		} else {
 			return ctrl.Result{}, err
 		}
 	}
 
-	// 7. Ensure Deployment (create or update)
+	// 7. Ensure Deployment
 	desiredDep := builder.BuildDeployment(md, resolvedEngine, platform)
 	existingDep := &appsv1.Deployment{}
 	if err := r.Get(ctx, types.NamespacedName{Name: desiredDep.Name, Namespace: desiredDep.Namespace}, existingDep); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, desiredDep, r.Scheme); err != nil {
-				return ctrl.Result{}, err
-			}
-			if err := r.Create(ctx, desiredDep); err != nil {
-				return ctrl.Result{}, err
-			}
+			_ = controllerutil.SetControllerReference(md, desiredDep, r.Scheme)
+			_ = r.Create(ctx, desiredDep)
 			log.Info("created Deployment", "name", desiredDep.Name)
 		} else {
 			return ctrl.Result{}, err
 		}
 	} else {
-		// Update existing deployment
 		existingDep.Spec = desiredDep.Spec
 		existingDep.Labels = desiredDep.Labels
-		if err := r.Update(ctx, existingDep); err != nil {
-			return ctrl.Result{}, err
-		}
+		_ = r.Update(ctx, existingDep)
 	}
 
 	// 8. Ensure Service
@@ -165,58 +162,331 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	existingSvc := &corev1.Service{}
 	if err := r.Get(ctx, types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, existingSvc); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, svc, r.Scheme); err != nil {
-				return ctrl.Result{}, err
-			}
-			if err := r.Create(ctx, svc); err != nil {
-				return ctrl.Result{}, err
-			}
+			_ = controllerutil.SetControllerReference(md, svc, r.Scheme)
+			_ = r.Create(ctx, svc)
 			log.Info("created Service", "name", svc.Name)
 		} else {
 			return ctrl.Result{}, err
 		}
 	}
 
-	// 9. Update status
-	// Re-read the deployment to get current replica status
-	dep := &appsv1.Deployment{}
-	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, dep); err != nil {
-		if !apierrors.IsNotFound(err) {
+	// 9. Ensure PDB
+	_ = r.ensurePDB(ctx, md, md.Name)
+
+	// 10. Handle Canary
+	if md.Spec.Canary != nil {
+		if err := r.reconcileCanary(ctx, md, resolvedEngine, platform); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	port := builder.EnginePort(resolvedEngine)
-	md.Status.Engine = resolvedEngine
+	// 11. Handle AutoScaling
+	if err := r.reconcileAutoScaling(ctx, md, resolvedEngine); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// 12. Update status
+	if err := r.updateStatus(ctx, req, md, resolvedEngine); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// 13. Register with gateway
+	if md.Status.Phase == "Ready" && r.GatewayClient != nil {
+		_ = r.registerWithGateway(ctx, md, resolvedEngine)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// reconcileCanary handles canary deployment lifecycle.
+func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1alpha1.ModelDeployment, eng string, platform *v1alpha1.LLMPlatform) error {
+	log := logf.FromContext(ctx)
+	canary := md.Spec.Canary
+	canarySlug := builder.CanarySlug(canary.Source)
+
+	// Canary PVC
+	canaryPVC := builder.BuildCanaryPVC(md, canarySlug)
+	if canaryPVC != nil {
+		existing := &corev1.PersistentVolumeClaim{}
+		if err := r.Get(ctx, types.NamespacedName{Name: canaryPVC.Name, Namespace: canaryPVC.Namespace}, existing); err != nil {
+			if apierrors.IsNotFound(err) {
+				_ = controllerutil.SetControllerReference(md, canaryPVC, r.Scheme)
+				_ = r.Create(ctx, canaryPVC)
+				log.Info("created canary PVC", "name", canaryPVC.Name)
+			}
+		}
+	}
+
+	// Canary Deployment
+	canaryMD := &v1alpha1.ModelDeployment{
+		ObjectMeta: metav1.ObjectMeta{Name: md.Name + "-canary", Namespace: md.Namespace},
+		Spec: v1alpha1.ModelDeploymentSpec{
+			Source: canary.Source, Engine: md.Spec.Engine,
+			Replicas: ptr.To(int32(1)), Resources: canary.Resources,
+			Accelerator: md.Spec.Accelerator,
+		},
+	}
+	canaryDep := builder.BuildCanaryDeployment(canaryMD, eng, platform, md.Name, canarySlug)
+	existingDep := &appsv1.Deployment{}
+	if err := r.Get(ctx, types.NamespacedName{Name: canaryDep.Name, Namespace: canaryDep.Namespace}, existingDep); err != nil {
+		if apierrors.IsNotFound(err) {
+			_ = controllerutil.SetControllerReference(md, canaryDep, r.Scheme)
+			_ = r.Create(ctx, canaryDep)
+			log.Info("created canary Deployment", "name", canaryDep.Name)
+		}
+	} else {
+		canaryDep.Spec.Replicas = existingDep.Spec.Replicas
+		existingDep.Spec = canaryDep.Spec
+		_ = r.Update(ctx, existingDep)
+	}
+
+	// Canary Service
+	canarySvc := builder.BuildCanaryService(canaryMD, eng, md.Name)
+	existingSvc := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: canarySvc.Name, Namespace: canarySvc.Namespace}, existingSvc); err != nil {
+		if apierrors.IsNotFound(err) {
+			_ = controllerutil.SetControllerReference(md, canarySvc, r.Scheme)
+			_ = r.Create(ctx, canarySvc)
+			log.Info("created canary Service", "name", canarySvc.Name)
+		}
+	}
+
+	// Canary PDB
+	_ = r.ensurePDB(ctx, md, md.Name+"-canary")
+
+	// Update canary status
+	canaryDep = &appsv1.Deployment{}
+	_ = r.Get(ctx, types.NamespacedName{Name: md.Name + "-canary", Namespace: md.Namespace}, canaryDep)
+	port := builder.EnginePort(eng)
+	md.Status.Canary = &v1alpha1.CanaryStatus{
+		Phase:         getCanaryPhase(canaryDep),
+		Endpoint:      fmt.Sprintf("http://%s-canary.%s.svc.cluster.local:%d", md.Name, md.Namespace, port),
+		ReadyReplicas: canaryDep.Status.ReadyReplicas,
+	}
+	return nil
+}
+
+// reconcileAutoScaling creates/updates HPA or KEDA ScaledObject.
+func (r *ModelDeploymentReconciler) reconcileAutoScaling(ctx context.Context, md *v1alpha1.ModelDeployment, eng string) error {
+	if md.Spec.AutoScaling == nil || !md.Spec.AutoScaling.Enabled {
+		r.cleanupAutoScaling(ctx, md)
+		return nil
+	}
+	if md.Spec.AutoScaling.UseKEDA {
+		return r.reconcileKEDA(ctx, md)
+	}
+	return r.reconcileHPA(ctx, md)
+}
+
+func (r *ModelDeploymentReconciler) reconcileHPA(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	as := md.Spec.AutoScaling
+	minR, maxR := int32(1), int32(10)
+	if as.MinReplicas != nil {
+		minR = *as.MinReplicas
+	}
+	if as.MaxReplicas != nil {
+		maxR = *as.MaxReplicas
+	}
+
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: md.Name, Namespace: md.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/name": "hpa", "kube-llmops/model": md.Name,
+			},
+		},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				APIVersion: "apps/v1", Kind: "Deployment", Name: md.Name,
+			},
+			MinReplicas: &minR, MaxReplicas: maxR,
+			Metrics:     []autoscalingv2.MetricSpec{},
+		},
+	}
+	if as.ScaleTargetCPUUtilizationPercentage != nil {
+		hpa.Spec.Metrics = append(hpa.Spec.Metrics, autoscalingv2.MetricSpec{
+			Type: autoscalingv2.ResourceMetricSourceType,
+			Resource: &autoscalingv2.ResourceMetricStatusSource{
+				Name: corev1.ResourceCPU,
+				Target: autoscalingv2.MetricTarget{
+					Type:               autoscalingv2.UtilizationMetricType,
+					AverageUtilization: as.ScaleTargetCPUUtilizationPercentage,
+				},
+			},
+		})
+	}
+	if as.ScaleTargetMemoryUtilizationPercentage != nil {
+		hpa.Spec.Metrics = append(hpa.Spec.Metrics, autoscalingv2.MetricSpec{
+			Type: autoscalingv2.ResourceMetricSourceType,
+			Resource: &autoscalingv2.ResourceMetricStatusSource{
+				Name: corev1.ResourceMemory,
+				Target: autoscalingv2.MetricTarget{
+					Type:               autoscalingv2.UtilizationMetricType,
+					AverageUtilization: as.ScaleTargetMemoryUtilizationPercentage,
+				},
+			},
+		})
+	}
+
+	existing := &autoscalingv2.HorizontalPodAutoscaler{}
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			_ = controllerutil.SetControllerReference(md, hpa, r.Scheme)
+			return r.Create(ctx, hpa)
+		}
+		return err
+	}
+	existing.Spec = hpa.Spec
+	return r.Update(ctx, existing)
+}
+
+func (r *ModelDeploymentReconciler) reconcileKEDA(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	as := md.Spec.AutoScaling
+	minR, maxR := int32(0), int32(10)
+	if as.MinReplicas != nil {
+		minR = *as.MinReplicas
+	}
+	if as.MaxReplicas != nil {
+		maxR = *as.MaxReplicas
+	}
+
+	metricName := "vllm_queue_depth"
+	threshold := int64(10)
+	if as.KEDATriggers != nil && as.KEDATriggers.QueueDepthMetric != "" {
+		metricName = as.KEDATriggers.QueueDepthMetric
+	}
+	if as.KEDATriggers != nil && as.KEDATriggers.QueueDepthThreshold != nil {
+		threshold = int64(*as.KEDATriggers.QueueDepthThreshold)
+	}
+
+	so := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "keda.sh/v1alpha1",
+			"kind":       "ScaledObject",
+			"metadata": map[string]interface{}{
+				"name":      md.Name,
+				"namespace": md.Namespace,
+				"labels": map[string]string{
+					"app.kubernetes.io/name": "scaledobject", "kube-llmops/model": md.Name,
+				},
+			},
+			"spec": map[string]interface{}{
+				"scaleTargetRef": map[string]interface{}{"name": md.Name},
+				"minReplicaCount": minR,
+				"maxReplicaCount": maxR,
+				"triggers": []map[string]interface{}{
+					{
+						"type": "prometheus",
+						"name": "queue-depth",
+						"metadata": map[string]interface{}{
+							"serverAddress": "http://prometheus:9090",
+							"metricName":  metricName,
+							"threshold":    strconv.FormatInt(threshold, 10),
+							"query":       fmt.Sprintf("sum(%s{job=\"vllm\",model=\"%s\"}) or vector(0)", metricName, md.Name),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(schema.GroupVersionKind{Group: "keda.sh", Version: "v1alpha1", Kind: "ScaledObject"})
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			_ = controllerutil.SetControllerReference(md, so, r.Scheme)
+			return r.Create(ctx, so)
+		}
+		return err
+	}
+	so.SetResourceVersion(existing.GetResourceVersion())
+	return r.Update(ctx, so)
+}
+
+func (r *ModelDeploymentReconciler) cleanupAutoScaling(ctx context.Context, md *v1alpha1.ModelDeployment) {
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, hpa); err == nil {
+		_ = r.Delete(ctx, hpa)
+	}
+	so := &unstructured.Unstructured{}
+	so.SetGroupVersionKind(schema.GroupVersionKind{Group: "keda.sh", Version: "v1alpha1", Kind: "ScaledObject"})
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, so); err == nil {
+		_ = r.Delete(ctx, so)
+	}
+}
+
+func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.ModelDeployment, name string) error {
+	maxU := intstr.FromInt(0)
+	pdb := &policyv1.PodDisruptionBudget{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name, Namespace: md.Namespace,
+			Labels: map[string]string{"kube-llmops/model": md.Name},
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			MaxUnavailable: &maxU,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app.kubernetes.io/instance": name},
+			},
+		},
+	}
+	existing := &policyv1.PodDisruptionBudget{}
+	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: md.Namespace}, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			_ = controllerutil.SetControllerReference(md, pdb, r.Scheme)
+			return r.Create(ctx, pdb)
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.Request, md *v1alpha1.ModelDeployment, eng string) error {
+	dep := &appsv1.Deployment{}
+	_ = r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, dep)
+
+	initStatus := r.getInitContainerStatus(dep)
+	port := builder.EnginePort(eng)
+	md.Status.Engine = eng
 	md.Status.ReadyReplicas = dep.Status.ReadyReplicas
 	md.Status.TotalReplicas = dep.Status.Replicas
 	md.Status.Endpoint = fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", md.Name, md.Namespace, port)
 
-	// Determine phase
 	desired := int32(1)
 	if md.Spec.Replicas != nil {
 		desired = *md.Spec.Replicas
 	}
-	switch {
-	case dep.Status.ReadyReplicas >= desired && desired > 0:
-		md.Status.Phase = "Ready"
-	case dep.Status.ReadyReplicas > 0:
-		md.Status.Phase = "Degraded"
-	default:
-		md.Status.Phase = "Deploying"
+
+	now := metav1.NewTime(time.Now())
+	if initStatus != nil && (initStatus.Phase == "Pending" || initStatus.Phase == "Running") {
+		md.Status.Phase = "Downloading"
+		md.Status.InitContainerStatus = v1alpha1.InitContainerStatus{Phase: initStatus.Phase, Message: initStatus.Message}
+		md.Status.DownloadProgress = &v1alpha1.DownloadProgress{StartTime: &now}
+	} else if md.Status.DownloadProgress != nil && md.Status.DownloadProgress.CompletionTime == nil && initStatus != nil && initStatus.Phase == "Terminated" {
+		md.Status.DownloadProgress.CompletionTime = &now
 	}
 
-	// Set condition
-	now := metav1.NewTime(time.Now())
-	readyCond := metav1.Condition{
-		Type:               "Ready",
-		LastTransitionTime: now,
-		ObservedGeneration: md.Generation,
+	switch {
+	case dep.Status.ReadyReplicas >= desired && desired > 0:
+		if md.Status.Phase == "Downloading" || md.Status.Phase == "Deploying" || md.Status.Phase == "" {
+			md.Status.Phase = "Ready"
+		}
+	case dep.Status.ReadyReplicas > 0:
+		md.Status.Phase = "Degraded"
+	case dep.Status.ReadyReplicas == 0 && desired > 0:
+		if md.Status.Phase != "Downloading" {
+			md.Status.Phase = "Deploying"
+		}
 	}
+
+	readyCond := metav1.Condition{Type: "Ready", LastTransitionTime: now, ObservedGeneration: md.Generation}
 	if md.Status.Phase == "Ready" {
 		readyCond.Status = metav1.ConditionTrue
 		readyCond.Reason = "AllReplicasReady"
 		readyCond.Message = "All replicas are ready"
+	} else if md.Status.Phase == "Downloading" {
+		readyCond.Status = metav1.ConditionFalse
+		readyCond.Reason = "ModelDownloading"
+		readyCond.Message = "Model is being downloaded"
 	} else {
 		readyCond.Status = metav1.ConditionFalse
 		readyCond.Reason = "ReplicasNotReady"
@@ -224,49 +494,84 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	setCondition(&md.Status.Conditions, readyCond)
 
-	// Re-fetch to get latest resourceVersion (child resource creation may have changed it)
-	computedStatus := md.Status
-	if err := r.Get(ctx, req.NamespacedName, md); err != nil {
-		return ctrl.Result{}, err
-	}
-	md.Status = computedStatus
-
-	if err := r.Status().Update(ctx, md); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// 10. When Ready, register with gateway
-	if md.Status.Phase == "Ready" && r.GatewayClient != nil {
-		// Use correct LiteLLM provider prefix based on model type:
-		// - TEI embedding/reranker → "huggingface/" (no /v1 suffix on APIBase)
-		// - vLLM / llama.cpp → "openai/" (OpenAI-compatible API)
-		modelType := engine.ResolveModelType(md.Spec.Source)
-		prefix := "openai/"
-		apiBase := md.Status.Endpoint
-		if modelType == "embedding" || modelType == "reranker" {
-			prefix = "huggingface/"
-			// TEI huggingface provider must NOT have /v1 suffix
-			apiBase = strings.TrimSuffix(apiBase, "/v1")
-		}
-		model := gateway.GatewayModel{
-			ModelName: md.Name,
-			LiteLLMParams: gateway.LiteLLMParams{
-				Model:   prefix + md.Name,
-				APIBase: apiBase,
-			},
-		}
-		if err := r.GatewayClient.RegisterModel(ctx, model); err != nil {
-			log.Error(err, "failed to register model with gateway")
-		}
-	}
-
-	return ctrl.Result{}, nil
+	status := md.Status
+	_ = r.Get(ctx, req.NamespacedName, md)
+	md.Status = status
+	return r.Status().Update(ctx, md)
 }
 
-// setCondition adds or updates a condition in the conditions slice.
+func (r *ModelDeploymentReconciler) getInitContainerStatus(dep *appsv1.Deployment) *v1alpha1.InitContainerStatus {
+	if dep.Status.InitContainerStatuses == nil || len(dep.Status.InitContainerStatuses) == 0 {
+		return nil
+	}
+	for _, cs := range dep.Status.InitContainerStatuses {
+		if cs.Name == "model-loader" {
+			phase, msg := "Pending", ""
+			switch {
+			case cs.State.Running != nil:
+				phase, msg = "Running", "Model download in progress"
+			case cs.State.Terminated != nil:
+				phase = "Terminated"
+				if cs.State.Terminated.ExitCode == 0 {
+					msg = "Model download completed"
+				} else {
+					msg = fmt.Sprintf("Model download failed: %s", cs.State.Terminated.Reason)
+				}
+			case cs.State.Waiting != nil:
+				msg = cs.State.Waiting.Reason
+			}
+			return &v1alpha1.InitContainerStatus{Phase: phase, Message: msg}
+		}
+	}
+	return nil
+}
+
+func (r *ModelDeploymentReconciler) registerWithGateway(ctx context.Context, md *v1alpha1.ModelDeployment, eng string) error {
+	modelType := engine.ResolveModelType(md.Spec.Source)
+	prefix := "openai/"
+	apiBase := md.Status.Endpoint
+	if modelType == "embedding" || modelType == "reranker" {
+		prefix = "huggingface/"
+		apiBase = strings.TrimSuffix(apiBase, "/v1")
+	}
+
+	model := gateway.GatewayModel{
+		ModelName: md.Name,
+		LiteLLMParams: gateway.LiteLLMParams{
+			Model: prefix + md.Name, APIBase: apiBase,
+		},
+	}
+	if err := r.GatewayClient.RegisterModel(ctx, model); err != nil {
+		return fmt.Errorf("register model: %w", err)
+	}
+
+	if md.Spec.Canary != nil && md.Status.Canary != nil {
+		canaryModel := gateway.GatewayModel{
+			ModelName: md.Name + "-canary",
+			LiteLLMParams: gateway.LiteLLMParams{
+				Model:   prefix + md.Name,
+				APIBase: md.Status.Canary.Endpoint,
+				Weight: ptr.To(int(md.Spec.Canary.Weight)),
+			},
+		}
+		_ = r.GatewayClient.RegisterModel(ctx, canaryModel)
+	}
+	return nil
+}
+
+func getCanaryPhase(dep *appsv1.Deployment) string {
+	if dep.Status.ReadyReplicas > 0 {
+		return "Ready"
+	}
+	if dep.Status.Replicas > 0 {
+		return "Deploying"
+	}
+	return "Pending"
+}
+
 func setCondition(conditions *[]metav1.Condition, cond metav1.Condition) {
-	for i, existing := range *conditions {
-		if existing.Type == cond.Type {
+	for i, c := range *conditions {
+		if c.Type == cond.Type {
 			(*conditions)[i] = cond
 			return
 		}
@@ -274,13 +579,13 @@ func setCondition(conditions *[]metav1.Condition, cond metav1.Condition) {
 	*conditions = append(*conditions, cond)
 }
 
-// SetupWithManager sets up the controller with the Manager.
 func (r *ModelDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ModelDeployment{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Named("modeldeployment").
 		Complete(r)
 }

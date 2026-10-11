@@ -72,6 +72,10 @@ type ModelDeploymentSpec struct {
 	// ModelStore overrides the platform-level model store configuration.
 	// +optional
 	ModelStore *ModelStoreOverride `json:"modelStore,omitempty"`
+
+	// AutoScaling configures automatic scaling for this model.
+	// +optional
+	AutoScaling *AutoScalingSpec `json:"autoScaling,omitempty"`
 }
 
 // ModelResources defines compute resources for model serving.
@@ -132,6 +136,68 @@ type ModelStoreOverride struct {
 	Bucket string `json:"bucket,omitempty"`
 }
 
+// AutoScalingSpec defines automatic scaling configuration.
+type AutoScalingSpec struct {
+	// Enabled enables automatic scaling.
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// MinReplicas is the minimum number of replicas.
+	// +optional
+	MinReplicas *int32 `json:"minReplicas,omitempty"`
+
+	// MaxReplicas is the maximum number of replicas.
+	// +optional
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
+
+	// UseKEDA enables KEDA-based autoscaling instead of HPA.
+	// +optional
+	UseKEDA bool `json:"useKEDA,omitempty"`
+
+	// ScaleTargetCPUUtilizationPercentage is the target CPU utilization for HPA.
+	// +optional
+	ScaleTargetCPUUtilizationPercentage *int32 `json:"scaleTargetCPUUtilizationPercentage,omitempty"`
+
+	// ScaleTargetMemoryUtilizationPercentage is the target memory utilization for HPA.
+	// +optional
+	ScaleTargetMemoryUtilizationPercentage *int32 `json:"scaleTargetMemoryUtilizationPercentage,omitempty"`
+
+	// KEDATriggers defines KEDA-specific trigger configuration.
+	// +optional
+	KEDATriggers *KEDATriggersSpec `json:"kedaTriggers,omitempty"`
+}
+
+// KEDATriggersSpec defines KEDA-specific trigger configuration.
+type KEDATriggersSpec struct {
+	// QueueDepthEnabled enables scaling based on vLLM queue depth.
+	// +optional
+	QueueDepthEnabled bool `json:"queueDepthEnabled,omitempty"`
+
+	// QueueDepthMetric is the Prometheus metric name for queue depth.
+	// +optional
+	QueueDepthMetric string `json:"queueDepthMetric,omitempty"`
+
+	// QueueDepthThreshold is the threshold for queue depth scaling.
+	// +optional
+	QueueDepthThreshold *int32 `json:"queueDepthThreshold,omitempty"`
+
+	// TTFTEnabled enables scaling based on TTFT P95 latency.
+	// +optional
+	TTFTEnabled bool `json:"ttftEnabled,omitempty"`
+
+	// TTFTThreshold is the TTFT P95 threshold in seconds.
+	// +optional
+	TTFTThreshold *float64 `json:"ttftThreshold,omitempty"`
+
+	// TPOTEnabled enables scaling based on TPOT P95 latency.
+	// +optional
+	TPOTEnabled bool `json:"tpotEnabled,omitempty"`
+
+	// TPOTThreshold is the TPOT P95 threshold in seconds.
+	// +optional
+	TPOTThreshold *float64 `json:"tpotThreshold,omitempty"`
+}
+
 // ModelDeploymentStatus defines the observed state of ModelDeployment.
 type ModelDeploymentStatus struct {
 	// Phase is the high-level lifecycle phase.
@@ -159,6 +225,14 @@ type ModelDeploymentStatus struct {
 	// +optional
 	ModelSize string `json:"modelSize,omitempty"`
 
+	// DownloadProgress holds download progress information.
+	// +optional
+	DownloadProgress *DownloadProgress `json:"downloadProgress,omitempty"`
+
+	// InitContainerStatus holds the init container state.
+	// +optional
+	InitContainerStatus InitContainerStatus `json:"initContainerStatus,omitempty"`
+
 	// Conditions represent the latest observations of the resource's state.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -166,6 +240,40 @@ type ModelDeploymentStatus struct {
 	// Canary holds the status of the canary deployment.
 	// +optional
 	Canary *CanaryStatus `json:"canary,omitempty"`
+}
+
+// DownloadProgress holds download progress information.
+type DownloadProgress struct {
+	// StartTime is when the download started.
+	// +optional
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+
+	// CompletionTime is when the download completed.
+	// +optional
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+
+	// BytesDownloaded is the number of bytes downloaded.
+	// +optional
+	BytesDownloaded int64 `json:"bytesDownloaded,omitempty"`
+
+	// TotalBytes is the total size in bytes.
+	// +optional
+	TotalBytes int64 `json:"totalBytes,omitempty"`
+
+	// Percentage is the download progress percentage.
+	// +optional
+	Percentage int32 `json:"percentage,omitempty"`
+}
+
+// InitContainerStatus holds the state of the init container.
+type InitContainerStatus struct {
+	// Phase is the init container phase (Pending, Running, Terminated).
+	// +optional
+	Phase string `json:"phase,omitempty"`
+
+	// Message contains progress message.
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 // CanaryStatus holds the observed state of the canary deployment.

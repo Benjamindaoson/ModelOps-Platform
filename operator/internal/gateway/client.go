@@ -21,6 +21,7 @@ type Client interface {
 type GatewayModel struct {
 	ModelName     string        `json:"model_name"`
 	LiteLLMParams LiteLLMParams `json:"litellm_params"`
+	ModelInfo     *ModelInfo   `json:"model_info,omitempty"`
 }
 
 // LiteLLMParams holds the LiteLLM-specific model configuration.
@@ -28,6 +29,12 @@ type LiteLLMParams struct {
 	Model   string `json:"model"`
 	APIBase string `json:"api_base"`
 	APIKey  string `json:"api_key,omitempty"`
+	Weight  *int   `json:"weight,omitempty"`
+}
+
+// ModelInfo holds additional model metadata for LiteLLM.
+type ModelInfo struct {
+	Mode string `json:"mode,omitempty"`
 }
 
 // HTTPClient implements Client using HTTP.

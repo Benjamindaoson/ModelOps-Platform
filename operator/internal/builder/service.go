@@ -57,3 +57,37 @@ func BuildService(md *v1alpha1.ModelDeployment, engine string) *corev1.Service {
 		},
 	}
 }
+
+// EnginePort returns the HTTP port for a given inference engine.
+func EnginePort(engine string) int32 {
+	return getEnginePort(engine)
+}
+
+// BuildCanaryService creates a ClusterIP Service for a canary ModelDeployment.
+func BuildCanaryService(canaryMD *v1alpha1.ModelDeployment, engine string, mainName string) *corev1.Service {
+	port := getEnginePort(engine)
+	labels := buildLabels(mainName+"-canary", engine)
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mainName + "-canary",
+			Namespace: canaryMD.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Selector: map[string]string{
+				"app.kubernetes.io/name": engine,
+				"kube-llmops/model":      mainName + "-canary",
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "http",
+					Port:       port,
+					TargetPort: intstr.FromInt32(port),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+		},
+	}
+}

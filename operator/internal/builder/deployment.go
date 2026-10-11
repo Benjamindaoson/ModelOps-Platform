@@ -344,3 +344,219 @@ func buildTolerations(gpuResourceName string) []corev1.Toleration {
 		},
 	}
 }
+
+// CanarySlug converts a HuggingFace model source to a filesystem-safe slug for canary models.
+func CanarySlug(source string) string {
+	return modelSlug(source) + "-canary"
+}
+
+// BuildCanaryPVC creates a PVC for canary model cache.
+func BuildCanaryPVC(md *v1alpha1.ModelDeployment, canarySlug string) *corev1.PersistentVolumeClaim {
+	return &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      md.Name + "-canary-cache",
+			Namespace: md.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "pvc",
+				"app.kubernetes.io/instance": md.Name + "-canary",
+				"app.kubernetes.io/part-of":  "kube-llmops",
+				"kube-llmops/model":        md.Name,
+			},
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("30Gi"),
+				},
+			},
+		},
+	}
+}
+
+// BuildCanaryDeployment creates a Kubernetes Deployment for the canary model.
+func BuildCanaryDeployment(canaryMD *v1alpha1.ModelDeployment, engine string, platform *v1alpha1.LLMPlatform, mainName string, canarySlug string) *appsv1.Deployment {
+	cfg := engines[engine]
+
+	labels := map[string]string{
+		"app.kubernetes.io/name":      engine,
+		"app.kubernetes.io/instance":  mainName + "-canary",
+		"app.kubernetes.io/part-of":   "kube-llmops",
+		"app.kubernetes.io/component": "canary",
+		"kube-llmops/model":          mainName + "-canary",
+		"kube-llmops/engine":         engine,
+		"kube-llmops/canary":        "true",
+	}
+
+	args := buildCanaryEngineArgs(canaryMD, engine, canarySlug, cfg.Port)
+	gpuResourceName := resolveGPUResource(canaryMD)
+	volumes, volumeMounts := buildCanaryVolumes(mainName)
+	containerResources := buildCanaryContainerResources(canaryMD, gpuResourceName)
+
+	probe := &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/health",
+				Port: intstr.FromInt32(cfg.Port),
+			},
+		},
+		InitialDelaySeconds: 30,
+		PeriodSeconds:       10,
+		TimeoutSeconds:      5,
+		FailureThreshold:   3,
+	}
+
+	mainContainer := corev1.Container{
+		Name:            "model-server",
+		Image:           cfg.Image,
+		Args:            args,
+		Ports:           []corev1.ContainerPort{{Name: "http", ContainerPort: cfg.Port, Protocol: corev1.ProtocolTCP}},
+		Resources:       containerResources,
+		VolumeMounts:    volumeMounts,
+		ReadinessProbe:   probe,
+		LivenessProbe:    probe.DeepCopy(),
+	}
+
+	if engine == "sglang" {
+		mainContainer.Command = []string{"python3", "-m", "sglang.launch_server"}
+	}
+
+	tolerations := buildTolerations(gpuResourceName)
+	strategy := appsv1.DeploymentStrategy{
+		Type: appsv1.RecreateDeploymentStrategyType,
+	}
+
+	var terminationGracePeriod int64 = 90
+	enableServiceLinks := false
+
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mainName + "-canary",
+			Namespace: canaryMD.Namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: canaryMD.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/instance": mainName + "-canary",
+				},
+			},
+			Strategy: strategy,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					Containers:                    []corev1.Container{mainContainer},
+					Volumes:                      volumes,
+					Tolerations:                   tolerations,
+					EnableServiceLinks:            &enableServiceLinks,
+					TerminationGracePeriodSeconds: &terminationGracePeriod,
+				},
+			},
+		},
+	}
+}
+
+func buildCanaryEngineArgs(canaryMD *v1alpha1.ModelDeployment, engine, canarySlug string, port int32) []string {
+	modelPath := fmt.Sprintf("/models/%s", canarySlug)
+	var args []string
+
+	switch engine {
+	case "vllm":
+		args = []string{
+			"--model", modelPath,
+			"--served-model-name", canaryMD.Name,
+			"--host", "0.0.0.0",
+			"--port", fmt.Sprintf("%d", port),
+		}
+	case "sglang":
+		args = []string{
+			"--model-path", modelPath,
+			"--served-model-name", canaryMD.Name,
+			"--host", "0.0.0.0",
+			"--port", fmt.Sprintf("%d", port),
+		}
+	case "tei":
+		args = []string{
+			"--model-id", modelPath,
+			"--hostname", "0.0.0.0",
+			"--port", fmt.Sprintf("%d", port),
+		}
+	case "llamacpp":
+		args = []string{
+			"--model", modelPath,
+			"--host", "0.0.0.0",
+			"--port", fmt.Sprintf("%d", port),
+		}
+	}
+
+	if len(canaryMD.Spec.EngineArgs) > 0 {
+		keys := make([]string, 0, len(canaryMD.Spec.EngineArgs))
+		for k := range canaryMD.Spec.EngineArgs {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			args = append(args, k, canaryMD.Spec.EngineArgs[k])
+		}
+	}
+
+	return args
+}
+
+func buildCanaryVolumes(mainName string) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: "model-cache",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mainName + "-canary-cache",
+				},
+			},
+		},
+	}
+	mounts := []corev1.VolumeMount{
+		{Name: "model-cache", MountPath: "/models"},
+	}
+
+	return volumes, mounts
+}
+
+func buildCanaryContainerResources(canaryMD *v1alpha1.ModelDeployment, gpuResourceName string) corev1.ResourceRequirements {
+	limits := corev1.ResourceList{}
+	requests := corev1.ResourceList{}
+
+	memory := canaryMD.Spec.Resources.Memory
+	if memory == "" {
+		memory = "16Gi"
+	}
+	cpu := canaryMD.Spec.Resources.CPU
+	if cpu == "" {
+		cpu = "4"
+	}
+
+	if memory != "" {
+		mem := resource.MustParse(memory)
+		limits[corev1.ResourceMemory] = mem
+		requests[corev1.ResourceMemory] = mem
+	}
+	if cpu != "" {
+		c := resource.MustParse(cpu)
+		limits[corev1.ResourceCPU] = c
+		requests[corev1.ResourceCPU] = c
+	}
+	if canaryMD.Spec.Resources.GPU > 0 {
+		gpuQty := resource.MustParse(fmt.Sprintf("%d", canaryMD.Spec.Resources.GPU))
+		limits[corev1.ResourceName(gpuResourceName)] = gpuQty
+		requests[corev1.ResourceName(gpuResourceName)] = gpuQty
+	}
+
+	return corev1.ResourceRequirements{
+		Limits:   limits,
+		Requests: requests,
+	}
+}
