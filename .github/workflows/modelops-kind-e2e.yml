@@ -7,6 +7,10 @@ on:
       - "ops/**"
       - ".github/workflows/modelops-kind-e2e.yml"
   workflow_dispatch: {}
+concurrency:
+  group: modelops-kind-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
