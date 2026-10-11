@@ -63,3 +63,6 @@ tmp/
 .tmp/
 dashboard/dashboard
 .superpowers/
+
+# Never commit measured inference outputs or request logs
+benchmarks/results/
