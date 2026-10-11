@@ -18,6 +18,15 @@ metadata:
     app.kubernetes.io/name: finetune
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/part-of: kube-llmops
+  annotations:
+    modelops.io/base-model: {{ .Values.baseModel | quote }}
+    modelops.io/output-name: {{ .Values.outputName | quote }}
+    modelops.io/method: {{ .Values.method | quote }}
+    modelops.io/data-source-type: {{ .Values.dataSource.type | quote }}
+    modelops.io/data-source-path: {{ .Values.dataSource.path | quote }}
+    modelops.io/data-source-format: {{ .Values.dataSource.format | default "alpaca" | quote }}
+    modelops.io/deploy-auto: {{ .Values.deploy.auto | quote }}
+    modelops.io/canary-percent: {{ .Values.deploy.canaryPercent | quote }}
 spec:
   serviceAccountName: {{ .Release.Name }}-finetune
   activeDeadlineSeconds: 21600

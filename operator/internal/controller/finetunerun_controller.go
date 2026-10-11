@@ -48,6 +48,7 @@ type FineTuneRunReconciler struct {
 // +kubebuilder:rbac:groups=llmops.kubellmops.io,resources=finetuneruns/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=llmops.kubellmops.io,resources=finetuneruns/finalizers,verbs=update
 // +kubebuilder:rbac:groups=argoproj.io,resources=workflows,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=argoproj.io,resources=workflowtemplates,verbs=get;list;watch
 
 var argoWorkflowGVR = schema.GroupVersionResource{
 	Group:    "argoproj.io",
@@ -146,6 +147,29 @@ func (r *FineTuneRunReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	releaseName := r.ReleaseName
 	if releaseName == "" {
 		releaseName = "kube-llmops"
+	}
+
+	// Resolve the active, Helm-rendered implementation. Prior upstream code
+	// created six no-op steps and could falsely report successful training.
+	tmpl:=&unstructured.Unstructured{}
+	tmpl.SetGroupVersionKind(schema.GroupVersionKind{Group:"argoproj.io",Version:"v1alpha1",Kind:"WorkflowTemplate"})
+	templateErr:=r.Get(ctx,types.NamespacedName{Name:releaseName+"-finetune",Namespace:ftr.Namespace},tmpl)
+	var contractErr error
+	if templateErr==nil {
+		contractErr=VerifyFineTuneTemplateContract(ftr,tmpl.GetAnnotations())
+	} else {
+		contractErr=fmt.Errorf("missing Argo WorkflowTemplate %s-finetune: %w",releaseName,templateErr)
+	}
+	if contractErr!=nil {
+		log.Error(contractErr,"FineTuneRun rejected: no matching executable WorkflowTemplate")
+		ftr.Status.Phase="Failed"
+		setCondition(&ftr.Status.Conditions,metav1.Condition{
+			Type:"WorkflowReady",Status:metav1.ConditionFalse,
+			Reason:"TemplateContractMismatch",Message:contractErr.Error(),
+			LastTransitionTime:metav1.Now(),ObservedGeneration:ftr.Generation,
+		})
+		if err:=r.refetchAndUpdateStatus(ctx,req,ftr);err!=nil{return ctrl.Result{},err}
+		return ctrl.Result{},nil
 	}
 
 	wf := builder.BuildArgoWorkflow(ftr, releaseName)
