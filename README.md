@@ -4,22 +4,24 @@
 
 A Kubernetes-native engineering project for the complete **model lifecycle**: register, deploy, benchmark, fine-tune, evaluate, release, observe, and roll back AI models.
 
-> **Development status: source foundation imported; independent static/CI gates and CPU Kubernetes/LiteLLM smoke have passed.** A separate runtime-hardening branch adds SGLang Operator deployment, independent training evaluation/approval, inference performance instrumentation and security preflight. **Actual GPU serving, GPU fine-tuning and multi-node HA are not yet validated.** This is an active engineering adaptation of [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops), not an independently implemented product from scratch.
+> **Engineering Preview — NOT a completed enterprise platform.** The upstream foundation is imported; static CI and CPU Kubernetes/LiteLLM health checks passed. SGLang Operator support, fine-tune validation, inference measurement tools and P0 correctness fixes are merged. **Independent platform audit estimates about 40% non-GPU platform completeness** (heuristic rubric, not an automated metric). The product UI, unified model registry/API, per-job fine-tuning parameters, least-privilege RBAC and complete Operator/Canary E2E are still missing. **GPU serving, GPU training and multi-node HA are unverified.** Derived from [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops) (Apache-2.0).
 
 ## Architecture at a glance
 
 ```text
 ModelOps Control Plane        Registry / revisions / rollout policies / quotas
         |
-Inference Plane              vLLM | llama.cpp | TEI  (upstream)
-                             SGLang hardening / ASR / TTS (planned)
+Inference Plane              vLLM | SGLang | llama.cpp | TEI
+                             (Helm configs; live models not yet validated)
+                             ASR / TTS first-class adapters (planned)
         |
 Training Plane               FineTuneRun -> Argo -> LLaMA-Factory -> MLflow
         |                    (upstream pipeline; real GPU E2E validation pending)
         |
 Observability                 Prometheus | Grafana | Langfuse | logs
         |
-Kubernetes Operator + Helm   Reconcile | deploy | canary | rollback
+Kubernetes Operator + Helm   Reconcile | deploy (partial)
+                             Canary/rollback consistency (in progress)
 ```
 
 ## What exists today
@@ -45,7 +47,7 @@ The imported baseline already contains:
 | M5 | Reliability and security | Failure injection, fault recovery, runbooks, SLOs, tenant isolation |
 | M6 | AI-assisted operations | Audited diagnosis and human-approved changes |
 
-See [implementation plan](docs/IMPLEMENTATION_PLAN.md).
+See the [full platform audit and weighted completion rubric](docs/PLATFORM_AUDIT_2026-10-11.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), and [prioritized platform milestones](https://github.com/Benjamindaoson/ModelOps-Platform/issues).
 
 ## Quick static check (no GPU required)
 
@@ -56,7 +58,8 @@ helm lint charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml
 helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml > /dev/null
 
 # Operator/unit tests (Go 1.25+)
-cd operator && go test ./...
+cd operator && go test ./api/v1alpha1 ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...
+# Full controller envtest requires a separate Kubernetes API/etcd test environment.
 ```
 
 These are static / CPU-oriented checks and do not constitute a working production deployment.
@@ -69,6 +72,7 @@ These are static / CPU-oriented checks and do not constitute a working productio
 - [`plugins/`](plugins/) — Headlamp plugin UI.
 - [`tests/`](tests/) — existing integration and Helm template tests.
 - [`docs/UPSTREAM_PROVENANCE.md`](docs/UPSTREAM_PROVENANCE.md) — pinned upstream source and license attribution.
+- [`docs/PLATFORM_AUDIT_2026-10-11.md`](docs/PLATFORM_AUDIT_2026-10-11.md) — precise feature audit, JD fit, major blockers and acceptance roadmap.
 - [`docs/DELIVERY_STATUS_2026-10-11.md`](docs/DELIVERY_STATUS_2026-10-11.md) — completed changes, real evidence and outstanding hardware/security requirements.
 - [`benchmarks/inference/`](benchmarks/inference/) — live-load benchmarking and A/B evidence checks.
 - [`pipelines/`](pipelines/) — real adapter merge, heldout dataset verification and fail-closed promotion.
