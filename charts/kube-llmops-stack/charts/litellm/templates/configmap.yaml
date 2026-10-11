@@ -139,9 +139,10 @@ data:
     {{- end }}
 
     general_settings:
-      master_key: {{ .Values.masterKey | default "sk-kube-llmops-default" }}
+      # Never emit admin credentials into world-readable ConfigMaps.
+      master_key: os.environ/LITELLM_MASTER_KEY
       {{- if .Values.postgresql.enabled }}
-      database_url: postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ $.Release.Name }}-litellm-pg:{{ .Values.postgresql.service.port }}/{{ .Values.postgresql.auth.database }}
+      database_url: os.environ/DATABASE_URL
       {{- end }}
       {{- if .Values.rateLimiting.enabled }}
       global_max_parallel_requests: {{ .Values.rateLimiting.globalMaxParallelRequests | default 100 }}

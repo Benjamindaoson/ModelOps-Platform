@@ -53,12 +53,16 @@ func newFinetuneCreateCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a fine-tuning run",
+		Short: "Submit a run from the configured Helm WorkflowTemplate",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if qualityGate && !eval {
-				return fmt.Errorf("--quality-gate requires --eval")
+			// The operator currently references a fixed Helm WorkflowTemplate.
+			// Previously the CLI always set epochs/batch/GPU defaults even
+			// when the caller provided none; every run then failed a contract
+			// check at reconcile time. Surface unsupported overrides up front.
+			if err := validateTemplateBoundFlags(cmd); err != nil {
+				return err
 			}
-			ftr := buildFineTuneRun(baseModel, outputName, method, dataSource, dataFormat, epochs, batchSize, learningRate, loraRank, loraAlpha, gpu, eval, qualityGate, autoDeploy, canaryWeight)
+			ftr := buildTemplateBoundFineTuneRun(baseModel, outputName, method, dataSource, dataFormat, autoDeploy, canaryWeight)
 
 			if dryRun {
 				printer.PrintFineTuneRuns(os.Stdout, "yaml", []v1alpha1.FineTuneRun{*ftr})
@@ -88,8 +92,8 @@ func newFinetuneCreateCmd() *cobra.Command {
 	cmd.Flags().Int32Var(&loraRank, "lora-rank", 16, "LoRA rank")
 	cmd.Flags().Int32Var(&loraAlpha, "lora-alpha", 32, "LoRA alpha")
 	cmd.Flags().Int32Var(&gpu, "gpu", 1, "GPU count")
-	cmd.Flags().BoolVar(&eval, "eval", false, "Enable evaluation")
-	cmd.Flags().BoolVar(&qualityGate, "quality-gate", false, "Enable quality gate")
+	cmd.Flags().BoolVar(&eval, "eval", true, "Required by the Helm WorkflowTemplate")
+	cmd.Flags().BoolVar(&qualityGate, "quality-gate", true, "Required by the Helm WorkflowTemplate")
 	cmd.Flags().BoolVar(&autoDeploy, "auto-deploy", false, "Auto-deploy on success")
 	cmd.Flags().Int32Var(&canaryWeight, "canary-weight", 0, "Canary weight for auto-deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print YAML without applying")
@@ -246,6 +250,39 @@ func newFinetuneDeleteCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&force, "force", false, "Skip confirmation")
 	return cmd
+}
+
+// validateTemplateBoundFlags refuses options that cannot be applied to the
+// fixed Helm WorkflowTemplate. The following commands are not per-job tuning:
+// users configure these in the Helm release, then submit a matching job.
+func validateTemplateBoundFlags(cmd *cobra.Command) error {
+	for _, name := range []string{"epochs", "batch-size", "learning-rate", "lora-rank", "lora-alpha", "gpu"} {
+		if cmd.Flags().Changed(name) {
+			return fmt.Errorf("--%s cannot override a fixed Helm WorkflowTemplate; configure the Helm release first", name)
+		}
+	}
+	if eval, err := cmd.Flags().GetBool("eval"); err != nil || !eval {
+		return fmt.Errorf("independent evaluation is mandatory in this WorkflowTemplate")
+	}
+	if gate, err := cmd.Flags().GetBool("quality-gate"); err != nil || !gate {
+		return fmt.Errorf("independent quality gate is mandatory in this WorkflowTemplate")
+	}
+	return nil
+}
+
+func buildTemplateBoundFineTuneRun(baseModel, outputName, method, dataSource, format string, autoDeploy bool, canaryWeight int32) *v1alpha1.FineTuneRun {
+	// Zero-valued training and resource overrides mean inherit the existing
+	// Helm training configuration, not "run zero epochs" or "run on CPU".
+	if strings.HasPrefix(dataSource, "hf://") {
+		dataSource = strings.TrimPrefix(dataSource, "hf://")
+	}
+	if strings.HasPrefix(dataSource, "minio://") {
+		dataSource = "s3://" + strings.TrimPrefix(dataSource, "minio://")
+	}
+	spec := buildFineTuneRun(baseModel, outputName, method, dataSource, format, 0, 0, "", 0, 0, 0, true, true, autoDeploy, canaryWeight)
+	spec.Spec.Training = v1alpha1.TrainingSpec{}
+	spec.Spec.Resources = v1alpha1.ModelResources{}
+	return spec
 }
 
 func buildFineTuneRun(baseModel, outputName, method, dataSource, dataFormat string, epochs, batchSize int32, learningRate string, loraRank, loraAlpha, gpu int32, eval, qualityGate, autoDeploy bool, canaryWeight int32) *v1alpha1.FineTuneRun {

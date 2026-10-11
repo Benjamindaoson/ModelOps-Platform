@@ -18,7 +18,7 @@ package v1alpha1
 
 import "fmt"
 
-// +kubebuilder:webhook:path=/validate-llmops-kubeai-io-v1alpha1-finetunerun,mutating=false,failurePolicy=fail,sideEffects=None,groups=llmops.kubeai.io,resources=finetuneruns,verbs=create;update,versions=v1alpha1,name=vfinetunerun.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-llmops-kubellmops-io-v1alpha1-finetunerun,mutating=false,failurePolicy=fail,sideEffects=None,groups=llmops.kubellmops.io,resources=finetuneruns,verbs=create;update,versions=v1alpha1,name=vfinetunerun.kubellmops.io,admissionReviewVersions=v1
 
 // ValidateFineTuneRunSpec validates a FineTuneRunSpec.
 func ValidateFineTuneRunSpec(spec *FineTuneRunSpec) error {

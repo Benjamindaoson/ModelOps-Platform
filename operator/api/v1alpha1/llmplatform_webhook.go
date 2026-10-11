@@ -18,7 +18,7 @@ package v1alpha1
 
 import "fmt"
 
-// +kubebuilder:webhook:path=/validate-llmops-kubeai-io-v1alpha1-llmplatform,mutating=false,failurePolicy=fail,sideEffects=None,groups=llmops.kubeai.io,resources=llmplatforms,verbs=create;update,versions=v1alpha1,name=vllmplatform.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-llmops-kubellmops-io-v1alpha1-llmplatform,mutating=false,failurePolicy=fail,sideEffects=None,groups=llmops.kubellmops.io,resources=llmplatforms,verbs=create;update,versions=v1alpha1,name=vllmplatform.kubellmops.io,admissionReviewVersions=v1
 
 // ValidateLLMPlatformSpec validates an LLMPlatformSpec.
 func ValidateLLMPlatformSpec(spec *LLMPlatformSpec) error {

@@ -55,7 +55,7 @@ jobs:
           cache-dependency-path: operator/go.sum
       - name: Test engine selection, resource builders and gateway
         working-directory: operator
-        run: go test ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...
+        run: go test ./api/v1alpha1 ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...
 
   python-contracts:
     runs-on: ubuntu-latest
