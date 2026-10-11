@@ -5,7 +5,7 @@ import { Activity, ArrowDownUp, Check, CheckCircle2, CloudOff, Clock3,
   Database, HardDriveDownload, Layers3, Plus, RefreshCcw, Server, ShieldAlert,
   Terminal, Trash2, X } from "lucide-react";
 import { ApiError, apiRequest, fmtDate, shortId } from "@/lib/api";
-import type { Artifact, AuditEvent, Dataset, Deployment, Evaluation, Overview, TrainJob } from "@/lib/api";
+import type { Approval, Artifact, AuditEvent, Dataset, Deployment, Evaluation, Overview, TrainJob } from "@/lib/api";
 
 const TITLES: Record<string, [string, string]> = {
   dashboard: ["Workspace overview", "A verifiable view of your model infrastructure and runtime state."],
@@ -14,14 +14,14 @@ const TITLES: Record<string, [string, string]> = {
   datasets: ["Dataset registry", "Versioned datasets, immutable checksums and heldout coverage."],
   training: ["Fine-tuning jobs", "Submit independent, parameterized Argo workflows and inspect real status."],
   evaluations: ["Evaluation evidence", "Signed benchmark records and independently approved quality results."],
-  audit: ["Audit trail", "Traceable, tenant-scoped changes to model and infrastructure resources."],
+  approvals: ["Release approvals", "Human-reviewed, independently evaluated model release decisions."],\n  audit: ["Audit trail", "Traceable, tenant-scoped changes to model and infrastructure resources."],
   settings: ["Environment", "Security, API mode and runtime connection prerequisites."],
 };
 
 const SOURCES: Record<string, string> = {
   dashboard: "overview", models: "models", deployments: "deployments",
   datasets: "datasets", training: "train-jobs", evaluations: "evaluations",
-  audit: "audit", settings: "overview",
+  audit: "audit", approvals: "approvals", settings: "overview",
 };
 
 function Status({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "good" | "warning" | "neutral" }) {
@@ -90,29 +90,93 @@ function Datasets({ rows }: { rows: Dataset[] }) {
       <td><ShortHash value={r.digest}/><span className="sub-line">{fmtDate(r.created_at)}</span></td></tr>)}</tbody></table></div>;
 }
 
-function Deployments({ rows, act, busy }: {
-  rows: Deployment[]; act: (path: string, body: unknown, method?: "POST" | "PATCH" | "DELETE") => Promise<void>; busy: boolean;
+function Deployments({ rows, act, busy, artifacts, approvals }: {
+  rows: Deployment[]; artifacts: Artifact[]; approvals: Approval[];
+  act: (path: string, body: unknown, method?: "POST" | "PATCH" | "DELETE") => Promise<void>; busy: boolean;
 }) {
+  const [selected, setSelected] = useState<Deployment | null>(null);
+  const [revisions, setRevisions] = useState<{ id: string; generation: number; artifact_id: string; operation: string; created_at: string }[]>([]);
+  const [releaseModel, setReleaseModel] = useState("");
+  const [releaseApproval, setReleaseApproval] = useState("");
+  const [historyError, setHistoryError] = useState("");
+  const current = selected ? rows.find(x => x.id === selected.id) || selected : null;
+
+  async function manage(row: Deployment) {
+    setSelected(row); setReleaseModel(""); setReleaseApproval(""); setHistoryError("");
+    try {
+      const records = await apiRequest<typeof revisions>("deployments/" + row.id + "/revisions");
+      setRevisions(records);
+    } catch (err) { setHistoryError(err instanceof Error ? err.message : "History unavailable"); }
+  }
+
   if (!rows.length) return <Empty message="No deployments have been submitted to Kubernetes. Offline metadata-only mode cannot create fake runtime instances."/>;
-  return <div className="table-scroll"><table><thead><tr><th>DEPLOYMENT</th><th>ENGINE</th><th>RUNTIME PHASE</th><th>RESOURCES</th><th>ACTIONS</th></tr></thead>
-    <tbody>{rows.map(r => <tr key={r.id}><td><strong>{r.name}</strong><span className="sub-line">Generation {r.generation} · <ShortHash value={r.artifact_id}/></span></td>
-      <td>{r.engine}</td>
-      <td><Status tone={r.runtime_verified && r.observed_phase === "Ready" ? "good" : "warning"}>
-        {r.observed_phase || "Pending"}</Status><span className="sub-line">{r.intent}</span></td>
-      <td>{r.replicas} replicas<span className="sub-line">{r.gpu} GPU each</span></td>
-      <td><div className="row-actions">
-        <button disabled={busy || r.intent === "deleted"} className="table-button"
-          onClick={() => act("deployments/" + r.id + "/scale",
-            { replicas: r.replicas + 1, expected_generation: r.generation }, "PATCH")}>Scale +</button>
-        <button disabled={busy || r.replicas === 0 || r.intent === "deleted"} className="table-button"
-          onClick={() => act("deployments/" + r.id + "/scale",
-            { replicas: Math.max(0, r.replicas - 1), expected_generation: r.generation }, "PATCH")}>Scale −</button>
-        <button disabled={busy || r.intent === "deleted"} className="table-button danger"
-          onClick={() => { if (window.confirm("Delete Kubernetes deployment " + r.name + "?")) {
-            void act("deployments/" + r.id, undefined, "DELETE");
-          } }}><Trash2 size={14}/></button>
-      </div></td>
-    </tr>)}</tbody></table></div>;
+  return <div>
+    <div className="table-scroll"><table><thead><tr><th>DEPLOYMENT</th><th>ENGINE</th><th>RUNTIME PHASE</th><th>RESOURCES</th><th>ACTIONS</th></tr></thead>
+      <tbody>{rows.map(r => <tr key={r.id}><td><strong>{r.name}</strong><span className="sub-line">Generation {r.generation} · <ShortHash value={r.artifact_id}/></span></td>
+        <td>{r.engine}</td>
+        <td><Status tone={r.runtime_verified && r.observed_phase === "Ready" ? "good" : "warning"}>
+          {r.observed_phase || "Pending"}</Status><span className="sub-line">{r.intent}</span></td>
+        <td>{r.replicas} replicas<span className="sub-line">{r.gpu} GPU each</span></td>
+        <td><div className="row-actions">
+          <button disabled={busy || r.intent === "deleted"} className="table-button" onClick={() => void manage(r)}>Release</button>
+          <button disabled={busy || r.intent === "deleted"} className="table-button"
+            onClick={() => void act("deployments/" + r.id + "/scale",
+              { replicas: r.replicas + 1, expected_generation: r.generation }, "PATCH").catch(() => {})}>Scale +</button>
+          <button disabled={busy || r.replicas === 0 || r.intent === "deleted"} className="table-button"
+            onClick={() => void act("deployments/" + r.id + "/scale",
+              { replicas: Math.max(0, r.replicas - 1), expected_generation: r.generation }, "PATCH").catch(() => {})}>Scale −</button>
+          <button disabled={busy || r.intent === "deleted"} className="table-button danger"
+            onClick={() => { if (window.confirm("Delete Kubernetes deployment " + r.name + "?")) {
+              void act("deployments/" + r.id, undefined, "DELETE").catch(() => {});
+            } }}><Trash2 size={14}/></button>
+        </div></td>
+      </tr>)}</tbody></table></div>
+    {current && <div className="release-panel">
+      <div className="form-heading"><strong>Release history · {current.name}</strong>
+        <button className="icon-button" onClick={() => setSelected(null)} aria-label="Close release management"><X size={17}/></button></div>
+      {historyError && <p className="error-inline" role="alert">{historyError}</p>}
+      <div className="release-grid">
+        <div>
+          <h3>Immutable revisions</h3>
+          {revisions.length ? revisions.map(r => <div className="history-row" key={r.id}>
+            <strong>Gen {r.generation}</strong><span>{r.operation}</span><ShortHash value={r.artifact_id}/>
+          </div>) : <p className="form-hint">No history available</p>}
+        </div>
+        <div>
+          <h3>Approved promotion</h3>
+          <label className="field">Target artifact
+            <select value={releaseModel} onChange={e => { setReleaseModel(e.target.value); setReleaseApproval(""); }}>
+              <option value="">Choose a registered model</option>
+              {artifacts.filter(a => a.family === (current.engine === "tei" ? "embedding" : "llm")).map(a =>
+                <option key={a.id} value={a.id}>{a.name} v{a.version}</option>)}
+            </select>
+          </label>
+          <label className="field">Independent approval
+            <select value={releaseApproval} onChange={e => setReleaseApproval(e.target.value)}>
+              <option value="">Choose an approval</option>
+              {approvals.filter(a => a.artifact_id === releaseModel).map(a => <option key={a.id} value={a.id}>
+                {shortId(a.id)} · {a.approver}
+              </option>)}
+            </select>
+          </label>
+          <div className="row-actions release-actions">
+            <button className="primary-button" disabled={!releaseApproval || !releaseModel || busy}
+              onClick={() => void act("deployments/" + current.id + "/promote", {
+                artifact_id: releaseModel, approval_id: releaseApproval,
+                expected_generation: current.generation,
+              }).then(() => setSelected(null)).catch(() => {})}>Promote approved version</button>
+            <button className="secondary-button" disabled={busy || revisions.length < 2}
+              onClick={() => { if (window.confirm("Roll back this deployment to its previous artifact?")) {
+                void act("deployments/" + current.id + "/rollback", {
+                  replicas: current.replicas, expected_generation: current.generation,
+                }).then(() => setSelected(null)).catch(() => {});
+              } }}>Rollback</button>
+          </div>
+          <p className="form-hint">A release is requested, not marked Ready, until Kubernetes observes the new generation.</p>
+        </div>
+      </div>
+    </div>}
+  </div>;
 }
 
 function Jobs({ rows }: { rows: TrainJob[] }) {
@@ -132,6 +196,16 @@ function Evaluations({ rows }: { rows: Evaluation[] }) {
     <td>{Object.entries(e.metrics).slice(0,3).map(([k,v]) =>
       <div key={k} className="metric-line">{k}: {Number(v).toFixed(3)}</div>)}</td>
   </tr>)}</tbody></table></div>;
+}
+
+function Approvals({ rows }: { rows: Approval[] }) {
+  if (!rows.length) return <Empty message="Release approvals require a passing, independently signed evaluation and an independent admin reviewer."/>;
+  return <div className="table-scroll"><table><thead><tr><th>APPROVAL</th><th>MODEL</th><th>EVALUATION</th><th>REVIEWER</th><th>DATE</th></tr></thead>
+    <tbody>{rows.map(a => <tr key={a.id}>
+      <td><ShortHash value={a.id}/><span className="sub-line" title={a.reason}>{a.reason}</span></td>
+      <td><ShortHash value={a.artifact_id}/></td><td><ShortHash value={a.evaluation_id}/></td>
+      <td>{a.approver}</td><td>{fmtDate(a.created_at)}</td>
+    </tr>)}</tbody></table></div>;
 }
 
 function Audit({ rows }: { rows: AuditEvent[] }) {
@@ -174,8 +248,8 @@ function Dashboard({ overview }: { overview: Overview }) {
   </>;
 }
 
-function NewRecord({ section, artifacts, datasets, close, execute, busy }: {
-  section: string; artifacts: Artifact[]; datasets: Dataset[]; close: () => void;
+function NewRecord({ section, artifacts, datasets, evaluations, close, execute, busy }: {
+  section: string; artifacts: Artifact[]; datasets: Dataset[]; evaluations: Evaluation[]; close: () => void;
   execute: (path: string, data: unknown) => Promise<void>; busy: boolean;
 }) {
   const [busyForm, setBusyForm] = useState(false);
@@ -195,6 +269,9 @@ function NewRecord({ section, artifacts, datasets, close, execute, busy }: {
     } else if (section === "deployments") {
       payload = { name: text("name"), artifact_id: text("artifact_id"),
         engine: text("engine"), replicas: num("replicas"), gpu: num("gpu") };
+    } else if (section === "approvals") {
+      payload = { artifact_id: text("artifact_id"), evaluation_id: text("evaluation_id"),
+        reason: text("reason") };
     } else if (section === "training") {
       resource = "train-jobs";
       payload = { name: text("name"), artifact_id: text("artifact_id"),
@@ -211,6 +288,7 @@ function NewRecord({ section, artifacts, datasets, close, execute, busy }: {
   return <FormFields title={
     section === "models" ? "Register a model version" :
     section === "datasets" ? "Register a dataset version" :
+    section === "approvals" ? "Review release evaluation" :
     section === "training" ? "Submit Argo training job" : "Create Kubernetes deployment"}
     submit={submit} onCancel={close} busy={disabled}>
     {section === "models" && <>
@@ -221,6 +299,15 @@ function NewRecord({ section, artifacts, datasets, close, execute, busy }: {
       <Field label="Hugging Face repository / artifact source" name="source" placeholder="Qwen/Qwen2.5-0.5B-Instruct"/>
       <Field label="SHA-256 digest (64 hexadecimal characters)" name="digest" placeholder="Actual artifact digest, verified externally"/>
       <p className="form-hint">Registration preserves your declared hash. Runtime verification is separate; this does not attest to artifact bytes.</p>
+    </>}
+    {section === "approvals" && <>
+      <SelectField label="Evaluated artifact" name="artifact_id"
+        choices={artifacts.filter(a => evaluations.some(e => e.artifact_id===a.id && e.verified && e.passed))
+          .map(a => ({ value: a.id, text: a.name + " v" + a.version }))}/>
+      <SelectField label="Passed evaluation" name="evaluation_id" choices={evaluations.filter(e => e.verified && e.passed)
+        .map(e => ({ value: e.id, text: shortId(e.id) + " · Model " + shortId(e.artifact_id) }))}/>
+      <Field label="Reason for independent approval" name="reason" placeholder="Evidence and risk review completed"/>
+      <p className="form-hint">The reviewer must be an admin distinct from the evaluation submitter.</p>
     </>}
     {section === "datasets" && <>
       <div className="form-grid"><Field label="Dataset name" name="name" placeholder="customer-support-v1"/>
@@ -270,6 +357,8 @@ export default function Workspace({ section }: { section: string }) {
   const [data, setData] = useState<unknown>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [approvals, setApprovals] = useState<Approval[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -285,9 +374,12 @@ export default function Workspace({ section }: { section: string }) {
       apiRequest<unknown>(SOURCES[section] || "overview"),
       apiRequest<Artifact[]>("models").catch(() => [] as Artifact[]),
       apiRequest<Dataset[]>("datasets").catch(() => [] as Dataset[]),
-    ]).then(([primary, models, registeredDatasets]) => {
+      apiRequest<Evaluation[]>("evaluations").catch(() => [] as Evaluation[]),
+      apiRequest<Approval[]>("approvals").catch(() => [] as Approval[]),
+    ]).then(([primary, models, registeredDatasets, evaluationRows, approvalRows]) => {
       if (!active) return;
       setData(primary); setArtifacts(models); setDatasets(registeredDatasets);
+      setEvaluations(evaluationRows); setApprovals(approvalRows);
     }).catch(err => { if (active) setError(err instanceof Error ? err.message : "Unable to load"); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active=false; };
@@ -308,18 +400,18 @@ export default function Workspace({ section }: { section: string }) {
   }
 
   const meta = TITLES[section] || TITLES.dashboard;
-  const creatable = ["models","datasets","deployments","training"].includes(section);
+  const creatable = ["models","datasets","deployments","training","approvals"].includes(section);
   return <>
     <div className="page-heading"><div><div className="eyebrow">MODEL OPERATIONS / {section.toUpperCase()}</div>
       <h1>{meta[0]}</h1><p>{meta[1]}</p></div>
       <div className="heading-actions"><button className="secondary-button" onClick={refresh}><RefreshCcw size={16}/> Refresh</button>
         {creatable && <button className="primary-button" onClick={()=>setFormOpen(x=>!x)}><Plus size={17}/>
-          {section==="models"?"Register model":section==="datasets"?"Add dataset":section==="training"?"New training job":"New deployment"}
+          {section==="models"?"Register model":section==="datasets"?"Add dataset":section==="training"?"New training job":section==="approvals"?"Approve release":"New deployment"}
         </button>}</div>
     </div>
     {error && <div className="message error" role="alert"><ShieldAlert size={18}/><span>{error}</span><button className="icon-button" onClick={()=>setError("")}><X size={16}/></button></div>}
     {notice && <div className="message success"><CheckCircle2 size={18}/>{notice}</div>}
-    {formOpen && <NewRecord section={section} artifacts={artifacts} datasets={datasets}
+    {formOpen && <NewRecord section={section} artifacts={artifacts} datasets={datasets} evaluations={evaluations}
       close={()=>setFormOpen(false)} busy={writing} execute={async (path,body)=>act(path,body)}/>}
     {loading ? <div className="loading-table"><div className="loading-spinner"/> Fetching live control-plane records…</div> :
       section==="dashboard" || section==="settings" ?
@@ -338,9 +430,10 @@ export default function Workspace({ section }: { section: string }) {
         </div>
         {section==="models" && <Models rows={(data as Artifact[]) || []}/>}
         {section==="datasets" && <Datasets rows={(data as Dataset[]) || []}/>}
-        {section==="deployments" && <Deployments rows={(data as Deployment[]) || []} act={act} busy={writing}/>}
+        {section==="deployments" && <Deployments rows={(data as Deployment[]) || []} act={act} busy={writing} artifacts={artifacts} approvals={approvals}/>}
         {section==="training" && <Jobs rows={(data as TrainJob[]) || []}/>}
         {section==="evaluations" && <Evaluations rows={(data as Evaluation[]) || []}/>}
+        {section==="approvals" && <Approvals rows={(data as Approval[]) || []}/>}
         {section==="audit" && <Audit rows={(data as AuditEvent[]) || []}/>}
       </div>
     }

@@ -159,3 +159,13 @@ td strong { font-size:12px; color:#17283e; }
   .login-card {padding:25px;}
   .tenant-pill {max-width:140px;overflow:hidden;text-overflow:ellipsis;}
 }
+
+.release-panel { padding:22px 24px; border-top:1px solid #e4ebf4; background:#fafcff; }
+.release-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; }
+.release-grid h3 {font-size:12px; color:#445b78; margin:0 0 15px;}
+.release-grid .field {margin-bottom:14px;}
+.release-actions {display:flex;flex-wrap:wrap;margin-top:15px;}
+.history-row {display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8eef5;padding:12px 0;font-size:12px;color:#6c7a8d;}
+.history-row strong {color:#2d4f79;}
+.history-row span {flex:1;}
+@media (max-width:730px) { .release-grid {grid-template-columns:1fr;} }

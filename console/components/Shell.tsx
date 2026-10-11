@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, Boxes, BrainCircuit, ChartNoAxesCombined, ClipboardList,
-  Database, Gauge, KeyRound, Layers3, LogOut, Menu, Server, Settings2, ShieldCheck, X } from "lucide-react";
+  Database, Gauge, KeyRound, Layers3, LogOut, Menu, Server, Settings2, ShieldCheck, ClipboardCheck, X } from "lucide-react";
 import type { Principal } from "@/lib/api";
 
 const NAV = [
@@ -13,7 +13,7 @@ const NAV = [
   { path: "/deployments", label: "Deployments", icon: Server },
   { path: "/datasets", label: "Datasets", icon: Database },
   { path: "/training", label: "Training jobs", icon: Layers3 },
-  { path: "/evaluations", label: "Evaluations", icon: ChartNoAxesCombined },
+  { path: "/evaluations", label: "Evaluations", icon: ChartNoAxesCombined },\n  { path: "/approvals", label: "Release approvals", icon: ClipboardCheck },
   { path: "/audit", label: "Audit events", icon: ClipboardList },
   { path: "/settings", label: "Environment", icon: Settings2 },
 ];
