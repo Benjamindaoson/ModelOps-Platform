@@ -1,239 +1,78 @@
-**English** | [中文](README.zh-CN.md) | [🌐 Project Site](https://gaearuiw.github.io/kube-llmops/)
+# ModelOps Platform
 
-<div align="center">
+**Enterprise model hosting, inference optimization, and fine-tuning platform**
 
-# kube-llmops
+A Kubernetes-native engineering project for the complete **model lifecycle**: register, deploy, benchmark, fine-tune, evaluate, release, observe, and roll back AI models.
 
-[![GitHub Stars](https://img.shields.io/github/stars/GaeaRuiW/kube-llmops?style=flat-square&logo=github)](https://github.com/GaeaRuiW/kube-llmops)
-[![GitHub Forks](https://img.shields.io/github/forks/GaeaRuiW/kube-llmops?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/fork)
-[![License](https://img.shields.io/github/license/GaeaRuiW/kube-llmops?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/blob/main/LICENSE)
-[![Release](https://img.shields.io/github/v/release/GaeaRuiW/kube-llmops?style=flat-square&logo=helm)](https://github.com/GaeaRuiW/kube-llmops/releases)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?style=flat-square&logo=kubernetes)](https://kubernetes.io)
-[![Go](https://img.shields.io/github/go-mod/go-version/GaeaRuiW/kube-llmops?style=flat-square&logo=go)](https://go.dev)
-[![Helm](https://img.shields.io/badge/Helm-3.x-0F1689?style=flat-square&logo=helm)](https://helm.sh)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/pulls)
-[![Discuss](https://img.shields.io/badge/chat-discussions-8A2BE2?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/discussions)
+> **Development status: M0 upstream foundation imported. Production functionality and GPU performance have not been independently validated in this repository.** This is an active engineering adaptation of [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops), not an independently implemented product from scratch.
 
-**🏆 The most comprehensive Kubernetes-native LLMOps Platform — One command to deploy, manage, monitor, and optimize your entire LLM infrastructure.**
+## Architecture at a glance
 
-</div>
-
-> [!NOTE]
-> v1.0.0 released -- the v1.0 trio is complete: **Operator** (LLMPlatform / ModelDeployment / FineTuneRun CRDs) + **kubectl-llmops CLI** (15+ commands, `kubectl llmops <cmd>`) + **Headlamp Dashboard** (Kubernetes UI + `kube-llmops-portal` plugin). See [CHANGELOG](CHANGELOG.md) for details.
-
-## What is kube-llmops?
-
-`kube-llmops` is an opinionated, batteries-included Helm chart that deploys a complete LLM operations stack on Kubernetes:
-
-- **Model Serving** -- vLLM, llama.cpp, or TEI, auto-selected based on model format (engine auto-detection from source name)
-- **CLI (`kubectl-llmops`)** -- kubectl plugin with 15+ imperative commands: `deploy`, `list`, `status`, `scale`, `canary`, `logs`, `test`, `port-forward`, `finetune`, `rag`, `platform`, `migrate`, ...
-- **AI Gateway** -- LiteLLM for unified OpenAI-compatible API, key management, rate limiting, budget control
-- **Observability** -- Prometheus + Grafana (11 dashboards + 8 alert rules) + Langfuse v3 LLM tracing + node-exporter + kube-state-metrics
-- **Logging** -- Fluent Bit + Loki, queryable in Grafana Explore
-- **Autoscaling** -- KEDA scales vLLM pods based on queue depth, TTFT P95, and TPOT P95; supports scale-to-zero with fallback
-- **Security** -- Keycloak SSO for Grafana/Langfuse, LLM-Guard prompt injection defense, NetworkPolicy isolation
-- **RAG Infrastructure** -- Dify platform + pgvector + TEI embedding/reranking + Ragas evaluation + quality gate
-- **Fine-tuning** -- LLaMA-Factory LoRA/QLoRA/Full fine-tuning with Argo Workflows pipeline + MLflow tracking
-- **Model Distribution** -- MinIO model cache + HuggingFace fallback + hf-transfer multi-threaded downloads
-- **Storage** -- MinIO S3-compatible model storage, PVC model cache
-
-```bash
-# Install from local source (recommended)
-helm install kube-llmops charts/kube-llmops-stack -f values-minimal.yaml
+```text
+ModelOps Control Plane        Registry / revisions / rollout policies / quotas
+        |
+Inference Plane              vLLM | llama.cpp | TEI  (upstream)
+                             SGLang hardening / ASR / TTS (planned)
+        |
+Training Plane               FineTuneRun -> Argo -> LLaMA-Factory -> MLflow
+        |                    (upstream pipeline; real GPU E2E validation pending)
+        |
+Observability                 Prometheus | Grafana | Langfuse | logs
+        |
+Kubernetes Operator + Helm   Reconcile | deploy | canary | rollback
 ```
 
-## Use Cases
+## What exists today
 
-- **"I want to deploy DeepSeek-R1-0528 and let 5 teams share it with token budget limits"**
-- **"I want to see which team burned the most GPU hours this month"**
-- **"I want a GGUF model on llama.cpp and a full-precision model on vLLM behind the same API"**
-- **"I want every LLM request traced with full prompt, tokens, cost, and latency"**
+The imported baseline already contains:
+- **Operator + CLI:** Kubernetes `LLMPlatform`, `ModelDeployment` and `FineTuneRun` resource types with controllers and `kubectl-llmops` command implementation.
+- **Inference packaging:** vLLM, llama.cpp and TEI Helm components, LiteLLM gateway, Kubernetes resources and prebuilt dashboards.
+- **Training scaffolding:** Argo workflow + LLaMA-Factory + MLflow components and a FineTuneRun reconciliation path.
+- **Observability:** Prometheus/Grafana/Langfuse components, example dashboards and alerting.
+- **Management UI:** Headlamp integration via an upstream plugin.
 
-## Architecture
+**Evidence boundary:** upstream CI's scheduled fine-tuning E2E checks Helm templates and script syntax; it does *not* execute an actual GPU training run. Hardware-specific claims, multi-node high availability and inference optimizations are not proven until our own run artifacts are committed.
 
-<p align="center">
-  <img src="docs/images/architecture.svg" alt="kube-llmops Architecture" width="800">
-</p>
+## Development priorities
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical design.
-
-## Screenshots
-
-<table>
-  <tr>
-    <td align="center"><b>API Demo</b><br/><img src="images/demo/api-demo.png" width="400"/></td>
-    <td align="center"><b>Grafana Dashboards</b><br/><img src="images/demo/grafana-dashboards.gif" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>GPU Monitoring (DCGM)</b><br/><img src="images/demo/grafana-gpu-dashboard.png" width="400"/></td>
-    <td align="center"><b>vLLM Model Serving</b><br/><img src="images/demo/grafana-vllm-dashboard.png" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Langfuse LLM Tracing</b><br/><img src="images/demo/langfuse-traces.png" width="400"/></td>
-    <td align="center"><b>MinIO Model Storage</b><br/><img src="images/demo/minio-models.png" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Keycloak SSO</b><br/><img src="images/demo/keycloak-clients.png" width="400"/></td>
-    <td align="center"><b>LiteLLM Gateway</b><br/><img src="images/demo/grafana-litellm-dashboard.png" width="400"/></td>
-  </tr>
-</table>
-
-## Quick Start
-
-### Prerequisites
-
-- Kubernetes cluster (1.28+) with GPU node, or `kind` for CPU-only demo
-- Helm 3.x
-- kubectl
-
-### Install
-
-```bash
-# Install from local source
-helm install kube-llmops charts/kube-llmops-stack \
-  -f charts/kube-llmops-stack/values-single-node.yaml \
-  --set global.nodePort.enabled=true \
-  --set global.nodePort.host=$NODE_IP
-
-# Or install with ingress
-helm install kube-llmops charts/kube-llmops-stack \
-  -f values-minimal.yaml \
-  --set ingress.enabled=true \
-  --set ingress.host=llmops.local
-
-# Or: CPU-only demo (no GPU required)
-helm install kube-llmops charts/kube-llmops-stack -f values-ci.yaml
-```
-
-### Chat with your model
-
-```bash
-curl http://litellm.llmops.local/v1/chat/completions \
-  -H "Authorization: Bearer sk-kube-llmops-dev" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"qwen2-5-0-5b","messages":[{"role":"user","content":"Hello!"}]}'
-```
-
-### Access the UIs
-
-**Option A: Ingress (recommended — no port-forward needed)**
-
-```bash
-# Enable ingress during install
-helm install kube-llmops charts/kube-llmops-stack \
-  -f values-minimal.yaml \
-  --set ingress.enabled=true \
-  --set ingress.host=llmops.local    # or your real domain
-
-# If no real domain, add to /etc/hosts:
-NODE_IP=$(kubectl get node -o jsonpath='{.items[0].status.addresses[0].address}')
-echo "$NODE_IP litellm.llmops.local grafana.llmops.local langfuse.llmops.local keycloak.llmops.local minio.llmops.local prometheus.llmops.local" | sudo tee -a /etc/hosts
-```
-
-| Service | Ingress URL | Default Credentials |
+| Gate | Outcome | Evidence |
 |---|---|---|
-| **LiteLLM** (AI Gateway) | `http://litellm.llmops.local` | any username / `sk-kube-llmops-dev` |
-| **Grafana** (Dashboards) | `http://grafana.llmops.local` | `admin` / `admin123!` |
-| **Langfuse** (LLM Tracing) | `http://langfuse.llmops.local` | `admin@kube-llmops.local` / `admin123!` |
-| **Keycloak** (SSO) | `http://keycloak.llmops.local` | `admin` / `admin123!` |
-| **MinIO** (Object Storage) | `http://minio.llmops.local` | `minioadmin` / `minioadmin` |
-| **Prometheus** (Metrics) | `http://prometheus.llmops.local` | No auth |
+| M0 | License-preserved upstream import | 473/473 source Git blobs verified, source SHA documented |
+| M1 | Trustworthy installation and CI | Go tests, Helm template checks, CPU-kind smoke, secure secrets |
+| M2 | Serving lifecycle | Versioned model deployment, gateway routing, health/rollback |
+| M3 | Optimization bench | TTFT, TPOT, p95/p99 latency, tokens/s, VRAM, KV, concurrency A/B |
+| M4 | Real fine-tune → serving | Dataset, LoRA/QLoRA, held-out eval, MLflow artifacts, release gate |
+| M5 | Reliability and security | Failure injection, fault recovery, runbooks, SLOs, tenant isolation |
+| M6 | AI-assisted operations | Audited diagnosis and human-approved changes |
 
-**Option B: Port-forward (fallback)**
+See [implementation plan](docs/IMPLEMENTATION_PLAN.md).
+
+## Quick static check (no GPU required)
 
 ```bash
-kubectl port-forward svc/kube-llmops-litellm 4000:4000 &
-kubectl port-forward svc/kube-llmops-grafana 3000:3000 &
-kubectl port-forward svc/kube-llmops-langfuse 3001:3000 &
+# Prerequisites: Helm 3 and Internet for chart dependencies
+helm dependency update charts/kube-llmops-stack
+helm lint charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml
+helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml > /dev/null
+
+# Operator/unit tests (Go 1.25+)
+cd operator && go test ./...
 ```
 
-> [!TIP]
-> When SSO is enabled, use **Keycloak** credentials (`admin` / `admin123!`) to log in to Grafana, Langfuse, and MinIO.
-> The Keycloak user email (`admin@kube-llmops.local`) matches the Langfuse init user, so SSO login automatically sees existing projects and traces.
+These are static / CPU-oriented checks and do not constitute a working production deployment.
 
-> [!WARNING]
-> These are development defaults. For production, override via `--set`:
-> ```bash
-> helm install kube-llmops charts/kube-llmops-stack \
->   --set litellm.masterKey=sk-your-secret-key \
->   --set observability.grafana.adminPassword=your-grafana-pw \
->   --set langfuse.init.userPassword=your-langfuse-pw \
->   --set langfuse.externalUrl=https://langfuse.your-domain.com
-> ```
+## Repository layout
 
-## Features
+- [`operator/`](operator/) — CRDs, reconciler controllers, CLI and deployment builders.
+- [`charts/`](charts/) — Helm charts for model engines, gateway, fine-tuning, and monitoring.
+- [`images/`](images/) — model resolver/loader and supporting Docker images.
+- [`plugins/`](plugins/) — Headlamp plugin UI.
+- [`tests/`](tests/) — existing integration and Helm template tests.
+- [`docs/UPSTREAM_PROVENANCE.md`](docs/UPSTREAM_PROVENANCE.md) — pinned upstream source and license attribution.
+- [`docs/upstream/README.md`](docs/upstream/README.md) — unchanged original upstream README.
 
-| Feature | kube-llmops | Raw vLLM | KAITO | KServe |
-|---|---|---|---|---|
-| Engine auto-selection (GPTQ->vLLM, GGUF->llama.cpp) | Yes | N/A | No | No |
-| AI Gateway (key mgmt, cost tracking, rate limit) | Yes | No | No | No |
-| LLM tracing (prompt, tokens, cost per request) | Yes | No | No | No |
-| Pre-built Grafana dashboards (11) + alert rules (8) | Yes | No | No | No |
-| GPU monitoring (DCGM) | Yes | DIY | No | No |
-| KEDA autoscaling (queue + TTFT + TPOT, scale-to-zero) | Yes | No | No | Partial |
-| SSO integration (Keycloak OIDC) | Yes | No | No | No |
-| S3 model storage (MinIO) | Yes | No | No | No |
-| Container log aggregation (Fluent Bit + Loki) | Yes | No | No | No |
-| RAG infrastructure (Dify + eval + guardrails) | Yes | No | No | No |
-| One-click full stack | Yes | N/A | No | No |
-| Cloud-agnostic | Yes | Yes | Azure only | Yes |
+## Licensing & attribution
 
-## Deployment Profiles
+The initial codebase is derived from **GaeaRuiW/kube-llmops**, commit `74f8db47fa2690a4e71ae31532f36b35a587d266`, under **Apache License 2.0**. The upstream `LICENSE`, file headers and attribution are retained. Future changes are traceable in this repository's Git history. Dependencies may carry their own licenses; review them before redistribution or production deployment.
 
-| Profile | GPU | Models | Monitoring | Tracing | Logging | Use Case |
-|---|---|---|---|---|---|---|
-| `values-ci.yaml` | None | None (CPU) | Basic | Off | Off | CI / Demo |
-| `values-minimal.yaml` | 1x | 1 small | Prometheus + Grafana | Langfuse | Fluent Bit + Loki | Development |
-| `values-standard.yaml` | 4-8x | 2-3 | Full OTel stack | Langfuse | Fluent Bit + Loki | Team |
-| `values-production.yaml` | 16+x | N | Full + HA | Full | Full | Enterprise |
-
-## Documentation
-
-- [Getting Started](docs/getting-started.md) -- Installation, configuration, troubleshooting
-- [Architecture](ARCHITECTURE.md) -- Full technical design and technology choices
-- [Changelog](CHANGELOG.md) -- Release notes
-- [Contributing](CONTRIBUTING.md) -- How to contribute
-- [RAG Infrastructure](docs/rag/rag-plan.md) -- RAG components, evaluation, and safety
-- [ADR](docs/adr/) -- Architecture Decision Records
-
-## Roadmap
-
-- [x] **v0.1.0 (MVP)** -- Model serving + Gateway + Metrics + Tracing
-- [x] **v0.2.0** -- Langfuse v3 + Keycloak SSO + Infra automation + NodePort
-- [x] **v0.3.0** -- RAG infra (Dify + pgvector + TEI embedding/reranking + Ragas eval + LLM-Guard + Quality Gate)
-- [x] **v0.4.0** -- Fine-tuning pipeline (LLaMA-Factory + Argo Workflows + MLflow) + JupyterHub + Terraform
-- [x] **v0.5.0** -- Advanced Inference (latency routing, prefix caching, multi-trigger KEDA, scale-to-zero, canary, llm-d, multi-accelerator)
-- [x] **v1.0.0** (current) -- Operator + kubectl-llmops CLI (15+ commands) + Headlamp Dashboard
-
-## License
-
-[Apache License 2.0](LICENSE)
-
-### License Notice
-
-This project is Apache 2.0 licensed. However, some optional dependencies have different licenses:
-
-| Component | License | Required? |
-|---|---|---|
-| Grafana | AGPL-3.0 | Optional (can bring your own) |
-| Loki | AGPL-3.0 | Optional (can use OpenSearch) |
-| All other components | Apache 2.0 / MIT / BSD | Yes |
-
-If AGPL is a concern for your organization, Grafana and Loki can be disabled and replaced with your own visualization and log storage solutions.
-
-## Contributing
-
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Star History
-
-If you find this project useful, please give it a star! ⭐
-
-## 🤝 Community
-
-- 💬 [Discussions](https://github.com/GaeaRuiW/kube-llmops/discussions) — Ask questions, share your setups, suggest features
-- 🐛 [Issues](https://github.com/GaeaRuiW/kube-llmops/issues) — Report bugs or request features
-- 📖 [CONTRIBUTING.md](CONTRIBUTING.md) — Guide for first-time contributors
-- 🏷️ Look for [`good first issue`](https://github.com/GaeaRuiW/kube-llmops/labels/good%20first%20issue) and [`help wanted`](https://github.com/GaeaRuiW/kube-llmops/labels/help%20wanted) labels to get started contributing
-
-**We need your help to reach 1,000 stars!** Every star, issue, PR, and discussion helps the project grow. Share kube-llmops with your team, write a blog post, or contribute a feature — all contributions are welcome ❤️
+**Engineering policy:** do not present imported upstream features as independently built. Quantitative performance claims must include runnable configuration, raw measurements, hardware/environment provenance and a baseline.
