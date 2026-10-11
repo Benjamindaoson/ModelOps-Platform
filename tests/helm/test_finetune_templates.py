@@ -91,7 +91,7 @@ class TestFinetuneEnabled:
 
     def test_clusterrole_rendered(self):
         docs = helm_template(set_values=FINETUNE_BASE)
-        roles = find_by_kind(docs, "ClusterRole", "finetune")
+        roles = find_by_kind(docs, "Role", "finetune")
         assert len(roles) == 1
         rules = roles[0]["rules"]
         # Verify key permissions
@@ -103,9 +103,11 @@ class TestFinetuneEnabled:
 
     def test_clusterrolebinding_rendered(self):
         docs = helm_template(set_values=FINETUNE_BASE)
-        crbs = find_by_kind(docs, "ClusterRoleBinding", "finetune")
+        crbs = find_by_kind(docs, "RoleBinding", "finetune")
         assert len(crbs) == 1
         assert crbs[0]["roleRef"]["name"] == "test-finetune"
+        assert crbs[0]["roleRef"]["kind"] == "Role"
+        assert crbs[0]["metadata"]["namespace"] == "default"
         assert crbs[0]["subjects"][0]["name"] == "test-finetune"
 
     def test_pdb_rendered(self):
