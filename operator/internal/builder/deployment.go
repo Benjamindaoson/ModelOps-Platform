@@ -367,7 +367,7 @@ func BuildCanaryPVC(md *v1alpha1.ModelDeployment, canarySlug string) *corev1.Per
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse("30Gi"),
 				},
