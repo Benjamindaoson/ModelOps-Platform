@@ -30,3 +30,9 @@ def test_scripts_match_chart_source():
     chart = ROOT / "charts/kube-llmops-stack/charts/finetune"
     assert (chart/"files/modelops_merge.py").read_bytes() == (ROOT/"pipelines/training/merge.py").read_bytes()
     assert (chart/"files/modelops_evaluate.py").read_bytes() == (ROOT/"pipelines/evaluation/run.py").read_bytes()
+
+def test_training_dag_verifies_heldout_before_gpu_spend():
+    text=WF.read_text()
+    assert "name: validate-data" in text
+    assert "dependencies: [validate-data]" in text
+    assert "check-data" in text

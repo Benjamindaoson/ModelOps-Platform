@@ -313,9 +313,10 @@ def quality_gate(report_path: Path, candidate: Path, heldout: Path, train_data: 
 def cli(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for action in ("run","gate"):
+    for action in ("run","gate","check-data"):
         p = sub.add_parser(action)
-        p.add_argument("--candidate", type=Path, required=True)
+        if action != "check-data":
+            p.add_argument("--candidate", type=Path, required=True)
         p.add_argument("--train-data", type=Path, required=True)
         p.add_argument("--heldout", type=Path, required=True)
         p.add_argument("--min-samples", type=int, default=20)
@@ -330,7 +331,12 @@ def cli(argv: list[str] | None = None) -> int:
             p.add_argument("--min-delta", type=float, default=-0.02)
     args = parser.parse_args(argv)
     try:
-        if args.cmd == "run":
+        if args.cmd == "check-data":
+            records, data = prepare_heldout(args.heldout,args.train_data,args.min_samples)
+            print(json.dumps({"status":"DATASET_VALIDATED","heldout_samples":len(records),
+                              "train_prompts":data["num_training_prompts"],
+                              "heldout_sha256":data["heldout_sha256"]}))
+        elif args.cmd == "run":
             r = evaluate(args.heldout, args.train_data, args.base_model, args.candidate,
                          args.output, args.min_samples, args.max_new_tokens)
             print(json.dumps({"status":"EVALUATED_NOT_APPROVED","samples":r["num_samples"],
