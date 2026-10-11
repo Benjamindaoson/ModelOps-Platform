@@ -1,0 +1,56 @@
+enabled: false
+
+# Fluid Dataset + AlluxioRuntime for model caching (requires Fluid operator)
+fluidCache:
+  enabled: false
+
+# MinIO for S3-compatible model storage backend
+minio:
+  enabled: true
+  image:
+    repository: minio/minio
+    tag: RELEASE.2025-09-07T16-13-09Z
+    pullPolicy: IfNotPresent
+  accessKey: minioadmin
+  secretKey: minioadmin
+  # Buckets to auto-create on startup (directories under /data)
+  defaultBuckets:
+    - langfuse
+  storage:
+    size: 50Gi
+  service:
+    port: 9000
+    consolePort: 9001
+  # OIDC/SSO for MinIO Console
+  oidc:
+    enabled: false
+    configUrl: ""       # e.g. http://kube-llmops-keycloak:8080/realms/kube-llmops/.well-known/openid-configuration
+    clientId: minio
+    clientSecret: ""
+    displayName: Keycloak
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Alluxio runtime settings for Fluid
+alluxio:
+  replicas: 1
+  tieredStore:
+    # Memory tier for hot data
+    - mediumtype: MEM
+      path: /dev/shm
+      quota: 4Gi
+    # SSD tier for warm data
+    - mediumtype: SSD
+      path: /alluxio-ssd
+      quota: 20Gi
+  jvmOptions:
+    - "-Xmx4g"
+    - "-Xms2g"
+
+pdb:
+  enabled: true

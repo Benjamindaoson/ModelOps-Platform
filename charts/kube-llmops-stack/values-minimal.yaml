@@ -1,0 +1,72 @@
+# Minimal profile: 1 small model + full observability stack
+# Usage: helm install kube-llmops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-minimal.yaml
+#
+# Default model: Qwen2.5-0.5B-Instruct (small, fast to load, works on most GPUs)
+# To use a different model, create an override file — see docs/getting-started.md
+#
+# GPU-specific tuning (add to your own override file if needed):
+#   --enforce-eager: ""              # Required for Blackwell (SM 12.0) GPUs
+#   --attention-backend: TRITON_ATTN # If FlashAttention hangs on your GPU
+#   --gpu-memory-utilization: "0.8"  # Reduce if OOM on small-VRAM cards
+
+models:
+  - name: qwen2-5-0-5b
+    source: Qwen/Qwen2.5-0.5B-Instruct
+    engine: vllm
+    replicas: 1
+    resources:
+      gpu: 1
+      memory: 8Gi
+
+vllm:
+  enabled: true
+  models:
+    - name: qwen2-5-0-5b
+      source: Qwen/Qwen2.5-0.5B-Instruct
+      engine: vllm
+      replicas: 1
+      resources:
+        gpu: 1
+        memory: 8Gi
+
+llamacpp:
+  enabled: true
+  models: []
+
+tei:
+  enabled: true
+  models: []
+
+litellm:
+  enabled: true
+  masterKey: sk-kube-llmops-dev
+  langfuseEnabled: true
+  langfusePublicKey: "pk-lf-kube-llmops"
+  langfuseSecretKey: "sk-lf-kube-llmops"
+  models:
+    - name: qwen2-5-0-5b
+      source: Qwen/Qwen2.5-0.5B-Instruct
+      engine: vllm
+  postgresql:
+    auth:
+      password: llmops-pg-dev-pw
+
+observability:
+  enabled: true
+  dcgmExporter:
+    enabled: true
+  grafana:
+    adminPassword: admin123!
+
+# Langfuse: LLM tracing (prompt, tokens, latency per request)
+# Adds ~205MB memory. Disable with: --set langfuse.enabled=false
+langfuse:
+  enabled: true
+
+# Logging: container log aggregation (Fluent Bit + Loki)
+# Adds ~75MB memory. Disable with: --set logging.enabled=false
+logging:
+  enabled: true
+
+keda:
+  enabled: false

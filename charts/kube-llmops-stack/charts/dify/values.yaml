@@ -1,0 +1,114 @@
+image:
+  api:
+    repository: langgenius/dify-api
+    tag: "1.13.3"
+    pullPolicy: IfNotPresent
+  web:
+    repository: langgenius/dify-web
+    tag: "1.13.3"
+    pullPolicy: IfNotPresent
+  pluginDaemon:
+    repository: langgenius/dify-plugin-daemon
+    tag: "0.5.4-local"
+    pullPolicy: IfNotPresent
+
+# Plugin Daemon settings
+pluginDaemon:
+  # Leave empty to let the chart generate and persist random credentials in a
+  # Kubernetes Secret. Set only through private values, or reference an
+  # externally managed Secret with existingSecret.
+  key: ""
+  innerApiKey: ""
+  existingSecret: ""
+  secretKeys:
+    key: plugin-daemon-key
+    innerApiKey: plugin-daemon-inner-api-key
+
+# Redis for Dify (deployed alongside)
+redis:
+  image:
+    repository: redis
+    tag: "7-alpine"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Dify database (reuses kube-llmops PostgreSQL)
+postgresql:
+  # Connection to existing kube-llmops PostgreSQL
+  host: ""          # Auto: <release>-litellm-pg
+  port: 5432
+  database: dify
+  username: dify
+  password: dify-default-pw
+
+# Pre-configured LiteLLM connection
+litellm:
+  host: ""          # Auto: <release>-litellm
+  port: 4000
+  apiKey: sk-kube-llmops-dev
+
+# Secret key for Dify
+secretKey: "kube-llmops-dify-secret-key-2024"
+
+# Auto-setup: create admin account + install plugins + configure model provider on first deploy
+setup:
+  enabled: true
+  adminEmail: "admin@kube-llmops.local"
+  adminPassword: "Admin123!"
+  adminName: "Admin"
+  # Plugins to pre-install from marketplace (identifier format: org/name)
+  plugins:
+    - id: langgenius/openai_api_compatible
+  # Model provider auto-configuration (uses LiteLLM as OpenAI-compatible backend)
+  modelProvider:
+    enabled: true
+
+# File storage (S3 via MinIO — shared between API + Worker pods)
+storage:
+  s3AccessKey: minioadmin
+  s3SecretKey: minioadmin
+
+# Dify API resources
+api:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Dify Web resources
+web:
+  replicas: 1
+  # Browser-accessible URLs for Dify API (set when using port-forward or ingress)
+  # For port-forward: consoleApiUrl=http://localhost:5001, consoleWebUrl=http://localhost:3002
+  # For ingress: consoleApiUrl=https://dify-api.example.com, consoleWebUrl=https://dify.example.com
+  consoleApiUrl: ""
+  consoleWebUrl: ""
+  appApiUrl: ""
+  corsAllowOrigins: "*"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+service:
+  type: ClusterIP
+  webPort: 3000
+  apiPort: 5001
+
+pdb:
+  enabled: true
+
+# Use an existing Secret instead of auto-generated credentials
+existingSecret: ""

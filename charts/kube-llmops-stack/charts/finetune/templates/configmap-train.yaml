@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-finetune-config
+  labels:
+    app.kubernetes.io/name: finetune
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+data:
+  train_config.yaml: |
+    ### Model
+    model_name_or_path: /workspace/base-model
+    
+    ### Method
+    stage: sft
+    do_train: true
+    finetuning_type: {{ .Values.method }}
+    {{- if or (eq .Values.method "lora") (eq .Values.method "qlora") }}
+    lora_rank: {{ .Values.loraRank }}
+    lora_alpha: {{ .Values.loraAlpha }}
+    lora_target: all
+    {{- end }}
+    {{- if eq .Values.method "qlora" }}
+    quantization_bit: 4
+    quantization_method: bitsandbytes
+    {{- end }}
+    
+    ### Dataset
+    dataset_dir: /workspace/data
+    dataset: train
+    template: default
+    {{- if gt (int .Values.maxSamples) 0 }}
+    max_samples: {{ .Values.maxSamples }}
+    {{- end }}
+    
+    ### Output
+    output_dir: /workspace/output
+    logging_steps: {{ .Values.loggingSteps | default 10 }}
+    save_steps: {{ .Values.saveSteps | default 500 }}
+    overwrite_output_dir: true
+    
+    ### Training
+    per_device_train_batch_size: {{ .Values.batchSize }}
+    gradient_accumulation_steps: {{ .Values.gradientAccumulationSteps | default 4 }}
+    learning_rate: {{ .Values.learningRate }}
+    num_train_epochs: {{ .Values.epochs }}
+    lr_scheduler_type: cosine
+    warmup_ratio: {{ .Values.warmupRatio | default 0.1 }}
+    {{- if gt (int .Values.resources.gpu) 0 }}
+    bf16: true
+    {{- else }}
+    bf16: false
+    fp16: false
+    pure_bf16: false
+    disable_gradient_checkpointing: true
+    {{- end }}
+    
+    ### Reporting
+    report_to: mlflow

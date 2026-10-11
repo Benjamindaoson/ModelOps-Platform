@@ -1,0 +1,297 @@
+# Single-node deployment — core features + SSO + observability
+# Usage:
+#   helm install kube-llmops charts/kube-llmops-stack -f values-single-node.yaml
+#
+# After install, add to /etc/hosts:
+#   <NODE_IP> litellm.llmops.local grafana.llmops.local langfuse.llmops.local keycloak.llmops.local prometheus.llmops.local
+
+# ========== Ingress ==========
+ingress:
+  enabled: true
+  className: traefik
+  host: llmops.local
+
+# ========== Models (unified list — engine auto-detected from source) ==========
+# Just list your models here. The system auto-selects the engine:
+#   Qwen/*, Llama-*, Mistral-* etc.           → vLLM
+#   BAAI/bge-*, intfloat/e5-*, *embedding*    → TEI
+#   *rerank*                                   → TEI
+#   *GGUF*                                     → llama.cpp
+# To override: add `engine: vllm` / `engine: tei` / `engine: llamacpp`
+global:
+  # Module switches — set to false to disable entire feature groups
+  modules:
+    rag:
+      enabled: true
+    finetune:
+      enabled: false     # enable when GPU cluster + Argo Workflows are ready
+    security:
+      enabled: false     # enable when LLM-Guard is needed (~6GB RAM)
+  models:
+    - name: qwen3-27b-heretic
+      source: Abiray/Qwen3.6-27B-heretic-ARA-GGUF
+      engine: llamacpp
+      allowPatterns: "*Q4_K_M*"                           # 16 GB — fits RTX 3090 (24GB)
+      replicas: 1
+      resources:
+        gpu: 1
+        memory: 24Gi
+      engineArgs:
+        --jinja: ""                                       # Enable Jinja2 chat templates for tool calling
+        --ctx-size: "65536"                               # 64K — safe default, let auto-fitter expand if VRAM allows
+    - name: bge-small-en
+      source: BAAI/bge-small-en-v1.5
+      replicas: 1
+      resources:
+        gpu: 0
+        cpu: "0.5"
+        memory: 256Mi
+    - name: bge-reranker-base
+      source: BAAI/bge-reranker-base
+      replicas: 1
+      resources:
+        gpu: 0
+        cpu: "1"
+        memory: 1Gi
+  # Model store: MinIO acts as central cache for model files.
+  # Flow: check MinIO → fallback to HuggingFace → upload back to MinIO
+  modelStore:
+    endpoint: kube-llmops-minio:9000
+    bucket: models
+    accessKey: minioadmin
+    secretKey: minioadmin
+    hfTransferConcurrency: 32                # concurrent file downloads (hf-transfer)
+    image: kube-llmops/model-loader:latest   # pre-built with minio+huggingface_hub
+  # HuggingFace token for gated models (Llama, Gemma, etc.)
+  # Pass at deploy time: --set global.hfToken=$HF_TOKEN
+  hfToken: ""
+
+# ========== Engine Settings ==========
+vllm:
+  enabled: true
+  image:
+    tag: gemma4-cu130          # gemma4 architecture needs this custom vLLM build
+  modelLoader:
+    enabled: false
+  unifiedMemory:
+    enabled: false     # Disabled for debugging
+
+llamacpp:
+  enabled: true
+  image:
+    repository: ghcr.io/ggml-org/llama.cpp
+    tag: server-cuda-b8672
+
+tei:
+  enabled: true
+
+# ========== AI Gateway ==========
+litellm:
+  enabled: true
+  masterKey: sk-kube-llmops-dev
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 60
+    timeoutSeconds: 30
+    failureThreshold: 10
+  langfuseEnabled: true
+  langfusePublicKey: "pk-lf-kube-llmops"
+  langfuseSecretKey: "sk-lf-kube-llmops"
+  rateLimiting:
+    enabled: true
+  modelGroupAlias:
+    # Route Anthropic-format model names (used by claw-code, etc.) → local model
+    "anthropic/qwen3-27b-heretic": "qwen3-27b-heretic"
+  guardrails:
+    presidio:
+      enabled: false
+      mode: "pre_call"
+      defaultOn: false
+    promptInjection:
+      enabled: false
+  postgresql:
+    enabled: true
+    image:
+      tag: "pg16"              # Pinned: existing PVC has PG16 data
+    auth:
+      username: litellm
+      password: llmops-pg-dev-pw
+      database: litellm
+    extraDatabases:
+      - name: langfuse
+        password: langfuse-default-pw
+      - name: dify
+        password: dify-default-pw
+      - name: dify_plugin
+        password: dify-default-pw
+      - name: mlflow
+        password: mlflow-default-pw
+
+# ========== Observability ==========
+observability:
+  enabled: true
+  dcgmExporter:
+    enabled: true               # GPU metrics; disable only on WSL2
+  prometheus:
+    enabled: true
+    storage:
+      size: 20Gi
+  grafana:
+    enabled: true
+    adminPassword: admin123!
+    storage:
+      size: 2Gi
+    oidc:
+      enabled: true
+      clientId: grafana
+      clientSecret: grafana-oidc-secret
+      issuerUrl: http://keycloak.llmops.local/realms/kube-llmops
+      internalIssuerUrl: http://kube-llmops-keycloak:8080/realms/kube-llmops
+      grafanaRootUrl: http://grafana.llmops.local
+
+# ========== Langfuse ==========
+langfuse:
+  enabled: true
+  externalUrl: "http://langfuse.llmops.local"
+  oidc:
+    enabled: true
+    clientId: langfuse
+    clientSecret: langfuse-oidc-secret
+    issuerUrl: http://keycloak.llmops.local/realms/kube-llmops
+  postgresql:
+    enabled: false
+    auth:
+      database: langfuse
+      username: langfuse
+      password: langfuse-default-pw
+
+# ========== Keycloak (SSO) ==========
+keycloak:
+  enabled: true
+  tls:
+    enabled: true
+    selfSigned: false          # using k3s CA-signed cert (see AGENTS.md for setup)
+    existingSecret: "keycloak-tls-k3sca"  # k3s CA-signed cert (see AGENTS.md for setup)
+
+# ========== OIDC RBAC (Headlamp → K8s API) ==========
+# Maps Keycloak users to Kubernetes ClusterRoles.
+# The username must match Keycloak's "preferred_username" claim.
+oidcRBAC:
+  enabled: true
+  bindings:
+    - username: admin
+      clusterRole: cluster-admin
+
+# ========== Headlamp (K8s Dashboard) ==========
+headlamp:
+  enabled: true
+  headlamp:
+    config:
+      oidc:
+        clientID: headlamp
+        clientSecret: headlamp-oidc-secret
+        issuerURL: ""   # auto-set via --set when using NodePort
+        scopes: "openid profile email"
+      # Accept self-signed Keycloak certs (remove when using trusted certs)
+      extraArgs:
+        - --insecure-ssl
+    clusterRoleBinding:
+      create: true
+
+# ========== Logging ==========
+logging:
+  enabled: true
+  loki:
+    storage:
+      size: 5Gi
+
+# ========== Disabled ==========
+keda:
+  enabled: false                # Requires KEDA operator; enable for multi-node autoscaling
+  # defaults:
+  #   minReplicas: 1
+  #   maxReplicas: 4
+  #   cooldownPeriod: 300
+  #   pollingInterval: 15
+  # engines:
+  #   vllm:
+  #     threshold: "2"          # scale when > 2 requests waiting
+  #   llamacpp:
+  #     threshold: "2"
+dify:
+  image:
+    api:
+      tag: "1.13.3"
+    web:
+      tag: "1.13.3"
+  web:
+    consoleApiUrl: ""
+    appApiUrl: ""
+security:
+  llmGuard:
+    enabled: true
+  presidio:
+    enabled: true
+  multiTenant:
+    enabled: true
+    teams:
+      - name: team-alpha
+        namespace: llm-team-alpha
+        gpuQuota: 1
+        memoryQuota: 8Gi
+        cpuQuota: 4
+        maxPods: 10
+      - name: team-beta
+        namespace: llm-team-beta
+        gpuQuota: 0
+        memoryQuota: 4Gi
+        cpuQuota: 2
+        maxPods: 5
+  networkPolicy:
+    enabled: false
+harbor:
+  enabled: false
+milvus: {}
+lightrag: {}
+
+# ========== RAG Evaluation ==========
+rag-eval:
+  smokeTest:
+    enabled: true
+    llmModel: gemma-4-26b-a4b
+  ragasEval:
+    llmModel: gemma-4-26b-a4b
+
+# ========== Fine-tuning Pipeline (v0.4.0) ==========
+# finetune:
+#   baseModel: Qwen/Qwen2.5-0.5B-Instruct
+#   outputName: qwen2-5-0-5b-lora-v1
+#   method: lora
+#   dataSource:
+#     type: minio
+#     path: s3://datasets/my-data/
+#     format: alpaca
+
+# ========== MinIO (Model Storage) ==========
+fluid:
+  enabled: true
+  minio:
+    enabled: true
+    defaultBuckets:
+      - langfuse
+      - models
+      - mlflow
+      - datasets
+    storage:
+      size: 50Gi
+
+# ========== PostgreSQL Split (Phase 2) ==========
+postgresql:
+  enabled: true

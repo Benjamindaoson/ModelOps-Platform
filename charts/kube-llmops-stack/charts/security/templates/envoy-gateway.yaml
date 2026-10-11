@@ -1,0 +1,99 @@
+{{/*
+Envoy AI Gateway resources — Gateway, HTTPRoute, and InferenceModel templates.
+Requires: Gateway API CRDs + Envoy Gateway controller installed.
+*/}}
+{{- if .Values.envoyGateway.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Release.Name }}-llm
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Release.Name }}-ai-gateway
+  labels:
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+spec:
+  gatewayClassName: {{ .Release.Name }}-llm
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: {{ .Values.envoyGateway.port | default 8888 }}
+---
+# Route /v1/* to LiteLLM gateway
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-litellm-route
+  labels:
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+spec:
+  parentRefs:
+    - name: {{ .Release.Name }}-ai-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1
+      backendRefs:
+        - name: {{ .Release.Name }}-litellm
+          port: 4000
+{{- end }}
+{{/*
+InferenceModel + InferencePool CRDs for LoRA adapter routing.
+Prerequisites:
+  1. Gateway API CRDs: kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+  2. Inference Gateway Extension (IGW): https://gateway-api.sigs.k8s.io/geps/gep-1731/
+  3. Envoy Gateway with IGW support: https://gateway.envoyproxy.io/docs/tasks/ai-gateway/
+
+Each InferenceModel maps a model+adapter combo to a vLLM pool.
+The InferencePool defines the backend target (vLLM Deployment endpoint).
+*/}}
+{{- if and .Values.envoyGateway.enabled .Values.envoyGateway.inferenceModels }}
+---
+# InferencePool: backend target for vLLM model serving pods
+apiVersion: inference.networking.x-k8s.io/v1alpha2
+kind: InferencePool
+metadata:
+  name: {{ .Release.Name }}-vllm-pool
+  labels:
+    app.kubernetes.io/name: inference-pool
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+spec:
+  targetPortNumber: 8000
+  selector:
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- range .Values.envoyGateway.inferenceModels }}
+---
+apiVersion: inference.networking.x-k8s.io/v1alpha2
+kind: InferenceModel
+metadata:
+  name: {{ .name }}
+  labels:
+    app.kubernetes.io/part-of: kube-llmops
+spec:
+  modelName: {{ .modelName }}
+  {{- if .criticality }}
+  criticality: {{ .criticality }}
+  {{- end }}
+  {{- if .adapters }}
+  targetModels:
+    {{- range .adapters }}
+    - name: {{ .name }}
+      weight: {{ .weight | default 100 }}
+    {{- end }}
+  {{- end }}
+  poolRef:
+    name: {{ $.Release.Name }}-{{ .poolName | default "vllm-pool" }}
+{{- end }}
+{{- end }}

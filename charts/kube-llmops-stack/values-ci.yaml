@@ -1,0 +1,80 @@
+# CI / CPU-only demo profile
+# Usage: helm install kube-llmops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml
+# No GPU required — uses mock/tiny model for testing
+
+models: []
+
+vllm:
+  enabled: false    # No GPU available in CI
+  models: []
+
+llamacpp:
+  enabled: false
+  models: []
+
+tei:
+  enabled: false
+  models: []
+
+litellm:
+  enabled: true
+  image:
+    tag: main-v1.82.3-stable
+  masterKey: sk-ci-test-key
+  models: []          # No backend models in CI
+  postgresql:
+    enabled: true
+    auth:
+      password: ci-test-pw
+    image:
+      tag: "pg16"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+
+observability:
+  enabled: true
+  otelCollector:
+    enabled: false     # Keep CI minimal
+  prometheus:
+    enabled: true
+    storage:
+      size: 1Gi
+  grafana:
+    enabled: false     # Keep CI minimal
+  dcgmExporter:
+    enabled: false    # No GPU
+
+langfuse:
+  enabled: false      # Keep CI lightweight
+
+logging:
+  enabled: false      # Keep CI lightweight
+
+keda:
+  enabled: false
+
+fluid:
+  enabled: false
+
+harbor:
+  enabled: false
+
+security:
+  enabled: false
+
+keycloak:
+  enabled: false
+
+headlamp:
+  enabled: false
+
+milvus:
+  enabled: false
+
+dify:
+  enabled: false

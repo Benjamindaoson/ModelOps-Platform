@@ -1,0 +1,26 @@
+replicaCount: 1
+
+image:
+  repository: localhost:5000/kube-llmops/operator
+  tag: latest
+  pullPolicy: Always
+
+serviceAccount:
+  create: true
+  name: kube-llmops-operator
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+chartPath: /charts/kube-llmops-stack
+
+gateway:
+  # LiteLLM gateway URL. Set to enable model registration via /model/new API.
+  url: "http://kube-llmops-litellm:4000"
+  # Master key for LiteLLM API authentication.
+  masterKey: "sk-kube-llmops-default"
