@@ -27,6 +27,14 @@ var engines = map[string]engineConfig{
 	"sglang": {Image: "lmsysorg/sglang:latest-runtime", Port: 30000},
 }
 
+// SupportsServingEngine guards the runtime builder from generating a blank
+// container image/port for an unsupported engine. Source-based heuristics
+// may produce names which are implemented in Helm but not in this Operator.
+func SupportsServingEngine(engine string) bool {
+    _,ok:=engines[engine]
+    return ok
+}
+
 // acceleratorResources maps accelerator vendor to the Kubernetes device plugin resource name.
 var acceleratorResources = map[string]string{
 	"nvidia": "nvidia.com/gpu",

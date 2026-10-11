@@ -97,6 +97,21 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// 4. Resolve engine
 	resolvedEngine := engine.ResolveEngine(md.Spec.Source, md.Spec.Engine)
 
+	// Reject unsupported engines before creating a broken Kubernetes Deployment.
+	// The resolver may detect e.g. Chitu, whose Operator runtime is not yet integrated.
+	if !builder.SupportsServingEngine(resolvedEngine) {
+		md.Status.Phase="Failed"
+		md.Status.Engine=resolvedEngine
+		setCondition(&md.Status.Conditions,metav1.Condition{
+			Type:"ModelReady",Status:metav1.ConditionFalse,
+			Reason:"UnsupportedServingEngine",
+			Message:"Requested engine is not implemented by the ModelDeployment Operator",
+			LastTransitionTime:metav1.Now(),ObservedGeneration:md.Generation,
+		})
+		if err:=r.Status().Update(ctx,md);err!=nil {return ctrl.Result{},err}
+		return ctrl.Result{},nil
+	}
+
 	// 5. Find LLMPlatform in same namespace
 	var platform *v1alpha1.LLMPlatform
 	platformList := &v1alpha1.LLMPlatformList{}
