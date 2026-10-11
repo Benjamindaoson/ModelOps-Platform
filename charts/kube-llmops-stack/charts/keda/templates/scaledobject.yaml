@@ -1,0 +1,128 @@
+{{- if .Values.enabled }}
+{{- $promAddr := .Values.defaults.prometheusAddress | default (printf "http://%s-prometheus.%s.svc.cluster.local:9090" .Release.Name .Release.Namespace) }}
+{{- $httpS2zEnabled := eq (include "kube-llmops.httpScaleToZeroEnabled" . | trim) "true" }}
+
+{{/* Collect models from global.models */}}
+{{- $models := list }}
+{{- if and .Values.global .Values.global.models }}
+  {{- $models = .Values.global.models }}
+{{- end }}
+
+{{- range $idx, $model := $models }}
+{{- $engine := include "kube-llmops.resolveEngine" (dict "model" $model "global" $.Values.global) | trim }}
+{{- if eq (include "kube-llmops.supportsHttpScaleToZero" $engine | trim) "true" }}
+
+{{/* Per-engine config */}}
+{{- $engineCfg := index $.Values.engines $engine | default dict }}
+{{- $metric    := $engineCfg.metric    | default "unknown" }}
+{{- $labelName := $engineCfg.labelName | default "model_name" }}
+{{- $threshold := $engineCfg.threshold | default "2" }}
+
+{{/* Per-model overrides */}}
+{{- $override    := dict }}
+{{- if $.Values.models }}
+{{-   $override = index $.Values.models $model.name | default dict }}
+{{- end }}
+{{- $minReplicas := $override.minReplicas | default $.Values.defaults.minReplicas }}
+{{- $maxReplicas := $override.maxReplicas | default $.Values.defaults.maxReplicas }}
+{{- $threshold    = $override.threshold   | default $threshold }}
+
+{{/* Scale-to-zero config. enabled must live on global.models[] so LiteLLM can route through the interceptor. */}}
+{{- $modelS2z := default dict $model.scaleToZero }}
+{{- $overrideS2z := default dict $override.scaleToZero }}
+{{- if and ($overrideS2z.enabled | default false) (not ($modelS2z.enabled | default false)) }}
+{{- fail (printf "keda.models.%s.scaleToZero.enabled is not sufficient for true scale-to-zero; set global.models[].scaleToZero.enabled=true on model %q so LiteLLM routes through the KEDA HTTP add-on interceptor" $model.name $model.name) }}
+{{- end }}
+{{- $s2z := mergeOverwrite (dict) ($.Values.defaults.scaleToZero | default dict) $modelS2z $overrideS2z }}
+{{- $s2zEnabled := $s2z.enabled | default false }}
+{{- $idleTimeout := $s2z.idleTimeout | default 900 }}
+{{- $cooldownPeriod := $.Values.defaults.cooldownPeriod }}
+{{- if $s2zEnabled }}
+{{-   $minReplicas = 0 }}
+{{-   $cooldownPeriod = $idleTimeout }}
+{{- end }}
+
+{{/* Per-model trigger overrides */}}
+{{- $overrideTriggers := default dict $override.triggers }}
+
+{{/* Resolve trigger thresholds (per-model override > global) */}}
+{{- $globalTriggers := $.Values.triggers }}
+{{- $ttftThreshold := ($globalTriggers.ttftP95).threshold | default "3" }}
+{{- $ttftWindow := ($globalTriggers.ttftP95).window | default "2m" }}
+{{- $tpotThreshold := ($globalTriggers.tpotP95).threshold | default "0.1" }}
+{{- $tpotWindow := ($globalTriggers.tpotP95).window | default "2m" }}
+{{- if $overrideTriggers.ttftP95 }}
+{{-   $ttftThreshold = $overrideTriggers.ttftP95.threshold | default $ttftThreshold }}
+{{- end }}
+{{- if $overrideTriggers.tpotP95 }}
+{{-   $tpotThreshold = $overrideTriggers.tpotP95.threshold | default $tpotThreshold }}
+{{- end }}
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $engine }}-{{ $model.name }}-scaler
+  labels:
+    app.kubernetes.io/name: keda-scaler
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+    kube-llmops/model: {{ $model.name }}
+    kube-llmops/engine: {{ $engine }}
+spec:
+  scaleTargetRef:
+    name: {{ $engine }}-{{ $model.name }}
+  minReplicaCount: {{ $minReplicas }}
+  maxReplicaCount: {{ $maxReplicas }}
+  cooldownPeriod:  {{ $cooldownPeriod }}
+  pollingInterval: {{ $.Values.defaults.pollingInterval }}
+  {{- if $s2zEnabled }}
+  idleReplicaCount: 0
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: {{ $idleTimeout }}
+  {{- end }}
+  triggers:
+    {{/* Trigger 0: KEDA HTTP add-on, required for true scale-from-zero. */}}
+    {{- if and $s2zEnabled $httpS2zEnabled }}
+    - type: external-push
+      metadata:
+        scalerAddress: {{ include "kube-llmops.httpAddOnExternalScalerAddress" $ | quote }}
+        interceptorRoute: {{ include "kube-llmops.httpScaleAliasName" (dict "root" $ "engine" $engine "model" $model) | quote }}
+    {{- end }}
+    {{/* Trigger 1: Queue depth (kept for scaling while serving pods exist). */}}
+    {{- if (($globalTriggers.requestsWaiting).enabled | default true) }}
+    - type: prometheus
+      metadata:
+        serverAddress: {{ $promAddr }}
+        query: sum({{ $metric }}{{"{"}}{{ $labelName }}="{{ $model.name }}"{{"}"}} ) or vector(0)
+        threshold: {{ $threshold | quote }}
+        metricName: pending_requests_{{ $model.name }}
+    {{- end }}
+    {{/* Trigger 2: TTFT P95 (vLLM and SGLang) */}}
+    {{- if and (or (eq $engine "vllm") (eq $engine "sglang")) (($globalTriggers.ttftP95).enabled | default false) }}
+    {{- $ttftMetric := "vllm:time_to_first_token_seconds_bucket" }}
+    {{- if eq $engine "sglang" }}{{- $ttftMetric = "sglang:time_to_first_token_seconds_bucket" }}{{- end }}
+    - type: prometheus
+      metadata:
+        serverAddress: {{ $promAddr }}
+        query: histogram_quantile(0.95, rate({{ $ttftMetric }}{{ "{" }}model_name="{{ $model.name }}"{{ "}" }}[{{ $ttftWindow }}])) or vector(0)
+        threshold: {{ $ttftThreshold | quote }}
+        metricName: ttft_p95_{{ $model.name }}
+    {{- end }}
+    {{/* Trigger 3: TPOT P95 (vLLM and SGLang) */}}
+    {{- if and (or (eq $engine "vllm") (eq $engine "sglang")) (($globalTriggers.tpotP95).enabled | default false) }}
+    {{- $tpotMetric := "vllm:time_per_output_token_seconds_bucket" }}
+    {{- if eq $engine "sglang" }}{{- $tpotMetric = "sglang:time_per_output_token_seconds_bucket" }}{{- end }}
+    - type: prometheus
+      metadata:
+        serverAddress: {{ $promAddr }}
+        query: histogram_quantile(0.95, rate({{ $tpotMetric }}{{ "{" }}model_name="{{ $model.name }}"{{ "}" }}[{{ $tpotWindow }}])) or vector(0)
+        threshold: {{ $tpotThreshold | quote }}
+        metricName: tpot_p95_{{ $model.name }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

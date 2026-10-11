@@ -1,0 +1,1243 @@
+[English](ARCHITECTURE.md) | **中文**
+
+# kube-llmops - 架构设计 (v1.0.0)
+
+> **Kubernetes 原生 LLMOps 平台**
+> 一条命令即可在 Kubernetes 上部署、管理、监控和优化你的整个 LLM 基础设施。
+
+---
+
+## 核心设计原则
+
+| # | 原则 | 含义 |
+|---|---|---|
+| 1 | **最优方案优先，CNCF 优选** | 为特定需求选择最佳工具。当多个方案同样优秀时，优先选择 CNCF 项目（毕业级 > 孵化级 > 沙箱级）。绝不为了挂 CNCF 标签而增加不必要的复杂度。 |
+| 2 | **不重复造轮子，做好集成** | vLLM、LiteLLM、OpenTelemetry、Envoy……都已经过生产验证。我们的价值在于**粘合层 + 合理默认配置 + 一键体验**。 |
+| 3 | **智能默认，完全可覆盖** | 模型格式自动检测自动选择引擎。4 种部署预设（`ci`/`minimal`/`standard`/`production`）。一切均可手动覆盖。 |
+| 4 | **IaC + GitOps 原生** | 一切声明式。ArgoCD Sync Waves 处理部署顺序。 |
+| 5 | **面向 LLM，而非通用** | 基于 Token 的计量、GPU 调度、模型权重缓存、TTFT 监控、Prefix-Cache 感知路由。 |
+
+---
+
+## 架构总览
+
+```
+                            External Clients (OpenAI SDK / LangChain / curl)
+                                          |
+                                          v
+                   +----------------------------------------------+
+                   |  Tier 1: AI Gateway (LiteLLM)                |
+                   |  Key Mgmt / Multi-provider / Cost Tracking   |
+                   +----------------------------------------------+
+                                          |
+                   +----------------------------------------------+
+                   |  Tier 2: Inference Gateway                   |
+                   |  Envoy AI Gateway + Gateway API Inference    |
+                   |  Extension (IGW)                             |
+                   |  KV-cache-aware routing / Prefix scheduling  |
+                   +----------------------------------------------+
+                        /         |         \
+              +---------+   +---------+   +----------+
+              | vLLM    |   | vLLM    |   | TEI      |     Engine auto-selected
+              | DS-R1   |   | DS-V3   |   | bge-m3   |     by Model Resolver
+              | (BF16)  |   | (FP16)  |   |          |     based on model format
+              +---------+   +---------+   +----------+
+              | llama.cpp|
+              | Llama-8B |
+              | (GGUF)   |
+              +----------+
+                        \         |         /
+              +----------------------------------------------+
+              |  Infrastructure & Scheduling                  |
+              |  GPU Operator / Fluid Cache / KEDA / Karpenter|
+              +----------------------------------------------+
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │  Unified Observability (OpenTelemetry Collector)             │
+   │  ┌──────────┐  ┌─────────┐  ┌──────┐                       │
+   │  │Prometheus │  │Langfuse │  │ Loki │                       │
+   │  │(Metrics)  │  │v3+CH+S3│  │(Logs)│                       │
+   │  └────┬─────┘  └────┬────┘  └──┬───┘                       │
+   │       └──────────────┴──────────┘                           │
+   │                Grafana (Dashboards)                          │
+   └──────────────────────────────────────────────────────────────┘
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │  Data & Vector Layer: Milvus / MinIO / Harbor                │
+   │  Dev & Finetune: JupyterHub / LLaMA-Factory / MLflow        │
+   │  Security: Keycloak / NetworkPolicy / LLM-Guard             │
+   │  K8s UI: Headlamp + kube-llmops-portal 插件 (v0.5.0)         │
+   └──────────────────────────────────────────────────────────────┘
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │  Layer 0: GitOps / Operator（ArgoCD + Helm Umbrella Chart +  │
+   │           kube-llmops-operator：LLMPlatform / ModelDeployment │
+   │           / FineTuneRun CRD，v0.5.0）                         │
+   │  第 9 层：CLI（kubectl-llmops —— kubectl 插件，15+ 命令，v1.0.0）│
+   └──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## CNCF 对齐全景图
+
+每项技术选型及其 CNCF 状态：
+
+| 组件 | 技术 | CNCF 状态 | 替代方案 |
+|---|---|---|---|
+| **编排** | Kubernetes | **毕业级** | - |
+| **服务代理 / AI Gateway 第二层** | Envoy (AI Gateway + IGW) | **毕业级** | - |
+| **可观测性管线** | OpenTelemetry | **毕业级** | - |
+| **指标** | Prometheus | **毕业级** | - |
+| **链路追踪（LLM 专用）** | Langfuse v3 + ClickHouse + Redis（通过 OTel OTLP） | 社区开源 | 没有 CNCF 工具能处理 Prompt/Token/成本追踪；ClickHouse 隶属 LF AI & Data 基金会 |
+| **日志采集** | Fluentbit | **毕业级**（Fluentd 项目） | Promtail（非 CNCF） |
+| **Pod 自动扩缩** | KEDA | **毕业级** | 自定义指标 HPA |
+| **GitOps** | Argo CD | **毕业级** | Flux（CNCF 毕业级） |
+| **包管理** | Helm | **毕业级** | - |
+| **容器镜像 / 模型仓库** | Harbor | **毕业级** | Docker Registry |
+| **网络策略** | Cilium | **毕业级** | Calico |
+| **ML Serving（可选）** | KServe | **孵化级** | 原始 Deployment |
+| **认证 / SSO** | Keycloak | **孵化级** | Dex |
+| **数据缓存** | Fluid | **沙箱级** | JuiceFS（非 CNCF） |
+| **向量数据库** | Milvus | LF AI & Data 基金会 | pgvector、Qdrant |
+| **AI Gateway 第一层** | LiteLLM | 社区开源 | 无 CNCF 等价物 |
+| **推理引擎** | vLLM / llama.cpp / TEI | 社区开源 | 无 CNCF 等价物 |
+| **仪表盘** | Grafana | 社区开源 (AGPL) | 无 CNCF 等价物 |
+| **对象存储** | MinIO | 社区开源 | SeaweedFS |
+| **日志存储** | Loki | 社区开源 (AGPL) | OpenSearch |
+| **推理调度** | llm-d | 社区开源（K8s SIG 关联） | - |
+
+**决策规则**：最适合的工具胜出。当两个工具同样优秀时，选 CNCF 的。例如：Jaeger（CNCF）vs Langfuse —— Langfuse 胜出，因为它在我们的使用场景下涵盖了 Jaeger 的全部功能，还额外提供了 Prompt/Token/成本/会话追踪。我们不会仅仅为了挂 CNCF 标签而引入 Jaeger。
+
+---
+
+## 新增：Model Resolver（引擎自动选择）
+
+> **核心理念：用户只需指定模型，平台自动选择最优推理引擎。**
+>
+> **说明（v0.3.1+）**：引擎自动检测已实现为 Helm 模板函数
+> （`resolveEngine`、`resolveModelType`），位于
+> `charts/kube-llmops-stack/templates/_helpers.tpl`。当前实现使用 source 名称的模式匹配，
+> 而非下文描述的 HuggingFace API 完整检测方案。下文描述的 init-container 方案仅作为
+> Helm 渲染无法确定引擎时的运行时回退。
+> 当前自动检测规则详见 [AGENTS.md](AGENTS.md)。
+
+### 问题
+
+用户不应该需要知道 AWQ 模型在 vLLM 上运行最佳、GGUF 模型需要 llama.cpp。平台应该自动判断。
+
+### 检测算法
+
+```
+                   User provides model ID
+                   (e.g. "deepseek-ai/DeepSeek-R1-0528")
+                              |
+                              v
+                   ┌─────────────────────┐
+                   │  Model Resolver      │
+                   │  (init-container)    │
+                   └──────────┬──────────┘
+                              |
+              1. Fetch metadata (config.json / file listing)
+                              |
+              2. Detect format & quantization
+                              |
+              3. Match hardware constraints
+                              |
+              4. Select engine + optimal args
+                              |
+                              v
+                   ┌─────────────────────┐
+                   │  Deploy with auto-   │
+                   │  selected engine     │
+                   └─────────────────────┘
+```
+
+### 格式 -> 引擎映射规则
+
+```
+Priority: User explicit override > Auto-detection
+
+┌────────────────────────────┬─────────────────────────────┬──────────────────────────────────────┐
+│ Model Characteristics      │ Auto-Selected Engine        │ Auto-Applied Args                    │
+├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────┤
+│ *.gguf files               │ llama.cpp (llama-server)    │ --ctx-size auto                      │
+│ *.gguf + GPU available     │ llama.cpp (GPU offload)     │ --n-gpu-layers max                   │
+├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────┤
+│ SafeTensors + AWQ quant    │ vLLM                        │ --quantization awq                   │
+│ SafeTensors + GPTQ quant   │ vLLM                        │ --quantization gptq                  │
+│ SafeTensors + FP8 quant    │ vLLM                        │ --quantization fp8                   │
+│ SafeTensors + BitsAndBytes │ vLLM                        │ --quantization bitsandbytes          │
+│ SafeTensors + no quant     │ vLLM                        │ (default FP16/BF16)                  │
+├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────┤
+│ model_type = embedding     │ TEI                         │ (embedding mode)                     │
+│ model_type = reranker      │ TEI                         │ (reranker mode)                      │
+├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────┤
+│ TensorRT-LLM engine files  │ TensorRT-LLM / NIM         │ (pre-compiled engine)                │
+├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────┤
+│ ONNX format                │ vLLM (ONNX backend)         │ (experimental)                       │
+├────────────────────────────┼─────────────────────────────┼──────────────────────────────────────┤
+│ No GPU available           │ llama.cpp (CPU)             │ Auto-convert to GGUF if needed       │
+│ GPU VRAM < model size      │ llama.cpp (partial offload) │ --n-gpu-layers calculated            │
+│ Multi-GPU required         │ vLLM (tensor parallel)      │ --tensor-parallel-size auto          │
+└────────────────────────────┴─────────────────────────────┴──────────────────────────────────────┘
+```
+
+### 硬件感知逻辑
+
+```python
+# Pseudocode for hardware-aware engine selection
+def resolve_engine(model_meta, available_gpus):
+    # Step 1: Format-based selection
+    if model_meta.has_gguf_files():
+        engine = "llama.cpp"
+    elif model_meta.is_embedding() or model_meta.is_reranker():
+        engine = "tei"
+    elif model_meta.has_safetensors():
+        engine = "vllm"
+    else:
+        engine = "vllm"  # safe default
+
+    # Step 2: Hardware constraints
+    model_size_gb = model_meta.estimate_vram()
+    total_gpu_vram = sum(gpu.vram for gpu in available_gpus)
+
+    if len(available_gpus) == 0:
+        engine = "llama.cpp"  # CPU-only fallback
+        quantization = "Q4_K_M"  # auto-quantize for CPU
+    elif model_size_gb > total_gpu_vram and engine == "vllm":
+        if model_size_gb > total_gpu_vram * 2:
+            engine = "llama.cpp"  # partial GPU offload
+        else:
+            args["tensor-parallel-size"] = len(available_gpus)
+
+    # Step 3: Quantization args
+    if model_meta.quant_method:
+        args["quantization"] = model_meta.quant_method
+
+    # Step 4: Engine-specific optimizations
+    if engine == "vllm":
+        args["enable-prefix-caching"] = True
+        args["gpu-memory-utilization"] = 0.92
+    
+    return engine, args
+```
+
+### 用户接口
+
+```yaml
+# Helm values.yaml - User just specifies model, engine auto-detected
+models:
+  - name: deepseek-r1-0528
+    source: deepseek-ai/DeepSeek-R1-0528
+    # engine: auto                # default, auto-detect (resolves to vLLM)
+    replicas: 2
+    resources:
+      gpu: 4
+
+  - name: llama3-8b-q4
+    source: bartowski/Meta-Llama-3-8B-Instruct-GGUF
+    # engine: auto                # auto-detect (resolves to llama.cpp)
+    resources:
+      gpu: 1
+
+  - name: bge-m3
+    source: BAAI/bge-m3
+    # engine: auto                # auto-detect (resolves to TEI embedding mode)
+    resources:
+      gpu: 1
+
+  - name: custom-model
+    source: my-registry/my-model
+    engine: sglang               # explicit override, skip auto-detection
+    engineArgs:
+      --tp: "2"
+```
+
+### 实现方式
+
+Model Resolver 是一个在推理引擎启动前运行的 **init-container**：
+
+```yaml
+initContainers:
+  - name: model-resolver
+    image: kube-llmops/model-resolver:latest
+    env:
+      - name: MODEL_SOURCE
+        value: "deepseek-ai/DeepSeek-R1-0528"
+      - name: ENGINE_OVERRIDE
+        value: ""                  # empty = auto-detect
+    volumeMounts:
+      - name: resolver-output
+        mountPath: /resolve
+    # Outputs: /resolve/engine.env
+    # ENGINE=vllm
+    # ENGINE_IMAGE=vllm/vllm-openai:latest
+    # ENGINE_ARGS=--enable-prefix-caching --gpu-memory-utilization 0.92
+    # MODEL_PATH=/models/DeepSeek-R1-0528
+```
+
+### 交付件
+- `model-resolver` Docker 镜像（Python，约 200 行代码）
+- 格式检测库（解析 config.json、扫描文件扩展名）
+- 硬件探测（通过 `nvidia-smi` 检测 GPU 类型、VRAM）
+- 引擎镜像映射表（可通过 ConfigMap 配置）
+- Helm 模板读取 resolver 输出并启动对应引擎
+
+---
+
+## 第 0 层：GitOps 与自动化交付
+
+> 与 v1 相同，使用 ArgoCD（CNCF 毕业级）+ Helm（CNCF 毕业级）。
+
+### 部署流程
+
+```
+User: helm install kube-llmops charts/kube-llmops-stack -f values-standard.yaml
+  OR
+User: kubectl apply -f argocd-app.yaml   (GitOps mode)
+
+ArgoCD Sync Waves:
+  Wave 0: GPU Operator, Fluid, KEDA, OTel Collector, Cilium
+  Wave 1: MinIO, PostgreSQL, Harbor, Milvus, Prometheus
+  Wave 2: Model Resolver -> vLLM/llama.cpp/TEI (auto-selected), LiteLLM, Langfuse
+  Wave 3: Grafana Dashboards, Alert Rules, Envoy AI Gateway (IGW)
+```
+
+### 预设值文件
+
+```yaml
+# values-minimal.yaml    - 1 GPU, 1 model, basic monitoring, no vector DB
+# values-standard.yaml   - Multi-model, full OTel observability, pgvector
+# values-production.yaml - HA, autoscaling, Milvus, multi-tenant, full security
+```
+
+---
+
+## 第 1 层：基础设施与调度
+
+> 核心与 v1 相同，关键变更：**Fluid（CNCF 沙箱级）替代 JuiceFS 作为主要缓存方案**。
+
+| 组件 | 技术 | CNCF 状态 | 解决的问题 |
+|---|---|---|---|
+| GPU Operator | NVIDIA GPU Operator | - | 自动安装驱动、设备插件 |
+| GPU 共享 | Time-Slicing / MIG | - | 单 GPU 多模型 |
+| **模型缓存** | **Fluid + Alluxio** | **CNCF 沙箱级** | 分布式模型权重缓存、数据局部性调度 |
+| 模型缓存（备选） | JuiceFS + MinIO | 非 CNCF | Fluid 不适用时的替代方案 |
+| 节点自动扩缩 | Karpenter / Cluster Autoscaler | - | 自动扩展 GPU 节点 |
+| 节点发现 | NFD | - | 自动标记 GPU 类型/拓扑 |
+
+### 使用 Fluid 进行模型权重缓存
+
+```yaml
+apiVersion: data.fluid.io/v1alpha1
+kind: Dataset
+metadata:
+  name: deepseek-r1-0528-weights
+spec:
+  mounts:
+    - mountPoint: s3://model-store/DeepSeek-R1-0528/
+      name: deepseek-r1-0528
+      options:
+        fs.s3a.endpoint: http://minio:9000
+  placement: "Shared"     # cache shared across nodes
+---
+apiVersion: data.fluid.io/v1alpha1
+kind: AlluxioRuntime
+metadata:
+  name: deepseek-r1-0528-weights
+spec:
+  replicas: 3             # 3 cache workers
+  tieredstore:
+    levels:
+      - mediumtype: SSD
+        path: /cache
+        quota: 200Gi      # local SSD cache per node
+        high: "0.95"
+        low: "0.7"
+```
+
+Pod 自动获得数据局部性调度：Fluid 会将推理 Pod 调度到已缓存数据的节点附近。
+
+---
+
+## 第 2 层：模型服务
+
+> 增强了 Model Resolver 自动选择引擎功能（详见上文）。
+
+### 引擎矩阵
+
+| 引擎 | 最适场景 | GGUF | SafeTensors | AWQ/GPTQ | Embedding | CNCF |
+|---|---|---|---|---|---|---|
+| **vLLM** | 生产级 GPU 推理 | 否 | 是 | 是 | 是 | - |
+| **llama.cpp** | GGUF / CPU / 边缘设备 | 是 | 部分 | 否 | 否 | - |
+| **SGLang** | 多轮对话 / 结构化输出 | 否 | 是 | 是 | 否 | - |
+| **TEI** | Embedding 与 Reranking | 否 | 是 | 否 | **是** | - |
+| **TGI** | HuggingFace 生态 | 否 | 是 | 是 | 否 | - |
+
+### 可选：KServe 集成（CNCF 孵化级）
+
+对于已经在使用 KServe 的团队，kube-llmops 可以通过 KServe 的 InferenceService 部署模型：
+
+```yaml
+# Optional: wrap vLLM in KServe InferenceService for canary/serverless features
+kserve:
+  enabled: false     # off by default, enable if KServe is installed
+  # Provides: canary rollout, scale-to-zero (Knative), InferenceService CRD
+```
+
+---
+
+## 第 3 层：双层网关
+
+> **v1 的重大变更**：拆分为第一层（AI Gateway）+ 第二层（Inference Gateway），与行业趋势和 CNCF 生态对齐。
+
+### 为何采用双层架构
+
+```
+Single-tier (v1):       Two-tier (v2):
+LiteLLM -> vLLM         LiteLLM (Tier 1) -> Envoy+IGW (Tier 2) -> vLLM
+
+Tier 1 handles:         Tier 2 handles:
+- Everything             - KV-cache-aware routing
+                         - Prefix cache scheduling
+                         - LoRA adapter routing
+                         - Token-level load balancing
+                         - Disaggregated serving (P/D split)
+
+Tier 1 handles:
+- API key management
+- Multi-provider routing
+- Cost tracking / budgets
+- Rate limiting
+- Fallback chains
+```
+
+业界（Google GKE、llm-d、K8s SIG）正在向 **Envoy + Gateway API Inference Extension** 作为第二层标准方向收敛。LiteLLM 仍然作为第一层，因为没有任何 CNCF 项目能够处理 API 密钥管理 + 多供应商路由 + 成本追踪。
+
+### 第一层：LiteLLM（AI Gateway）
+
+与 v1 保持不变。负责：
+- 面向所有供应商的 OpenAI 兼容 API
+- API 密钥管理 + Token 预算（PostgreSQL 后端）
+- 按用户/按团队的成本追踪
+- 多模型路由、故障回退链
+- 速率限制（RPM、TPM）
+
+### 第二层：Envoy AI Gateway + IGW（Inference Gateway）
+
+```yaml
+# Gateway API Inference Extension CRDs
+apiVersion: inference.networking.x-k8s.io/v1alpha2
+kind: InferencePool
+metadata:
+  name: vllm-pool
+spec:
+  targetPortNumber: 8000
+  selector:
+    matchLabels:
+      app: vllm
+  endpointPickerConfig:
+    extensionRef:
+      name: inference-gateway-epp
+---
+apiVersion: inference.networking.x-k8s.io/v1alpha2
+kind: InferenceModel
+metadata:
+  name: deepseek-r1-0528
+spec:
+  modelName: deepseek-r1-0528
+  targetRef:
+    name: vllm-pool
+  criticality: Critical
+```
+
+**来自 IGW 的核心能力**：
+- **KV cache 感知路由**：将请求路由到已拥有相关 KV cache 的 Pod（而非轮询）
+- **Prefix cache 感知调度**：具有相似前缀的请求被调度到同一 Pod
+- **LoRA 适配器路由**：按模型名称路由到正确的 LoRA 适配器
+- **金丝雀发布**：通过 InferenceModel CRD 在模型版本间进行 A/B 分流
+- **流量控制**：工作负载间的优先级 + 公平性
+
+### 第二层上线策略
+
+> **当前（v0.5.0）**：LiteLLM → vLLM 直连（无第二层）。llm-d 模板作为实验性选项随
+> Chart 一同提供；Envoy AI Gateway + IGW CRD 模板也随 Chart 发布，但默认未启用。
+>
+> **未来阶段 1**：LiteLLM → Envoy AI Gateway（基础）→ vLLM
+>
+> **未来阶段 2**：LiteLLM → Envoy + IGW（完整推理调度）→ vLLM
+>
+> **未来阶段 3**：LiteLLM → IGW + llm-d（Prefill/Decode 分离式推理，生产级）
+
+```
+当前（v0.5.0）:    LiteLLM -> vLLM 直连（无第二层）
+                    llm-d 模板可用（实验性，需显式启用）
+未来阶段 1:        LiteLLM -> Envoy AI Gateway（基础）-> vLLM
+未来阶段 2:        LiteLLM -> Envoy + IGW（完整推理调度）-> vLLM
+未来阶段 3:        LiteLLM -> IGW + llm-d（Prefill/Decode 分离式推理，生产级）
+```
+
+---
+
+## 第 4 层：可观测性（OpenTelemetry + Langfuse）
+
+> **OpenTelemetry（CNCF 毕业级）作为统一采集管线，Langfuse 作为追踪后端。不使用 Jaeger —— 我们的调用链很简单，Langfuse 覆盖得更好。**
+
+### 为何不用 Jaeger？
+
+Jaeger 是一个优秀的通用分布式追踪工具。但 kube-llmops 不是通用微服务平台。我们的调用链是：
+
+```
+Client -> LiteLLM -> (Envoy) -> vLLM -> Response
+```
+
+仅 3-4 跳。为此部署一个完整的 Jaeger 栈（Collector + Query + Cassandra/ES）实属过度。而 Langfuse：
+
+| 能力 | Jaeger | Langfuse | 结论 |
+|---|---|---|---|
+| 请求延迟追踪 | 是 | 是 | 平手 |
+| 跨服务 Span 关联 | 是 | 是（通过 OTel OTLP） | 平手 |
+| 完整的 Prompt/Completion 文本 | **否** | 是 | **Langfuse** |
+| 每个请求的 Token 计数 | **否** | 是 | **Langfuse** |
+| 每个请求/用户/团队的成本 | **否** | 是 | **Langfuse** |
+| 用户会话分组 | **否** | 是 | **Langfuse** |
+| Prompt 版本管理与 A/B 测试 | **否** | 是 | **Langfuse** |
+| 评估评分（LLM-as-judge） | **否** | 是 | **Langfuse** |
+| RAG 管线分解 | **否** | 是 | **Langfuse** |
+| 需要额外维护的基础设施 | Collector + Query + Storage | PG + ClickHouse + Redis + S3 | **Langfuse**（专为 LLM 设计，无需额外查询 UI） |
+
+**结论**：Langfuse 在 LLM 追踪方面严格优于 Jaeger。引入 Jaeger 意味着需要额外维护一个有状态服务，却毫无附加价值。如果用户已有 Jaeger 集群并希望同时发送追踪数据，OTel Collector 只需一行 exporter 配置即可实现 —— 但我们默认不附带它。
+
+### 为何仍然需要 OpenTelemetry？
+
+OTel 不是后端 —— 它是**采集管线**。即使没有 Jaeger，OTel 也值得使用：
+
+1. **统一采集**：vLLM、LiteLLM、Envoy 都原生支持 OTLP。一种协议采集一切。
+2. **数据处理**：在导出前为追踪/指标添加 `model_name`、`user_id`、`tenant` 标签。
+3. **扇出分发**：单一管线同时导出到 Prometheus（指标）+ Langfuse（追踪）+ Loki（日志）。后续添加任何后端都无需修改探针代码。
+4. **解耦**：如果日后需要替换 Langfuse，只需修改 OTel exporter 配置。应用代码无需改动。
+
+### 架构
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Data Sources (OTel SDK built-in)                  │
+│                                                                     │
+│  vLLM             LiteLLM          Envoy/IGW        llama.cpp      │
+│  (traces +        (traces +        (traces +        (metrics via   │
+│   metrics)         metrics)         metrics +        custom export) │
+│                                     access logs)                    │
+└────────┬──────────────┬────────────────┬──────────────┬────────────┘
+         │              │                │              │
+         │      OTLP (gRPC/HTTP)         │              │
+         v              v                v              v
+┌─────────────────────────────────────────────────────────────────────┐
+│                    OpenTelemetry Collector                           │
+│                    (CNCF Graduated)                                  │
+│                                                                     │
+│  Receivers:    otlp, prometheus (scrape vLLM+DCGM), fluentforward  │
+│  Processors:   batch, attributes (add model/user/tenant labels),   │
+│                filter (drop health checks), transform              │
+│  Exporters:    prometheusremotewrite, otlphttp/langfuse, loki     │
+└──────┬──────────────────────────┬──────────────────────┬───────────┘
+       │                          │                      │
+       v                          v                      v
+  Prometheus                  Langfuse (v3)            Loki
+  (Metrics store)             (Traces + LLM analytics) (Log store)
+  - TTFT, ITL, throughput     - Full prompt/completion  - Engine logs
+  - GPU util, VRAM, temp      - Token count & cost      - CUDA errors
+  - Request rates             - User sessions           - Routing events
+  - KV cache stats            - Evaluation scores       - Audit trail
+       │                          │
+       │                    ┌─────┼──────┐
+       │                    │     │      │
+       │               ClickHouse Redis  MinIO/S3
+       │               (OLAP)  (Queue) (Blob)
+       │                    │     │      │
+       └──────────────────────────┴──────────────────────┘
+                                  │
+                                  v
+                             Grafana
+                         (Unified dashboards)
+                         - Prometheus as datasource (metrics)
+                         - Loki as datasource (logs)
+                         - Langfuse link-out for trace detail
+```
+
+### OTel Collector 配置
+
+```yaml
+# otel-collector-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'vllm'
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              regex: vllm
+              action: keep
+        - job_name: 'dcgm-exporter'
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              regex: dcgm-exporter
+              action: keep
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+  attributes:
+    actions:
+      - key: cluster.name
+        value: "${CLUSTER_NAME}"
+        action: upsert
+  filter/health:
+    traces:
+      span:
+        - 'attributes["http.route"] == "/health"'
+
+exporters:
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+  otlphttp/langfuse:
+    endpoint: http://langfuse:3000/api/public/otel
+    headers:
+      Authorization: "Basic ${LANGFUSE_AUTH}"
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [batch, attributes]
+      exporters: [prometheusremotewrite]
+    traces:
+      receivers: [otlp]
+      processors: [batch, filter/health, attributes]
+      exporters: [otlphttp/langfuse]          # Langfuse is the ONLY trace backend
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [loki]
+```
+
+### LLM 可观测性三大支柱（不是四个 —— 追踪由 Langfuse 承担，不单独作为一个支柱）
+
+#### 支柱 1：指标（Prometheus，通过 OTel Collector）
+
+| 分类 | 关键指标 | 数据来源 |
+|---|---|---|
+| **LLM 延迟** | TTFT、ITL（Inter-Token Latency）、端到端 P50/P95/P99 | vLLM OTel SDK |
+| **LLM 吞吐量** | 输入/输出 tokens/sec、请求/sec | vLLM OTel SDK |
+| **LLM 引擎** | KV cache 利用率、等待请求数、批大小、Prefix cache 命中率 | vLLM metrics |
+| **GPU 硬件** | GPU 利用率 %、VRAM、温度、功耗、ECC 错误 | DCGM Exporter |
+| **网关** | 按模型/用户/状态分组的请求数、Token 消耗量 | LiteLLM OTel |
+| **Inference Gateway** | 路由决策、cache 命中路由、P/D 拆分 | IGW/Envoy OTel |
+| **成本** | 每 Token/请求/用户/日成本、预算余额 | LiteLLM PostgreSQL |
+
+#### 支柱 2：追踪 + LLM 分析（Langfuse，通过 OTel OTLP）
+
+Langfuse 接收 OTel 追踪数据并添加 LLM 专属上下文：
+
+```
+[Trace in Langfuse]
+│
+├── Generation: deepseek-r1-0528
+│   ├── Input:  "Explain Kubernetes to a 5-year-old" (1,024 tokens)
+│   ├── Output: "Imagine you have a bunch of toy boxes..." (512 tokens)
+│   ├── Latency: TTFT=320ms, Total=4.2s
+│   ├── Cost: $0.0031
+│   └── Scores: relevance=0.95, fluency=0.88 (LLM-as-judge)
+│
+├── Retrieval (if RAG):
+│   ├── Query embedding: 1.2ms
+│   ├── Vector search: 8ms, top-5 retrieved
+│   ├── Reranking: 45ms, top-3 selected
+│   └── Context tokens: 2,048
+│
+└── Session: user-alice, conversation-id-xyz, turn 3/5
+```
+
+LiteLLM 原生集成（最简单、推荐方式）：
+```yaml
+# litellm-config.yaml
+litellm_settings:
+  success_callback: ["langfuse"]
+  failure_callback: ["langfuse"]
+
+environment_variables:
+  LANGFUSE_PUBLIC_KEY: pk-xxx
+  LANGFUSE_SECRET_KEY: sk-xxx
+  LANGFUSE_HOST: http://langfuse:3000
+```
+
+OTel 集成（用于未经过 LiteLLM 的 vLLM/Envoy 追踪数据）：
+```yaml
+# Already configured in OTel Collector above
+exporters:
+  otlphttp/langfuse:
+    endpoint: http://langfuse:3000/api/public/otel
+```
+
+#### 支柱 3：日志（Fluentbit -> OTel Collector -> Loki）
+
+```
+Fluentbit (CNCF Graduated)       OTel Collector          Loki
+  - DaemonSet on each node         - Transform             - Store
+  - Tail container logs            - Add labels            - Query via Grafana
+  - Forward to OTel Collector      - Export to Loki
+```
+
+| 日志类型 | 内容 |
+|---|---|
+| 请求日志 | Request ID、模型、用户、输入/输出 Token 数、延迟、状态 |
+| 引擎日志 | vLLM/llama.cpp 内部日志、CUDA 错误、OOM 事件 |
+| 网关日志 | 路由决策、速率限制触发、故障回退触发 |
+| 审计日志 | API 密钥操作、模型部署、配置变更 |
+
+### 可扩展性："我已经有 Jaeger / Datadog / Grafana Tempo 了"
+
+由于 OTel Collector 是采集管线，添加任何额外后端只需一行配置：
+
+```yaml
+# Just add an exporter -- no application code changes
+exporters:
+  otlphttp/langfuse:
+    endpoint: http://langfuse:3000/api/public/otel   # default
+  jaeger:                                              # optional, user-added
+    endpoint: jaeger-collector:14250
+  otlp/datadog:                                        # optional, user-added
+    endpoint: https://api.datadoghq.com:4317
+
+service:
+  pipelines:
+    traces:
+      exporters: [otlphttp/langfuse, jaeger, otlp/datadog]  # fan-out to all
+```
+
+这就是即使没有 Jaeger，OTel 仍然重要的原因：它是**可扩展层**。
+
+### 预置 Grafana 仪表盘（3 个）
+
+| # | 仪表盘 | 数据源 | 核心面板 |
+|---|---|---|---|
+| 1 | vLLM 模型服务总览 | Prometheus | 请求速率、延迟百分位（TTFT/ITL/E2E）、Token 吞吐量、KV cache 利用率 |
+| 2 | LiteLLM AI Gateway | Prometheus + LiteLLM PG | 按模型分组的流量、活跃模型数、错误率、Token 用量、成本追踪 |
+| 3 | GPU 与基础设施总览 | Prometheus (DCGM) | GPU/VRAM 资源使用、队列深度、TTFT、Inter-Token 延迟 |
+
+### 告警规则（Prometheus，通过 OTel 指标）
+
+```yaml
+groups:
+  - name: llm-serving
+    rules:
+      - alert: HighTTFT
+        expr: histogram_quantile(0.95, rate(vllm_time_to_first_token_seconds_bucket[5m])) > 3
+        for: 5m
+        annotations:
+          summary: "Model {{ $labels.model_name }} TTFT P95 > 3s"
+
+      - alert: GPUMemoryPressure
+        expr: DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+
+      - alert: ModelDown
+        expr: up{job="vllm"} == 0
+        for: 1m
+        labels:
+          severity: critical
+
+      - alert: InferenceGatewayLatency
+        expr: histogram_quantile(0.99, rate(envoy_http_downstream_rq_time_bucket[5m])) > 5000
+        for: 3m
+
+      - alert: BudgetExhausted
+        expr: litellm_team_budget_remaining < 10
+        labels:
+          severity: warning
+```
+
+### 交付件
+- Helm 子 Chart：`charts/observability/`（OTel Collector + Prometheus + Fluentbit + Loki + DCGM Exporter）
+- Helm 子 Chart：`charts/langfuse/`
+- Helm 子 Chart：`charts/grafana/`（含 3 个预置仪表盘 JSON）
+- 面向 LLM 工作负载的 OTel Collector 配置
+- Prometheus 记录规则 + 告警规则
+- Fluentbit DaemonSet 配置
+
+---
+
+## 第 5 层：数据与向量基础设施
+
+| 组件 | 技术 | CNCF 状态 | 用途 |
+|---|---|---|---|
+| **向量数据库（规模化）** | **Milvus** | LF AI & Data | 生产级 RAG、分布式 |
+| **向量数据库（轻量级）** | **pgvector** | PostgreSQL 扩展 | 复用 LiteLLM 的 PG，零额外基础设施 |
+| **对象存储** | **MinIO** | - | 模型权重、数据集、备份 |
+| **模型仓库** | **Harbor** | **CNCF 毕业级** | 基于 OCI 的模型制品版本管理 |
+| **数据版本控制** | **DVC** / LakeFS | - | 将训练数据集与 Git 一起版本化 |
+
+### Harbor 作为模型仓库（CNCF 毕业级）
+
+不使用自定义模型仓库，而是使用 Harbor 将模型制品存储为 OCI 镜像：
+
+```bash
+# Push model weights as OCI artifact
+oras push harbor.example.com/models/deepseek-r1-0528:v1 \
+  --artifact-type application/vnd.llmops.model.v1 \
+  ./model-weights/
+
+# Reference in Helm values
+models:
+  - name: deepseek-r1-0528
+    source: oci://harbor.example.com/models/deepseek-r1-0528:v1
+```
+
+优势：版本管理、访问控制、漏洞扫描、跨镜像仓库复制 —— 所有功能 Harbor 原生内置。
+
+---
+
+## 第 6 层：模型开发与微调
+
+与 v1 保持不变：
+- **JupyterHub** 部署在 K8s 上（GPU Notebook 环境）
+- **LLaMA-Factory** 作为 K8s Job（LoRA、QLoRA、全量微调）
+- **MLflow** 实验追踪（复用 PostgreSQL + MinIO）
+- **Label Studio**（可选，数据标注）
+
+---
+
+## 第 7 层：Kubernetes UI（Headlamp）
+
+> **v0.5.0**：Headlamp 替代了 v0.4 中的自定义 dashboard。
+
+- 基于 CNCF Kubernetes 原生 Web UI（封装上游 Headlamp Chart）
+- 自定义 `kube-llmops-portal` 插件提供：
+  - **Service Links**（服务链接）：以卡片网格形式展示所有平台服务的 NodePort 地址
+    （LiteLLM、Grafana、Langfuse、Dify、Keycloak、MinIO、Prometheus、MLflow 等）
+  - **Monitoring**（监控）：通过 iframe 内嵌 Grafana 仪表盘（需要
+    `allow_embedding=true` + 匿名 Viewer 访问，已默认配置）
+- NodePort `30302`（当 `global.nodePort.enabled=true` 时暴露）
+- Keycloak OIDC SSO 集成（完整链路：Headlamp → Keycloak OIDC → K8s API Server；
+  Keycloak 必须启用 HTTPS，否则 K8s API Server 会拒绝作为 OIDC issuer）
+- 插件源代码：`plugins/kube-llmops-portal/`（构建为 `kube-llmops/headlamp-plugin:latest`）
+- 子 Chart：`charts/kube-llmops-stack/charts/headlamp/`
+
+---
+
+## 第 8 层：平台 Operator（LLMPlatform CR）
+
+> **v0.5.0**：通过 Kubernetes CRD 实现声明式平台管理 —— GitOps / 多租户场景下
+> 替代直接 `helm install` 的方案。
+
+- `kube-llmops-operator`（Go 语言，基于 `controller-runtime`）
+- **CRD**：
+  - `LLMPlatform` —— 完整平台规格（gateway、observability、models、modules、nodePort）；
+    单个 CR 会被协调（reconcile）为一个完整的 umbrella chart Helm release
+  - `ModelDeployment` —— 单模型高级部署（vLLM / TEI / llama.cpp）
+  - `FineTuneRun` —— 微调流水线执行（实例化 Argo WorkflowTemplate）
+- 构建时将 umbrella chart 打包到 `_build_charts/` 暂存目录，通过 Helm SDK
+  （`internal/helmbridge/`）调用
+- 内置卡住的 Release 恢复机制：检测 `pending-install` / `pending-upgrade` 卡住状态
+  并在重新协调前自动回滚
+- 基于 Generation 的协调循环抑制（当
+  `status.observedGeneration == metadata.generation` 时跳过）
+- ServiceAccount 使用 `cluster-admin`（因为 umbrella chart 的子 chart 模板包含通配符
+  RBAC，例如 Headlamp）
+- 镜像：`localhost:5000/kube-llmops/operator:latest`（推送到你自己的 Registry）
+- 示例 CR：`operator/config/samples/llmplatform_full.yaml`
+- 用户指南：`operator/docs/user-guide/operator-guide-en.md`（含 zh 版本）
+- 源代码：`operator/`
+
+---
+
+## 第 9 层：命令行工具（kubectl-llmops）
+
+> **v1.0.0**：`kubectl-llmops` 是 Operator 的命令式配套工具 —— 一个 kubectl 插件，
+> 提供 `kubectl llmops <cmd>` 形式的日常 LLMOps 操作体验。其大部分动作都是通过
+> 创建/修改 CR 驱动 Operator 完成的（不直接改动集群），因此 CLI 操作与
+> GitOps / Operator reconcile 可以无缝共存。
+
+### 概览
+
+- **二进制**：`kubectl-llmops`（也可以通过 `kubectl llmops <cmd>` 调用，因为
+  `kubectl` 会自动发现 `PATH` 上的 `kubectl-*` 可执行文件作为插件）
+- **入口**：`operator/cmd/kubectl-llmops/main.go`
+- **命令实现**：`operator/internal/cli/cmd/`
+- **全局参数**：`-n/--namespace`、`-o/--output`（`table` | `json` | `yaml` | `wide`）
+- **构建**：
+  ```bash
+  cd operator && make build-cli     # 产出 bin/kubectl-llmops
+  # 或
+  cd operator && make install-cli   # 安装到 $GOPATH/bin
+  ```
+
+### 命令分组（15+ 顶级命令）
+
+| 分类 | 命令 | 作用 |
+|---|---|---|
+| **部署 / 生命周期** | `deploy`、`list`、`status`、`scale`、`delete` | 从 HuggingFace 一键生成 `ModelDeployment` CR；列出 / 查看 / 扩缩 / 删除在线模型 |
+| **发布** | `canary`、`promote`、`rollback` | 加权金丝雀流量切分；提升金丝雀为主版本；回滚到上一个稳定版本 |
+| **开发体验** | `logs`、`test`、`endpoint`、`port-forward` | 拉取日志；`test` 直接调 LiteLLM 发一条 prompt；查看 endpoint URL；端口转发 `gateway` / `grafana` / `dify` |
+| **平台 / 模块** | `platform`、`dashboard`、`migrate` | `platform status` / `update --enable rag --disable security`；打开 Headlamp 仪表盘；`migrate <helm-release>` 将已有 Helm release 转换为 CR |
+| **微调** | `finetune create / list / logs / ...` | 基于 `FineTuneRun` CR（Argo Workflow） |
+| **RAG** | `rag upload / query / ...` | 直接调用 Dify API 完成知识库操作 |
+
+### 典型流程
+
+```bash
+# 从 HuggingFace 一键部署（source 名自动检测引擎）
+kubectl llmops deploy Qwen/Qwen2.5-7B-Instruct
+
+# 用 20% 流量金丝雀新版本，然后提升为主版本
+kubectl llmops canary qwen2-5-7b-instruct --target Qwen/Qwen2.5-14B --weight 20
+kubectl llmops promote qwen2-5-7b-instruct
+
+# 直接向 LiteLLM 发一次测试对话（无需 SDK）
+kubectl llmops test qwen2-5-7b-instruct --prompt "Hello"
+
+# 端口转发某个平台服务
+kubectl llmops port-forward --service=gateway
+
+# 通过修改 LLMPlatform CR 切换功能模块
+kubectl llmops platform update --enable rag --disable security
+
+# 微调流水线
+kubectl llmops finetune create --base-model Qwen/Qwen2.5-0.5B --method lora
+
+# 上传文档到 Dify 知识库
+kubectl llmops rag upload my-kb ./doc.pdf
+
+# 把已有 Helm release 转换为 CR 管理
+kubectl llmops migrate kube-llmops
+```
+
+### 与 Operator 的关系
+
+```
+kubectl llmops deploy ...         kubectl llmops rag upload ...
+         │                                 │
+         v                                 v
+  创建/修改 CR                        直接调 Dify HTTP API
+  （ModelDeployment 等）
+         │
+         v
+  kube-llmops-operator  ──►  Helm SDK / K8s API  ──►  实际工作负载
+```
+
+- 大部分命令是 **CR 优先** 的：通过创建或 patch `LLMPlatform` / `ModelDeployment` /
+  `FineTuneRun` 等 CR，然后让 Operator 协调。这让 CLI 的操作具备可审计、可 GitOps 回放的特性。
+- `kubectl llmops test` 直接调用 **LiteLLM**（OpenAI 兼容 endpoint），不经过 CR —
+  就是一个便捷工具。
+- `kubectl llmops rag` 直接调用 **Dify API** 进行知识库上传与查询。
+- `kubectl llmops migrate` 会将已有的 Helm release 反向生成一份等价的 `LLMPlatform`
+  CR，方便从"直接 helm install"切换到"Operator 管理"的团队使用。
+
+---
+
+## 横切关注点：安全与多租户
+
+| 组件 | 技术 | CNCF 状态 |
+|---|---|---|
+| 认证 / SSO | **Keycloak** | **CNCF 孵化级** |
+| API 密钥管理 | **LiteLLM** 内置 | - |
+| 网络策略 | **Cilium** | **CNCF 毕业级** |
+| 密钥管理 | **External Secrets Operator** | - |
+| 内容安全 | **LLM-Guard** | - |
+| 审计 | OTel 追踪 + Loki 日志 | CNCF 毕业级 |
+
+---
+
+## 横切关注点：自动扩缩与成本
+
+| 组件 | 技术 | CNCF 状态 |
+|---|---|---|
+| Pod 自动扩缩 | **KEDA** | **CNCF 毕业级** |
+| 节点自动扩缩 | Karpenter / Cluster Autoscaler | - |
+| 缩容到零 | KEDA ScaledObject | CNCF 毕业级 |
+| 竞价/抢占实例 | Karpenter spot handler | - |
+
+面向 LLM 工作负载的 KEDA 触发器：
+```yaml
+triggers:
+  - type: prometheus
+    metadata:
+      query: sum(vllm_num_requests_waiting{model_name="deepseek-r1-0528"})
+      threshold: "50"
+  - type: prometheus
+    metadata:
+      query: histogram_quantile(0.95, rate(vllm_time_to_first_token_seconds_bucket[5m]))
+      threshold: "2.0"
+```
+
+---
+
+## 技术栈总结（v2，CNCF 对齐）
+
+| 分类 | v1 选择 | v2 选择 | 变更原因 |
+|---|---|---|---|
+| 可观测性管线 | （无，直连） | **OpenTelemetry**（CNCF 毕业级） | 统一管线，CNCF 标准 |
+| 追踪 | Tempo | **Langfuse**（通过 OTel OTLP） | Langfuse 在 LLM 场景优于 Jaeger：兼具追踪 + Prompt/Token/成本/会话追踪。不为 CNCF 标签引入 Jaeger。 |
+| 日志采集器 | Promtail | **Fluentbit**（CNCF 毕业级） | CNCF > 非 CNCF |
+| 模型缓存 | JuiceFS | **Fluid**（CNCF 沙箱级） | CNCF > 非 CNCF |
+| 模型仓库 | OCI Registry | **Harbor**（CNCF 毕业级） | CNCF，内置访问控制 |
+| 网关第二层 | （无） | **Envoy AI Gateway + IGW**（Envoy=CNCF 毕业级） | 行业标准，KV 感知路由 |
+| 网络 | Calico | **Cilium**（CNCF 毕业级） | CNCF，基于 eBPF |
+| 引擎选择 | 手动 | **Model Resolver**（自动检测） | 新功能 |
+| 指标 | Prometheus（直连） | **Prometheus 通过 OTel** | 统一管线 |
+| 仪表盘 | Grafana | Grafana（不变） | 无 CNCF 替代方案 |
+| AI Gateway 第一层 | LiteLLM | LiteLLM（不变） | 无 CNCF 替代方案 |
+| LLM 追踪 | Langfuse | Langfuse 通过 OTel（不变） | 无 CNCF 替代方案 |
+| 推理引擎 | vLLM | vLLM + llama.cpp + TEI（自动） | 增强自动选择 |
+
+---
+
+## 仓库结构（v2）
+
+```
+kube-llmops/
+├── charts/
+│   └── kube-llmops-stack/              # Umbrella Helm Chart
+│       ├── Chart.yaml
+│       ├── values.yaml                 # Master defaults
+│       ├── values-minimal.yaml
+│       ├── values-standard.yaml
+│       ├── values-production.yaml
+│       ├── templates/
+│       │   ├── _helpers.tpl
+│       │   ├── configmap-litellm.yaml
+│       │   ├── configmap-otel.yaml     # OTel Collector config
+│       │   └── ingress.yaml
+│       └── charts/                     # Sub-charts
+│           ├── vllm/
+│           ├── llamacpp/               # NEW: llama.cpp for GGUF
+│           ├── sglang/
+│           ├── tei/                    # Embedding & reranking
+│           ├── model-resolver/         # NEW: Engine auto-selection
+│           ├── litellm/               # Tier 1 AI Gateway
+│           ├── inference-gateway/      # NEW: Envoy AI Gateway + IGW (Tier 2)
+│           ├── observability/          # OTel Collector + Prometheus + Fluentbit + Loki + DCGM
+│           ├── langfuse/
+│           ├── grafana/
+│           ├── milvus/
+│           ├── minio/
+│           ├── harbor/                 # NEW: CNCF model registry
+│           ├── fluid/                  # NEW: replaces juicefs
+│           ├── jupyterhub/
+│           ├── mlflow/
+│           ├── keycloak/
+│           └── keda/
+│
+├── images/
+│   ├── model-resolver/                 # NEW: Engine auto-detection
+│   │   ├── Dockerfile
+│   │   ├── resolver.py
+│   │   ├── format_detector.py
+│   │   ├── hardware_probe.py
+│   │   └── engine_map.yaml            # Format -> engine mapping rules
+│   │   ├── Dockerfile
+│   │   └── loader.py
+│   └── rag-worker/
+│       ├── Dockerfile
+│       └── ingest.py
+│
+├── dashboards/                         # Grafana dashboard JSON
+│   ├── vllm-model-serving-overview.json
+│   ├── litellm-ai-gateway.json
+│   └── gpu-infrastructure-overview.json
+│
+├── alerting/
+│   ├── llm-serving.yaml
+│   ├── gpu-hardware.yaml
+│   └── cost-budget.yaml
+│
+├── otel/                               # NEW: OpenTelemetry configs
+│   ├── collector-config.yaml
+│   ├── instrumentation.yaml            # OTel auto-instrumentation CR
+│   └── sampling-policy.yaml
+│
+├── manifests/
+│   ├── quickstart/
+│   ├── kustomize/
+│   │   ├── base/
+│   │   └── overlays/
+│   └── argocd/
+│       ├── app-of-apps.yaml
+│       └── applicationset.yaml
+│
+├── terraform/
+│   ├── aws-eks/
+│   ├── gcp-gke/
+│   ├── azure-aks/
+│   └── aliyun-ack/
+│
+├── examples/
+│   ├── python/
+│   │   ├── openai-sdk-chat.py
+│   │   ├── langchain-rag.py
+│   │   └── streaming.py
+│   ├── curl/
+│   │   └── api-examples.sh
+│   └── fine-tuning/
+│       ├── finetune-job.yaml
+│       └── evaluate.py
+│
+├── scripts/
+│   ├── init-cluster.sh
+│   ├── install.sh
+│   ├── backup.sh
+│   └── health-check.sh
+│
+├── docs/
+│   ├── getting-started.md
+│   ├── architecture.md
+│   ├── model-resolver-guide.md         # NEW
+│   ├── observability-guide.md          # NEW (OTel setup)
+│   ├── gpu-setup-guide.md
+│   ├── model-serving-guide.md
+│   ├── gateway-guide.md                # NEW (two-tier gateway)
+│   ├── security-guide.md
+│   ├── rag-guide.md
+│   ├── fine-tuning-guide.md
+│   ├── troubleshooting.md
+│   └── faq.md
+│
+├── ARCHITECTURE.md
+├── README.md
+├── CONTRIBUTING.md
+├── LICENSE                             # Apache 2.0
+├── Makefile
+└── .github/
+    └── workflows/
+        ├── lint-charts.yaml
+        ├── release.yaml
+        └── docs.yaml
+```
+
+---
+
+## 路线图（v2，已更新）
+
+### 第一阶段：基础建设（MVP）—— "部署一个模型，看到指标"
+- [x] 仓库脚手架、Makefile、CI、lint
+- [x] **Model Resolver** init-container（格式检测 + 引擎自动选择）
+- [x] vLLM Helm 子 Chart + llama.cpp Helm 子 Chart
+- [x] LiteLLM Helm 子 Chart（第一层网关，PostgreSQL）
+- [x] **OpenTelemetry Collector** + Prometheus + DCGM Exporter
+- [x] Grafana + 3 个仪表盘（总览、GPU 集群、单模型）
+- [x] Umbrella Chart + `values-minimal.yaml`
+- [x] 快速入门指南 + README
+- [x] `scripts/install.sh`
+
+### 第二阶段：生产就绪 —— "在生产环境运行"
+- [x] 多模型部署（vLLM + TEI + llama.cpp，自动选择）
+- [x] LiteLLM 高级功能（故障回退、重试、速率限制、预算控制）
+- [x] **Langfuse** 集成（LiteLLM 回调 + OTel OTLP）
+- [x] **Fluentbit** + Loki 日志管线
+- [x] 3 个 Grafana 仪表盘 + 4 条 Prometheus 告警规则（延迟、队列、KV 缓存、宕机）
+- [x] **KEDA** 自动扩缩（等待请求数、TTFT）—— 已通过 KEDA operator 验证
+- [x] **Fluid** 分布式模型缓存 —— 模板已就绪，需预装 Fluid operator
+- [x] MinIO 对象存储（模型已上传并验证）+ **Harbor** 模板
+- [x] `values-standard.yaml` + `values-production.yaml`
+- [x] Keycloak SSO（Grafana OIDC 已验证）+ NetworkPolicy 模板
+
+### 第三阶段：RAG 与推理优化 —— "构建 RAG 应用，优化路由"
+- [x] pgvector（PostgreSQL 镜像切换为 pgvector/pgvector:pg16）
+- [x] Milvus Helm 子 Chart（单机模式）
+- [x] TEI 嵌入/重排序服务 —— Chart 模板已就绪
+- [x] RAG 数据摄入 Worker + 示例应用（examples/rag/）
+- [x] **Envoy AI Gateway + IGW**（Tier 2，Gateway + HTTPRoute 已在集群验证）
+- [x] **LoRA 适配器路由** —— InferenceModel CRD 模板已就绪（需 IGW 扩展）
+- [x] 多租户（Namespace + ResourceQuota + NetworkPolicy 按团队隔离）
+- [x] `values-production.yaml`
+- [x] 备份/恢复自动化（scripts/backup.sh + restore.sh）
+
+### 第四阶段：ML 平台 —— "ML 工程师的最爱"
+- [x] 带 GPU 配置的 JupyterHub
+- [x] LLaMA-Factory 微调 Job 模板
+- [x] MLflow 实验追踪
+- [x] 模型评估管线
+- [x] ArgoCD ApplicationSet 多集群支持
+- [x] Terraform 模块（EKS、GKE、AKS）
+
+### 第五阶段：高级推理（v0.5.0）—— "顶尖性能"
+- [x] 延迟路由（默认策略）
+- [x] 每模型前缀缓存
+- [x] 多触发器 KEDA 自动扩缩（队列 + TTFT P95 + TPOT P95）
+- [x] SLO 告警与仪表盘面板
+- [x] 规模到零（scale-to-zero）+ LiteLLM 冷启动回退
+- [x] 竞价 GPU 容忍度 + 优雅驱逐
+- [x] MIG GPU 共享
+- [x] 金丝雀部署 + 权重流量切分
+- [x] llm-d 分离式推理（实验性）
+- [x] 多加速器支持（nvidia、amd、gaudi）
+- [x] 会话亲和性（Envoy sidecar）
+- [x] Envoy AI Gateway + IGW CRD 模板
+- [x] 文档（6 份新指南）
+
+### 第六阶段：生态建设
+- [x] **Kubernetes Operator 与 CRD**（v0.5.0：`LLMPlatform`、`ModelDeployment`、`FineTuneRun`）
+- [x] **Web 管理界面**（v0.5.0：Headlamp + `kube-llmops-portal` 插件替代了 v0.4 自定义 dashboard）
+- [x] **Harbor 模型仓库子 Chart**（v0.5.0）
+- [x] **PostgreSQL 独立子 Chart**（v0.5.0，从 LiteLLM 分离）
+- [x] **CLI 工具**（v1.0.0：`kubectl-llmops` —— kubectl 插件，15+ 顶级命令，包括 `deploy`、`canary`、`test`、`port-forward`、`finetune`、`rag`、`platform`、`migrate` 等；源代码：`operator/cmd/kubectl-llmops/`）
+- [ ] 多模态模型服务
+- [ ] 模型优化工具箱（量化、蒸馏）
+
+---
+
+## 竞争定位（基于行业调研更新）
+
+```
+                   Full LLMOps Platform (deploy + gateway + monitor + data + finetune)
+                        ^
+                        |
+         kube-llmops ---|--------- KubeRay ecosystem (Ray Serve + Ray Train)
+                        |
+                        |
+   Easy to deploy <-----+-----> Performance-optimized
+                        |
+         KubeAI --------|-------- KServe + llm-d (CNCF standard)
+         llmaz          |         KAITO (Azure-specific)
+                        |
+                        v
+                   Inference-only
+```
+
+| 功能 | KAITO | KServe+llm-d | llmaz | KubeAI | kube-llmops |
+|---|---|---|---|---|---|
+| 引擎自动选择 | 否（预设） | 否 | 否 | 否 | **是** |
+| AI Gateway（密钥/成本） | 否 | 否 | 部分 | 否 | **是（LiteLLM）** |
+| KV cache 感知路由 | 否 | **是（IGW）** | **是（IGW）** | 否 | **是（第三阶段）** |
+| OTel 可观测性 | 否 | 部分 | 否 | 否 | **是（全栈）** |
+| 预置仪表盘 | 否 | 否 | 否 | 否 | **是（3 个）** |
+| LLM 追踪（Prompt） | 否 | 否 | 否 | 否 | **是（Langfuse）** |
+| 向量数据库 | 仅 faiss | 否 | 否 | 否 | **是（Milvus/pgvector）** |
+| 微调工作流 | 是 | 否 | 否 | 否 | **是** |
+| 开发环境 | 否 | 否 | 否 | 否 | **是（JupyterHub）** |
+| CNCF 对齐度 | 低 | **高** | 中 | 低 | **高** |
+| 云厂商无关 | 仅 Azure | 是 | 是 | 是 | **是** |
+| 一键全栈部署 | 否 | 否 | 否 | 否 | **是** |
+
+---
+
+## 许可证
+
+Apache License 2.0

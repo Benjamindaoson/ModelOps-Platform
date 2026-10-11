@@ -1,0 +1,180 @@
+{{- $models := .Values.models }}
+{{- if and .Values.global .Values.global.models }}
+{{- $models = .Values.global.models }}
+{{- end }}
+{{- range $idx, $model := $models }}
+{{- $resolvedEngine := include "kube-llmops.resolveEngine" (dict "model" $model "global" $.Values.global) | trim }}
+{{- if eq $resolvedEngine "llamacpp" }}
+{{- $resources := default dict $model.resources }}
+{{- $gpu := ternary (int $resources.gpu) 0 (hasKey $resources "gpu") }}
+{{- $memory := default "8Gi" $resources.memory }}
+{{- $cpu := default "4" $resources.cpu }}
+{{- $replicas := default 1 $model.replicas }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llamacpp-{{ $model.name }}
+  labels:
+    app.kubernetes.io/name: llamacpp
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: model-serving
+    app.kubernetes.io/part-of: kube-llmops
+    kube-llmops/model: {{ $model.name }}
+    kube-llmops/engine: llamacpp
+spec:
+  replicas: {{ $replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llamacpp
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      kube-llmops/model: {{ $model.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: llamacpp
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: model-serving
+        app.kubernetes.io/part-of: kube-llmops
+        kube-llmops/model: {{ $model.name }}
+        kube-llmops/engine: llamacpp
+    spec:
+      initContainers:
+        - name: model-loader
+          image: {{ (default dict (default dict $.Values.global).modelStore).image | default "kube-llmops/model-loader:latest" }}
+          imagePullPolicy: IfNotPresent
+          command: ["bash", "-c"]
+          args:
+            - |
+{{ include "kube-llmops.modelLoaderScript" . | indent 14 }}
+              # GGUF: find .gguf files and create proper symlinks
+              # For split GGUF, llama.cpp needs files named {prefix}-NNNNN-of-NNNNN.gguf
+              python3 -c "
+              import os, re
+              from pathlib import Path
+              slug = '{{ replace "/" "--" $model.source }}'
+              src_dir = Path('/models') / slug
+              model_name = '{{ $model.name }}'
+              gguf_files = sorted(src_dir.glob('**/*.gguf')) + sorted(src_dir.glob('**/*.GGUF'))
+              if not gguf_files:
+                  print(f'WARNING: No .gguf file found in {src_dir}')
+              elif len(gguf_files) == 1:
+                  # Single GGUF: simple symlink
+                  target = Path(f'/models/{model_name}.gguf')
+                  if target.exists() or target.is_symlink():
+                      target.unlink()
+                  os.symlink(str(gguf_files[0]), str(target))
+                  print(f'Linked {gguf_files[0].name} → {target.name}')
+              else:
+                  # Split GGUF: create matching symlinks for ALL shards
+                  split_re = re.compile(r'(-\d{5}-of-\d{5})(\.gguf)$', re.IGNORECASE)
+                  for f in gguf_files:
+                      m = split_re.search(f.name)
+                      if m:
+                          link_name = f'{model_name}{m.group(1)}{m.group(2)}'
+                      else:
+                          link_name = f.name
+                      target = Path(f'/models/{link_name}')
+                      if target.exists() or target.is_symlink():
+                          target.unlink()
+                      os.symlink(str(f), str(target))
+                  first = next((f'/models/{model_name}{split_re.search(f.name).group(1)}{split_re.search(f.name).group(2)}' for f in gguf_files if split_re.search(f.name) and '-00001-of-' in f.name), None)
+                  print(f'Created {len(gguf_files)} split symlinks, first: {first}')
+                  # Write the first shard path for the main container
+                  Path('/models/.gguf_model_path').write_text(first or f'/models/{model_name}.gguf')
+              "
+          env:
+{{ include "kube-llmops.modelLoaderEnv" (dict "model" $model "root" $ "mountPath" "/models" "hfHome" "/models/huggingface") | indent 12 }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      containers:
+        - name: llamacpp
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              MODEL_PATH="/models/{{ $model.name }}.gguf"
+              [ -f /models/.gguf_model_path ] && MODEL_PATH=$(cat /models/.gguf_model_path)
+              echo "Loading model: $MODEL_PATH"
+              exec /app/llama-server --model "$MODEL_PATH" --host 0.0.0.0 --port 8080 --metrics{{ if gt $gpu 0 }} --n-gpu-layers 999{{ end }}{{ range $key, $val := $model.engineArgs }} {{ $key }}{{ if $val }} {{ $val }}{{ end }}{{ end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ $.Values.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ $.Values.livenessProbe.failureThreshold }}
+          resources:
+            requests:
+              cpu: {{ $cpu | quote }}
+              memory: {{ $memory }}
+              {{- if gt $gpu 0 }}
+              {{ include "kube-llmops.gpuResourceName" $ }}: {{ $gpu | quote }}
+              {{- end }}
+            limits:
+              memory: {{ $memory }}
+              {{- if gt $gpu 0 }}
+              {{ include "kube-llmops.gpuResourceName" $ }}: {{ $gpu | quote }}
+              {{- end }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+      {{- if gt $gpu 0 }}
+      tolerations:
+        - key: {{ $.Values.gpuToleration.key }}
+          operator: {{ $.Values.gpuToleration.operator }}
+          effect: {{ $.Values.gpuToleration.effect }}
+        {{- if $model.spotToleration }}
+        - key: kubernetes.azure.com/scalesetpriority
+          value: spot
+          effect: NoSchedule
+        - key: cloud.google.com/gke-spot
+          value: "true"
+          effect: NoSchedule
+        - key: karpenter.sh/capacity-type
+          value: spot
+          effect: NoSchedule
+        {{- end }}
+      {{- end }}
+      volumes:
+        - name: model-cache
+          {{- if and $.Values.modelCache.enabled (not $.Values.modelCache.existingClaim) }}
+          persistentVolumeClaim:
+            claimName: llamacpp-{{ $model.name }}-cache
+          {{- else if $.Values.modelCache.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ $.Values.modelCache.existingClaim }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: {{ $.Values.modelCache.size }}
+          {{- end }}
+{{- end }}
+{{- end }}

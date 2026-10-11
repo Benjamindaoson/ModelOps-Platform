@@ -1,0 +1,98 @@
+{{- if and .Values.dcgmExporter.enabled (ne ((default dict .Values.global).accelerator | default "nvidia") "amd") (ne ((default dict .Values.global).accelerator | default "nvidia") "gaudi") }}
+{{- $kubelet := .Values.dcgmExporter.kubernetes | default dict }}
+{{- $kubeletEnabledRaw := $kubelet.enabled }}
+{{- if eq (typeOf $kubeletEnabledRaw) "<nil>" }}
+  {{- $kubeletEnabledRaw = true }}
+{{- end }}
+{{- $kubeletEnabled := and (ne (toString $kubeletEnabledRaw) "false") (ne (toString $kubeletEnabledRaw) "0") }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ $.Release.Name }}-dcgm-exporter
+  labels:
+    app.kubernetes.io/name: dcgm-exporter
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: kube-llmops
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-exporter
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dcgm-exporter
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: observability
+        app.kubernetes.io/part-of: kube-llmops
+    spec:
+      {{- if $kubeletEnabled }}
+      hostPID: true
+      {{- end }}
+      containers:
+        - name: dcgm-exporter
+          image: "{{ .Values.dcgmExporter.image.repository }}:{{ .Values.dcgmExporter.image.tag }}"
+          imagePullPolicy: {{ .Values.dcgmExporter.image.pullPolicy }}
+          {{- if $kubeletEnabled }}
+          # --kubernetes: map GPU metrics to Kubernetes pod/namespace/container labels
+          # via kubelet's pod-resources socket. Enables per-Pod GPU telemetry without
+          # label-joining in PromQL.
+          #
+          # NOTE: Do NOT add --kubernetes-gpu-id-type=uuid — "uuid" is not a valid value
+          # (only "uid" or "device-name"), and passing it breaks the podMapper
+          # transformation, dropping ALL metrics with the error:
+          #   "unsupported KubernetesGPUIDType for MetricID 'uuid'"
+          # Default (uid) is what we want.
+          args:
+            - --kubernetes=true
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          {{- end }}
+          ports:
+            - containerPort: 9400
+              name: metrics
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            {{- if $kubeletEnabled }}
+            privileged: true
+            {{- end }}
+          volumeMounts:
+            - name: dev
+              mountPath: /dev
+            {{- if $kubeletEnabled }}
+            - name: pod-resources
+              mountPath: /var/lib/kubelet/pod-resources
+              readOnly: true
+            {{- end }}
+          resources:
+            {{- if .Values.dcgmExporter.resources }}
+            {{- toYaml .Values.dcgmExporter.resources | nindent 12 }}
+            {{- else }}
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            {{- end }}
+      tolerations:
+        - key: {{ include "kube-llmops.gpuTolerationKey" . }}
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: dev
+          hostPath:
+            path: /dev
+        {{- if $kubeletEnabled }}
+        - name: pod-resources
+          hostPath:
+            path: /var/lib/kubelet/pod-resources
+            type: Directory
+        {{- end }}
+{{- end }}

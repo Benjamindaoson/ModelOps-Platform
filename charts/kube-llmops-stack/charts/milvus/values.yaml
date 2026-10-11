@@ -1,0 +1,40 @@
+# Milvus standalone mode (for development/small deployments)
+image:
+  repository: milvusdb/milvus
+  tag: v2.6.13
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 19530       # gRPC
+  httpPort: 9091     # HTTP/REST
+
+storage:
+  size: 10Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+# etcd for Milvus metadata
+etcd:
+  image:
+    repository: quay.io/coreos/etcd
+    tag: v3.5.18
+  storage:
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+pdb:
+  enabled: true

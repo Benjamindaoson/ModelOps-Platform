@@ -1,0 +1,81 @@
+enabled: false
+
+# Prerequisite: KEDA operator must be installed separately
+#   helm repo add kedacore https://kedacore.github.io/charts
+#   helm install keda kedacore/keda -n keda-system --create-namespace
+# For true scale-to-zero, install the KEDA HTTP add-on in the same namespace:
+#   helm install http-add-on kedacore/keda-add-ons-http -n keda-system
+
+global:
+  scaleToZero:
+    httpAddOn:
+      enabled: true
+      namespace: keda-system
+      interceptorService: keda-add-ons-http-interceptor-proxy
+      interceptorPort: 8080
+      externalScalerService: keda-add-ons-http-external-scaler
+      externalScalerPort: 9090
+      aliasServicePrefix: keda-http
+
+# Default autoscaling settings for all models
+defaults:
+  minReplicas: 1
+  maxReplicas: 4
+  cooldownPeriod: 300       # 5 min before scale-down
+  pollingInterval: 15       # Check metrics every 15s
+
+  # Prometheus endpoint (auto-detected from observability chart)
+  prometheusAddress: ""     # Auto: http://<release>-prometheus:9090
+
+  # Scale-to-zero defaults (applied when per-model scaleToZero.enabled=true)
+  scaleToZero:
+    idleTimeout: 900          # 15 min idle before scaling to zero
+    targetPendingRequests: 1  # HTTP add-on concurrency target per replica
+    readinessTimeout: "0s"    # Let model cold starts use the full request budget
+
+# Per-engine pending-requests trigger configuration
+# Models are auto-detected from global.models via resolveEngine helper
+engines:
+  vllm:
+    metric: "vllm:num_requests_waiting"
+    labelName: model_name           # label key used in the Prometheus metric
+    threshold: "2"                  # scale when > 2 requests waiting
+  sglang:
+    metric: "sglang:num_requests_waiting"
+    labelName: model_name
+    threshold: "2"
+  chitu:
+    metric: "chitu:num_requests_waiting"
+    labelName: model_name
+    threshold: "2"
+  llamacpp:
+    metric: "llamacpp_requests_processing"
+    labelName: model                # label key (relabeled from kube-llmops/model)
+    threshold: "2"
+
+# Multi-trigger configuration (any trigger breaching threshold causes scale-up)
+triggers:
+  requestsWaiting:
+    enabled: true                   # Default: always enabled (queue-depth trigger)
+  ttftP95:
+    enabled: false                  # Time to First Token P95 (vLLM only)
+    threshold: "3"                  # seconds
+    window: "2m"
+  tpotP95:
+    enabled: false                  # Time per Output Token P95 (vLLM only)
+    threshold: "0.1"               # seconds per token
+    window: "2m"
+
+# Per-model overrides (optional)
+# models:
+#   my-model-name:
+#     minReplicas: 2
+#     maxReplicas: 8
+#     threshold: "5"
+#     triggers:
+#       ttftP95:
+#         threshold: "1.5"
+#     scaleToZero:
+#       # Set enabled under global.models[].scaleToZero so LiteLLM can route
+#       # through the KEDA HTTP add-on interceptor.
+#       idleTimeout: 900

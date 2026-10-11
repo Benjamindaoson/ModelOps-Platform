@@ -1,0 +1,86 @@
+# LLM-Guard: prompt injection defense + output scanning
+llmGuard:
+  enabled: false
+  image:
+    repository: laiyer/llm-guard-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: "2"
+  # Scanners to enable (see https://llm-guard.com/input_scanners/)
+  scanners:
+    input:
+      - PromptInjection
+    output:
+      - NoRefusal
+
+# NetworkPolicy: isolate components so only expected traffic flows
+networkPolicy:
+  enabled: true
+
+# Presidio PII detection + anonymization
+presidio:
+  enabled: false
+  analyzer:
+    image:
+      repository: mcr.microsoft.com/presidio-analyzer
+      tag: "2.2.362"
+  anonymizer:
+    image:
+      repository: mcr.microsoft.com/presidio-anonymizer
+      tag: "2.2.362"
+
+# OIDC/SSO configuration (works with Keycloak, Dex, or any OIDC provider)
+oidc:
+  enabled: false
+  issuerUrl: ""          # e.g. https://keycloak.example.com/realms/kube-llmops
+  clientId: ""
+  clientSecret: ""
+  # Grafana OIDC settings
+  grafana:
+    enabled: false
+    roleAttributePath: "contains(groups[*], 'admin') && 'Admin' || 'Viewer'"
+  # Langfuse OIDC settings (Langfuse v3 supports Keycloak OIDC natively)
+  langfuse:
+    enabled: false
+
+# Multi-tenant namespace isolation
+multiTenant:
+  enabled: false
+  teams: []
+  # Example:
+  # teams:
+  #   - name: team-a
+  #     namespace: llm-team-a
+  #     gpuQuota: 2
+  #     memoryQuota: 32Gi
+  #     cpuQuota: 16
+  #     maxPods: 20
+  #   - name: team-b
+  #     namespace: llm-team-b
+  #     gpuQuota: 4
+  #     memoryQuota: 64Gi
+  #     cpuQuota: 32
+  #     maxPods: 40
+
+# Envoy AI Gateway (Tier 2 — advanced routing, LoRA adapter support)
+# Requires: Gateway API CRDs + Envoy Gateway controller pre-installed
+envoyGateway:
+  enabled: false
+  port: 8888
+  # InferenceModel resources for LoRA adapter routing (requires IGW extension)
+  # inferenceModels:
+  #   - name: my-model-base
+  #     modelName: my-model
+  #     poolName: vllm-pool
+  #   - name: my-model-lora-chinese
+  #     modelName: my-model
+  #     poolName: vllm-pool
+  #     adapters:
+  #       - name: chinese-adapter
+  #         weight: 100
+ight: 100

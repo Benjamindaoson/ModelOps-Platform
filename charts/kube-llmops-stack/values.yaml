@@ -1,0 +1,426 @@
+# kube-llmops-stack default values
+
+global:
+  # Set to false for CPU-only environments (CI, dev without GPU)
+  gpu: true
+  # Image pull policy
+  imagePullPolicy: IfNotPresent
+
+  # -- Module switches: enable/disable feature groups with a single toggle
+  # Each module controls its subchart dependencies, dashboards, and alert rules.
+  modules:
+    rag:
+      enabled: false      # dify, milvus, lightrag, rag-eval + dashboards + alerts
+    finetune:
+      enabled: false      # finetune (LLaMA-Factory + Argo + MLflow), jupyterhub
+    security:
+      enabled: false      # LLM-Guard, NetworkPolicy + tenant dashboard
+
+  # Scale-to-zero uses the KEDA HTTP add-on as the wake-up path. Model serving
+  # pod metrics disappear at 0 replicas, so true 0->1 scaling must be driven by
+  # the always-on HTTP interceptor.
+  scaleToZero:
+    httpAddOn:
+      enabled: true
+      namespace: keda-system
+      interceptorService: keda-add-ons-http-interceptor-proxy
+      interceptorPort: 8080
+      externalScalerService: keda-add-ons-http-external-scaler
+      externalScalerPort: 9090
+      aliasServicePrefix: keda-http
+
+# -- Default LLM inference engine (used when auto-detection finds no MoE/VLM pattern)
+# Options: vllm, sglang, chitu
+# MoE models (DeepSeek-V3/R1, Qwen3-MoE, Mixtral, GLM-4.5+) auto-select sglang.
+# VLM models (*-VL-*, *-vision*) auto-select sglang.
+# Set to "sglang" to use SGLang for all standard LLMs by default.
+defaultLLMEngine: vllm
+
+# -- Model definitions
+# Each model will be deployed with the auto-selected or explicitly specified engine.
+# Engine auto-detection uses a capability-based approach:
+#   1. Explicit engine: field overrides all
+#   2. Source name: GGUF → llamacpp, embedding/reranker → tei
+#   3. features tags: domestic-gpu → chitu, moe → sglang, vlm → sglang
+#   4. Source auto-detect: known MoE/VLM patterns → sglang
+#   5. Default: global.defaultLLMEngine (above)
+# Example:
+#   models:
+#     - name: qwen2-5-0-5b
+#       source: Qwen/Qwen2.5-0.5B-Instruct
+#       engine: auto              # auto | vllm | sglang | llamacpp | chitu | tei
+#       features: []              # Capability hints: moe, vlm, domestic-gpu
+#       replicas: 1
+#       resources:
+#         gpu: 1
+#         memory: 16Gi
+#       engineArgs: {}            # Additional engine-specific arguments
+models: []
+
+# -- vLLM engine configuration (sub-chart)
+# models[] is injected into vllm.models automatically
+vllm:
+  enabled: true
+  models: []                  # Populated from top-level models[] at install time
+  image:
+    repository: vllm/vllm-openai
+    tag: gemma4-cu130
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  modelLoader:
+    enabled: true
+    image:
+      repository: python
+      tag: "3.13-slim"
+      pullPolicy: IfNotPresent
+    hfToken: ""               # Set via --set vllm.modelLoader.hfToken=xxx
+  modelCache:
+    enabled: true
+    storageClass: ""
+    size: 50Gi
+    existingClaim: ""
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  gpuToleration:
+    key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  # Custom CA certificates for corporate environments
+  customCACert:
+    enabled: false
+    configMapName: ""         # Pre-created ConfigMap with CA cert files
+    mountPath: /usr/local/share/ca-certificates/custom
+
+# -- SGLang engine configuration (sub-chart)
+# Auto-selected for MoE models (DeepSeek-V3/R1, Qwen3-MoE, Mixtral, GLM-4.5+)
+# and VLM models (*-VL-*, *-vision*). Also selected via features: [moe] or [vlm].
+sglang:
+  enabled: true
+  models: []
+  image:
+    repository: lmsysorg/sglang
+    tag: latest-runtime
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 30000
+  modelLoader:
+    enabled: true
+    hfToken: ""
+  modelCache:
+    enabled: true
+    storageClass: ""
+    size: 50Gi
+    existingClaim: ""
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 60
+  livenessProbe:
+    initialDelaySeconds: 240
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 20
+  gpuToleration:
+    key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  unifiedMemory:
+    enabled: false
+  customCACert:
+    enabled: false
+    configMapName: ""
+    mountPath: /usr/local/share/ca-certificates/custom
+
+# -- llama.cpp engine configuration (sub-chart, for GGUF models)
+llamacpp:
+  enabled: true
+  models: []
+  image:
+    repository: ghcr.io/ggml-org/llama.cpp
+    tag: server-b5350
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  modelCache:
+    enabled: true
+    storageClass: ""
+    size: 30Gi
+    existingClaim: ""
+  readinessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 20
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  gpuToleration:
+    key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+# -- TEI engine configuration (sub-chart, for embedding & reranking models)
+tei:
+  enabled: true
+  models: []
+  image:
+    repository: ghcr.io/huggingface/text-embeddings-inference
+    tag: "cpu-1.6"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  modelCache:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    existingClaim: ""
+  readinessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 20
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  gpuToleration:
+    key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+# -- Chitu (赤兔) engine configuration (sub-chart)
+# Auto-selected via features: [domestic-gpu] for Ascend/Hygon/Muxi/MooreThreads GPUs.
+# Best for: DeepSeek, Qwen3, GLM models on domestic hardware.
+chitu:
+  enabled: true
+  models: []
+  image:
+    repository: qingcheng-ai-cn-beijing.cr.volces.com/public/chitu-nvidia_arch_90
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 21002
+  modelLoader:
+    enabled: true
+    hfToken: ""
+  modelCache:
+    enabled: true
+    storageClass: ""
+    size: 50Gi
+    existingClaim: ""
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 60
+  livenessProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 20
+  gpuToleration:
+    key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  unifiedMemory:
+    enabled: false
+  chituConfig:
+    useCudaGraph: true
+    softFp8: false
+
+# -- AI Gateway (LiteLLM)
+litellm:
+  enabled: true
+  models: []                  # Populated from top-level models[] for config generation
+  replicas: 1
+  masterKey: "sk-kube-llmops-default"  # Default dev key; override in production
+  image:
+    repository: ghcr.io/berriai/litellm
+    tag: v1.83.1-nightly
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 4000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  readinessProbe:
+    httpGet:
+      path: /health/liveliness
+      port: 4000
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 10
+  livenessProbe:
+    httpGet:
+      path: /health/liveliness
+      port: 4000
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # PostgreSQL for LiteLLM
+  postgresql:
+    enabled: true
+    image:
+      repository: pgvector/pgvector
+      tag: "pg17"
+    auth:
+      database: litellm
+      username: litellm
+      password: "llmops-pg-dev-pw"  # Default dev password; override in production
+    extraDatabases:
+      - name: langfuse
+        password: langfuse-default-pw
+      - name: dify
+        password: dify-default-pw
+      - name: dify_plugin
+        password: dify-default-pw
+      - name: mlflow
+        password: mlflow-default-pw
+    storage:
+      size: 5Gi
+      storageClass: ""
+    service:
+      port: 5432
+
+# -- Observability (sub-chart)
+observability:
+  enabled: true
+  otelCollector:
+    enabled: true
+    image:
+      repository: otel/opentelemetry-collector-contrib
+      tag: 0.148.0
+      pullPolicy: IfNotPresent
+  prometheus:
+    enabled: true
+    image:
+      repository: prom/prometheus
+      tag: v3.9.1
+      pullPolicy: IfNotPresent
+    retention: 15d
+    storage:
+      size: 20Gi
+      storageClass: ""
+  dcgmExporter:
+    enabled: true
+    image:
+      repository: nvcr.io/nvidia/k8s/dcgm-exporter
+      tag: 4.5.2-4.8.1-ubuntu22.04
+      pullPolicy: IfNotPresent
+  grafana:
+    enabled: true
+    image:
+      repository: grafana/grafana
+      tag: 12.4.2
+      pullPolicy: IfNotPresent
+    adminPassword: "admin"    # Default dev password; override in production
+    service:
+      type: ClusterIP
+      port: 3000
+    storage:
+      size: 2Gi
+      storageClass: ""
+
+# -- LLM Tracing (Langfuse)
+langfuse:
+  enabled: false              # Off in minimal, on in standard+
+  image:
+    repository: langfuse/langfuse
+    tag: "3.163.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 3000
+  auth:
+    nextAuthSecret: kube-llmops-langfuse-secret
+    salt: kube-llmops-langfuse-salt
+  postgresql:
+    enabled: false            # Reuse LiteLLM's PG by default
+    auth:
+      database: langfuse
+      username: langfuse
+      password: langfuse-default-pw
+
+# -- Logging
+logging:
+  enabled: false              # Off in minimal, on in standard+
+  # Fluentbit
+  fluentbit:
+    enabled: true
+  # Loki
+  loki:
+    enabled: true
+
+# -- Autoscaling (KEDA)
+keda:
+  enabled: false              # Off in minimal, on in standard+
+
+# -- Distributed Model Cache (Fluid)
+fluid:
+  enabled: false              # Off in minimal, on in production
+
+# -- Object Storage (MinIO)
+minio:
+  enabled: false
+
+# -- Model Registry (Harbor)
+harbor:
+  enabled: false
+
+# -- Vector Database
+milvus: {}
+
+# -- LightRAG Knowledge Graph
+lightrag: {}
+
+# -- Dify RAG Platform
+dify: {}
+
+# -- Auth (Keycloak)
+keycloak:
+  enabled: false
+
+# -- Security (NetworkPolicy + OIDC)
+security: {}
+
+# -- Ingress
+ingress:
+  enabled: false
+  className: traefik         # k3s default; set to nginx for other clusters
+  # Leave empty to access all services without a domain.
+  host: ""                   # Set to your domain (e.g. llm.example.com)
+  tls: false
+  annotations: {}
+
+# -- PostgreSQL Infrastructure (split: operator-pg + app-pg)
+postgresql:
+  enabled: false  # Enable for split PG architecture
+
+# -- JupyterHub (interactive ML development)
+jupyterhub: {}

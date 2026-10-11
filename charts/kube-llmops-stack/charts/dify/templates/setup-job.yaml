@@ -1,0 +1,258 @@
+{{- if .Values.setup.enabled }}
+{{- $apiUrl := printf "http://%s-dify-api:5001" .Release.Name }}
+{{- $litellmHost := .Values.litellm.host | default (printf "%s-litellm" .Release.Name) }}
+{{- $litellmUrl := printf "http://%s:%v/v1" $litellmHost (.Values.litellm.port | default 4000) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-dify-setup
+  labels:
+    app.kubernetes.io/name: dify-setup
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+data:
+  setup.sh: |
+    #!/bin/bash
+    set -e
+
+    API="{{ $apiUrl }}"
+    MAX_WAIT=300
+    ADMIN_EMAIL="{{ .Values.setup.adminEmail }}"
+    ADMIN_PASSWORD="{{ .Values.setup.adminPassword }}"
+    ADMIN_NAME="{{ .Values.setup.adminName }}"
+    PLUGIN_DIR="/plugin-storage"
+
+    echo "=== Dify Auto-Setup ==="
+
+    # ── Step 1: Wait for API ──
+    echo "[1/5] Waiting for Dify API..."
+    elapsed=0
+    while [ $elapsed -lt $MAX_WAIT ]; do
+      curl -sf "$API/health" > /dev/null 2>&1 && { echo "  API ready (${elapsed}s)"; break; }
+      sleep 5; elapsed=$((elapsed + 5))
+    done
+    [ $elapsed -ge $MAX_WAIT ] && { echo "  TIMEOUT" >&2; exit 1; }
+
+    # ── Step 2: Create admin account (idempotent) ──
+    echo "[2/5] Checking setup status..."
+    STEP=$(curl -sf "$API/console/api/setup" | python3 -c "import json,sys; print(json.load(sys.stdin).get('step',''))" 2>/dev/null)
+    if [ "$STEP" = "not_started" ]; then
+      echo "  Creating admin account..."
+      curl -sf "$API/console/api/setup" -X POST \
+        -H "Content-Type: application/json" \
+        -d "{\"email\":\"$ADMIN_EMAIL\",\"name\":\"$ADMIN_NAME\",\"password\":\"$ADMIN_PASSWORD\"}" > /dev/null
+      echo "  Admin created"
+    else
+      echo "  Already completed (step=$STEP)"
+    fi
+
+    # ── Step 3: Login ──
+    echo "[3/5] Logging in..."
+    B64_PW=$(echo -n "$ADMIN_PASSWORD" | base64)
+    CK=$(mktemp)
+    curl -sf -c "$CK" "$API/console/api/login" -X POST \
+      -H "Content-Type: application/json" \
+      -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$B64_PW\"}" > /dev/null
+    CSRF=$(grep csrf_token "$CK" | awk '{print $NF}')
+    [ -z "$CSRF" ] && { echo "  Login failed" >&2; exit 1; }
+    echo "  Logged in"
+
+    G() { curl -sf -b "$CK" -H "X-CSRF-Token: $CSRF" "$API$1"; }
+    P() { curl -sf -b "$CK" -H "X-CSRF-Token: $CSRF" -H "Content-Type: application/json" -X POST "$API$1" -d "$2"; }
+
+    # ── Step 4: Install plugins ──
+    # NOTE: Uses daemon API directly to work around PascalCase bug in
+    #       dify-plugin-daemon decode/from_identifier endpoint.
+    echo "[4/5] Installing plugins..."
+    DAEMON="http://{{ .Release.Name }}-dify-plugin-daemon:5002"
+    : "${DAEMON_KEY:?DAEMON_KEY is required}"
+
+    # Get tenant ID from current workspace
+    TENANT_ID=$(P "/console/api/workspaces/current" "{}" | \
+      python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+    [ -z "$TENANT_ID" ] && { echo "  ERROR: could not get tenant ID" >&2; exit 1; }
+    echo "  Tenant ID: $TENANT_ID"
+
+    # Query daemon directly (Dify API has response-format parsing issues with daemon)
+    DH() { curl -sf -H "X-Api-Key: $DAEMON_KEY" "$DAEMON/plugin/$TENANT_ID$1"; }
+    INSTALLED=$(DH "/management/list?page=1&page_size=100&response_type=paged" | \
+      python3 -c "import json,sys; print(' '.join(p['plugin_id'] for p in json.load(sys.stdin).get('data',{}).get('list',[])))" 2>/dev/null)
+
+    {{- range .Values.setup.plugins }}
+    PLUGIN_ID="{{ .id }}"
+    PLUGIN_SHORT=$(echo "$PLUGIN_ID" | cut -d/ -f2)
+
+    if echo "$INSTALLED" | grep -qw "$PLUGIN_ID"; then
+      echo "  $PLUGIN_ID: already installed"
+    else
+      # Find pre-seeded .difypkg in shared PVC
+      PKG=$(find "$PLUGIN_DIR" -maxdepth 1 -name "${PLUGIN_SHORT}*.difypkg" -type f 2>/dev/null | head -1)
+      [ -z "$PKG" ] && { echo "  ERROR: no .difypkg for $PLUGIN_ID"; continue; }
+      echo "  Uploading $PLUGIN_SHORT ($(stat -c%s "$PKG")B)..."
+
+      # Upload via Dify API (this works fine)
+      PLUGIN_UID=$(curl -sf -b "$CK" -H "X-CSRF-Token: $CSRF" \
+        -X POST "$API/console/api/workspaces/current/plugin/upload/pkg" \
+        -F "pkg=@$PKG" | python3 -c "import json,sys; print(json.load(sys.stdin).get('unique_identifier',''))" 2>/dev/null)
+      [ -z "$PLUGIN_UID" ] && { echo "  Upload failed"; continue; }
+      echo "  Uploaded: ${PLUGIN_UID:0:60}..."
+
+      # Trigger first install attempt (daemon extracts plugin to cwd/ but may fail
+      # on uv sync --offline if Python deps aren't cached yet)
+      echo "  Installing via daemon API..."
+      curl -sf -X POST "$DAEMON/plugin/$TENANT_ID/management/install/identifiers" \
+        -H "Content-Type: application/json" \
+        -H "X-Api-Key: $DAEMON_KEY" \
+        -d "{\"plugin_unique_identifiers\":[\"$PLUGIN_UID\"],\"source\":\"local\",\"metas\":[{\"type\":\"local\"}]}" > /dev/null 2>&1
+      sleep 15
+
+      # Pre-install Python deps if daemon's offline install failed
+      # (daemon extracts plugin to /app/storage/cwd/ = /plugin-storage/cwd/ on shared PVC)
+      PLUGIN_CWD=$(find /plugin-storage/cwd -maxdepth 3 -name "pyproject.toml" -path "*${PLUGIN_SHORT}*" -exec dirname {} \; 2>/dev/null | head -1)
+      INSTALLED2=$(DH "/management/list?page=1&page_size=100&response_type=paged" | \
+        python3 -c "import json,sys; print(' '.join(p['plugin_id'] for p in json.load(sys.stdin).get('data',{}).get('list',[])))" 2>/dev/null)
+      if ! echo "$INSTALLED2" | grep -qw "$PLUGIN_ID" && [ -n "$PLUGIN_CWD" ]; then
+        echo "  First install failed (offline deps), pre-installing with network..."
+        uv sync --directory "$PLUGIN_CWD" --quiet 2>&1 || echo "  WARN: uv sync failed"
+        echo "  Retrying daemon install..."
+        curl -sf -X POST "$DAEMON/plugin/$TENANT_ID/management/install/identifiers" \
+          -H "Content-Type: application/json" \
+          -H "X-Api-Key: $DAEMON_KEY" \
+          -d "{\"plugin_unique_identifiers\":[\"$PLUGIN_UID\"],\"source\":\"local\",\"metas\":[{\"type\":\"local\"}]}" > /dev/null 2>&1
+        sleep 15
+      fi
+
+      # Verify installation (query daemon directly)
+      INSTALLED3=$(DH "/management/list?page=1&page_size=100&response_type=paged" | \
+        python3 -c "import json,sys; print(' '.join(p['plugin_id'] for p in json.load(sys.stdin).get('data',{}).get('list',[])))" 2>/dev/null)
+      if echo "$INSTALLED3" | grep -qw "$PLUGIN_ID"; then
+        echo "  $PLUGIN_ID installed successfully"
+      else
+        echo "  WARNING: $PLUGIN_ID may not have installed correctly"
+      fi
+    fi
+    {{- end }}
+
+    {{- if .Values.setup.modelProvider.enabled }}
+    # ── Step 5: Configure model provider ──
+    echo "[5/5] Configuring model provider..."
+    CREDS_URL="/console/api/workspaces/current/model-providers/openai_api_compatible/models/credentials"
+    LITELLM_URL="{{ $litellmUrl }}"
+    LITELLM_KEY="{{ .Values.litellm.apiKey }}"
+
+    # Add embedding model
+    echo "  Adding embedding model (bge-small-en)..."
+    RESP=$(P "$CREDS_URL" "{\"model\":\"bge-small-en\",\"model_type\":\"text-embedding\",\"credentials\":{\"api_key\":\"$LITELLM_KEY\",\"endpoint_url\":\"$LITELLM_URL\",\"mode\":\"embedding\",\"context_size\":\"512\"}}" 2>&1) || true
+    echo "  $RESP" | head -c 100
+    echo ""
+
+    # Add LLM model
+    {{- $llmModel := "qwen2-5-0-5b" }}
+    {{- range .Values.global.models }}
+    {{- $engine := include "kube-llmops.resolveEngine" (dict "model" . "global" $.Values.global) | trim }}
+    {{- if or (eq $engine "vllm") (eq $engine "sglang") (eq $engine "chitu") }}
+    {{- $llmModel = .name }}
+    {{- end }}
+    {{- end }}
+    echo "  Adding LLM model ({{ $llmModel }})..."
+    RESP2=$(P "$CREDS_URL" "{\"model\":\"{{ $llmModel }}\",\"model_type\":\"llm\",\"credentials\":{\"api_key\":\"$LITELLM_KEY\",\"endpoint_url\":\"$LITELLM_URL\",\"mode\":\"chat\",\"context_size\":\"4096\"}}" 2>&1) || true
+    echo "  $RESP2" | head -c 100
+    echo ""
+    {{- end }}
+
+    echo ""
+    echo "=== Dify Auto-Setup Complete ==="
+    rm -f "$CK"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-dify-setup
+  labels:
+    app.kubernetes.io/name: dify-setup
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dify-setup
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        # Copy pre-bundled .difypkg files into the shared PVC
+        - name: seed-plugins
+          image: python:3.12-slim
+          command: ["bash", "-c"]
+          args:
+            - |
+              for f in /plugin-pkgs/*.difypkg; do
+                [ -f "$f" ] || continue
+                NAME=$(basename "$f")
+                DEST="/plugin-storage/$NAME"
+                if [ ! -f "$DEST" ] || [ "$(stat -c%s "$DEST" 2>/dev/null)" -lt 1000 ]; then
+                  echo "Copying $NAME ($(stat -c%s "$f")B)..."
+                  cp "$f" "$DEST"
+                else
+                  echo "$NAME already exists ($(stat -c%s "$DEST")B)"
+                fi
+              done
+          volumeMounts:
+            - name: plugin-pkgs
+              mountPath: /plugin-pkgs
+            - name: plugin-storage
+              mountPath: /plugin-storage
+      containers:
+        - name: setup
+          image: python:3.12-slim
+          command: ["bash", "-c", "apt-get update -qq && apt-get install -qq -y curl > /dev/null 2>&1 && pip install -q uv && bash /scripts/setup.sh"]
+          env:
+            - name: DAEMON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dify.pluginDaemonSecretName" . }}
+                  key: {{ include "dify.pluginDaemonKeySecretKey" . }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: plugin-storage
+              mountPath: /plugin-storage
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ .Release.Name }}-dify-setup
+        - name: plugin-pkgs
+          secret:
+            secretName: {{ .Release.Name }}-dify-plugin-packages
+        - name: plugin-storage
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-dify-plugin-storage
+---
+# Secret with binary plugin packages (Secret supports up to 1MB vs ConfigMap annotation limits)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-dify-plugin-packages
+  labels:
+    app.kubernetes.io/name: dify-setup
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+type: Opaque
+data:
+  {{- range .Values.setup.plugins }}
+  {{ index (splitList "/" .id) 1 }}.difypkg: {{ $.Files.Get (printf "files/%s.difypkg" (index (splitList "/" .id) 1)) | b64enc }}
+  {{- end }}
+{{- end }}

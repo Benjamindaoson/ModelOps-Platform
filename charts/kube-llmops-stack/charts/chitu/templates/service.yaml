@@ -1,0 +1,35 @@
+{{- $models := .Values.models }}
+{{- if and .Values.global .Values.global.models }}
+{{- $models = .Values.global.models }}
+{{- end }}
+{{- range $idx, $model := $models }}
+{{- $resolvedEngine := include "kube-llmops.resolveEngine" (dict "model" $model "global" $.Values.global) | trim }}
+{{- if eq $resolvedEngine "chitu" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chitu-{{ $model.name }}
+  labels:
+    app.kubernetes.io/name: chitu
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: model-serving
+    app.kubernetes.io/part-of: kube-llmops
+    kube-llmops/model: {{ $model.name }}
+    kube-llmops/engine: chitu
+spec:
+  type: {{ $.Values.service.type }}
+  ports:
+    - port: {{ $.Values.service.port }}
+      targetPort: 21002
+      protocol: TCP
+      name: http
+      {{- if and (eq $.Values.service.type "NodePort") $.Values.service.nodePort }}
+      nodePort: {{ $.Values.service.nodePort }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: chitu
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    kube-llmops/model: {{ $model.name }}
+{{- end }}
+{{- end }}

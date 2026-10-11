@@ -1,0 +1,133 @@
+enabled: true
+
+otelCollector:
+  enabled: true
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: 0.148.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+prometheus:
+  enabled: true
+  # clusterName: attached as `cluster` external_label on all scraped metrics.
+  # Single-cluster today; enables federation / Thanos / Mimir multi-cluster later
+  # without breaking dashboards that already filter on $cluster.
+  clusterName: kube-llmops
+  image:
+    repository: prom/prometheus
+    tag: v3.11.0
+    pullPolicy: IfNotPresent
+  retention: 15d
+  service:
+    type: ClusterIP
+    nodePort: null
+  storage:
+    size: 20Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+dcgmExporter:
+  enabled: true
+  image:
+    repository: nvcr.io/nvidia/k8s/dcgm-exporter
+    tag: 4.5.2-4.8.1-ubuntu22.04
+    pullPolicy: IfNotPresent
+  # kubernetes: attach pod/namespace/container labels to GPU metrics via
+  # kubelet's pod-resources socket (requires privileged + hostPID).
+  # Needed for L4 per-Pod GPU dashboard. Disable only on hardened clusters
+  # that forbid privileged containers.
+  kubernetes:
+    enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+grafana:
+  existingSecret: ""
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: 12.4.1
+    pullPolicy: IfNotPresent
+  adminPassword: admin123!
+  service:
+    type: ClusterIP
+    port: 3000
+  storage:
+    size: 2Gi
+    storageClass: ""
+  # OIDC/SSO integration (Keycloak, Dex, etc.)
+  oidc:
+    enabled: false
+    name: Keycloak
+    clientId: grafana
+    clientSecret: ""
+    issuerUrl: ""              # External (browser redirect): e.g. http://keycloak.llmops.local/realms/kube-llmops
+    internalIssuerUrl: ""      # Internal (server-side token exchange): e.g. http://kube-llmops-keycloak:8080/realms/kube-llmops
+    grafanaRootUrl: ""    # e.g. http://localhost:3000
+    roleAttributePath: "contains(realm_access.roles[*], 'admin') && 'Admin' || 'Viewer'"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+pdb:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+  image:
+    repository: quay.io/prometheus/node-exporter
+    tag: v1.9.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 64Mi
+
+kubeStateMetrics:
+  enabled: true
+  image:
+    repository: rancher/mirrored-kube-state-metrics-kube-state-metrics
+    tag: v2.15.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+alertmanager:
+  enabled: true
+  slack:
+    enabled: false
+    webhookUrl: ""
+    channel: "#alerts"
+  webhook:
+    enabled: false
+    url: ""

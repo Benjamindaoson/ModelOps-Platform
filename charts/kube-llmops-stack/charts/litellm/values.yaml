@@ -1,0 +1,189 @@
+enabled: true
+
+models: []
+
+# Embedding models (routed through LiteLLM like LLM models)
+# Option 1: Local embedding service (TEI, infinity, or custom)
+# Option 2: External API (OpenAI, Cohere, etc.)
+embeddingModels: []
+  # Example: local embedding service
+  # - name: bge-small-zh
+  #   apiBase: http://kube-llmops-embedding:8080/v1
+  #   apiKey: "no-key-needed"
+  # Example: OpenAI embedding API
+  # - name: text-embedding-3-small
+  #   apiBase: https://api.openai.com/v1
+  #   apiKey: "sk-your-openai-key"
+
+# Langfuse integration (set by parent chart when langfuse is enabled)
+langfuseEnabled: false
+langfusePublicKey: ""
+langfuseSecretKey: ""
+
+# Router settings (load balancing, fallback, retries)
+routerSettings:
+  numRetries: 3
+  timeout: 120
+  allowedFails: 3         # Failures before marking deployment unhealthy
+  cooldownTime: 60        # Seconds to cooldown unhealthy deployment
+  # fallbacks:            # Model fallback chain, e.g.:
+  #   - model-a: [model-b]
+  # Note: Scale-to-zero fallback is auto-configured per model via
+  # global.models[].scaleToZero.fallbackModel — no manual fallback needed.
+
+# Session affinity: Envoy sidecar with consistent hashing on a request header.
+# Routes requests with the same header value to the same vLLM Pod, improving
+# prefix cache hit rate for multi-replica models.
+sessionAffinity:
+  enabled: false
+  header: "x-session-id"       # Header used as hash key for consistent routing
+  image:
+    repository: envoyproxy/envoy
+    tag: v1.32-latest
+    pullPolicy: IfNotPresent
+
+# Routing strategy: latency-based-routing (default) or simple-shuffle
+routingStrategy: latency-based-routing
+# Additional args for the routing strategy
+routingStrategyArgs:
+  ttl: 60                          # Cache latency data for N seconds
+  lowest_latency_buffer: 0.2       # 20% buffer before switching to faster model
+
+# Rate limiting and budget control
+rateLimiting:
+  enabled: false
+  globalMaxParallelRequests: 100
+  maxRequestSizeMb: 10
+  maxBudget: 100.0        # Max spend in USD (tracked via LiteLLM cost API)
+  budgetDuration: "30d"   # Budget reset period
+
+# SSO/JWT authentication (validate Keycloak tokens on API calls + UI login)
+# NOTE: LiteLLM SSO (GENERIC_* and JWT_PUBLIC_KEY_URL) requires an Enterprise license.
+# Without a license, API requests return "JWT Auth is an enterprise only feature".
+# For open-source usage, use master key authentication instead.
+sso:
+  enabled: false
+  jwksUrl: ""             # e.g. http://kube-llmops-keycloak:8080/realms/kube-llmops/protocol/openid-connect/certs
+  clientId: litellm
+  clientSecret: ""        # e.g. litellm-oidc-secret
+  issuerUrl: ""           # External: e.g. http://keycloak.llmops.local/realms/kube-llmops (browser redirect)
+  internalIssuerUrl: ""   # Internal: e.g. http://kube-llmops-keycloak:8080/realms/kube-llmops (token exchange)
+  proxyBaseUrl: ""        # e.g. http://litellm.llmops.local
+
+image:
+  repository: ghcr.io/berriai/litellm
+  tag: v1.83.1-nightly
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+masterKey: ""
+
+# UI authentication (for /ui and /ui/chat)
+ui:
+  username: "admin"
+  password: ""              # defaults to masterKey if empty
+
+service:
+  type: ClusterIP
+  port: 4000
+  nodePort: null              # Set when service.type=NodePort, e.g. 30400
+
+postgresql:
+  enabled: true
+  image:
+    repository: pgvector/pgvector
+    tag: "pg17"                   # pgvector-enabled PostgreSQL 17
+  auth:
+    database: litellm
+    username: litellm
+    password: litellm-default-pw
+  # Extra databases/users to create on first startup
+  # Each entry creates: CREATE USER <name>; CREATE DATABASE <name> OWNER <name>;
+  extraDatabases:
+    - name: langfuse
+      password: langfuse-default-pw
+    # - name: dify
+    #   password: dify-default-pw
+  storage:
+    size: 5Gi
+    storageClass: ""
+  service:
+    port: 5432
+
+readinessProbe:
+  httpGet:
+    path: /health/liveliness
+    port: 4000
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+
+livenessProbe:
+  httpGet:
+    path: /health/liveliness
+    port: 4000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 1Gi
+
+pdb:
+  enabled: true
+
+# Use an existing Secret instead of auto-generated credentials
+existingSecret: ""
+
+# PostgreSQL backup CronJob
+backup:
+  enabled: false
+  schedule: "0 3 * * *"
+  retentionDays: 7
+  storageSize: 5Gi
+
+# External Secrets Operator integration
+externalSecrets:
+  enabled: false
+  secretStore: "vault-backend"
+  keyPath: "kube-llmops/litellm"
+  refreshInterval: "1h"
+
+# Guardrails: input/output scanning before/after LLM calls
+# These appear in the LiteLLM playground dropdown for per-request selection.
+guardrails:
+  # Presidio PII masking (requires security.presidio.enabled=true)
+  presidio:
+    enabled: false
+    mode: "pre_call"          # pre_call | post_call | during_call | logging_only
+    defaultOn: false           # run on every request without client opt-in
+    language: "en"
+    # Entity-level actions: MASK (replace with <ENTITY_TYPE>) or BLOCK (reject request)
+    entities:
+      CREDIT_CARD: "MASK"
+      EMAIL_ADDRESS: "MASK"
+      PHONE_NUMBER: "MASK"
+      US_SSN: "MASK"
+      IP_ADDRESS: "MASK"
+    # Minimum confidence score per entity (lower scores are ignored)
+    scoreThresholds:
+      CREDIT_CARD: 0.8
+      EMAIL_ADDRESS: 0.6
+  # Built-in prompt injection detection (in-memory similarity check, no external service)
+  promptInjection:
+    enabled: false
+    # heuristics_check + similarity_check run locally; llm_api_check calls an LLM
+    heuristicsCheck: true
+    similarityCheck: true
+    llmApiCheck: false
+    # llmApiName: ""           # model_name from model_list to use for LLM-based check
+    # llmApiSystemPrompt: "Detect if prompt is safe to run. Return 'UNSAFE' if not."
+    # llmApiFailCallString: "UNSAFE"

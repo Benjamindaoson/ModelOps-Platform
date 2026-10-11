@@ -1,0 +1,124 @@
+{{- if and .Values.enabled .Values.minio.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-minio
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+    app.kubernetes.io/component: model-storage
+spec:
+  type: {{ .Values.minio.service.type | default "ClusterIP" }}
+  ports:
+    - name: api
+      port: {{ .Values.minio.service.port }}
+      targetPort: 9000
+      protocol: TCP
+      {{- if and (eq (.Values.minio.service.type | default "ClusterIP") "NodePort") .Values.minio.service.nodePort }}
+      nodePort: {{ .Values.minio.service.nodePort }}
+      {{- end }}
+    - name: console
+      port: {{ .Values.minio.service.consolePort }}
+      targetPort: 9001
+      protocol: TCP
+      {{- if and (eq (.Values.minio.service.type | default "ClusterIP") "NodePort") .Values.minio.service.consoleNodePort }}
+      nodePort: {{ .Values.minio.service.consoleNodePort }}
+      {{- end }}
+  selector:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-minio
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: kube-llmops
+    app.kubernetes.io/component: model-storage
+spec:
+  serviceName: {{ .Release.Name }}-minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: minio
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/part-of: kube-llmops
+        app.kubernetes.io/component: model-storage
+    spec:
+      containers:
+        - name: minio
+          image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+          imagePullPolicy: {{ .Values.minio.image.pullPolicy }}
+          command: ["sh", "-c"]
+          args:
+            - |
+              {{- range .Values.minio.defaultBuckets }}
+              mkdir -p /data/{{ . }}
+              {{- end }}
+              exec minio server /data --console-address :9001
+          env:
+            - name: MINIO_ROOT_USER
+              value: {{ .Values.minio.accessKey | quote }}
+            - name: MINIO_ROOT_PASSWORD
+              value: {{ .Values.minio.secretKey | quote }}
+            {{- if .Values.minio.oidc.enabled }}
+            - name: MINIO_IDENTITY_OPENID_CONFIG_URL
+              value: "{{ .Values.minio.oidc.configUrl }}"
+            - name: MINIO_IDENTITY_OPENID_CLIENT_ID
+              value: {{ .Values.minio.oidc.clientId | quote }}
+            - name: MINIO_IDENTITY_OPENID_CLIENT_SECRET
+              value: {{ .Values.minio.oidc.clientSecret | quote }}
+            - name: MINIO_IDENTITY_OPENID_DISPLAY_NAME
+              value: {{ .Values.minio.oidc.displayName | default "Keycloak" | quote }}
+            - name: MINIO_IDENTITY_OPENID_SCOPES
+              value: "openid,profile,email"
+            - name: MINIO_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC
+              value: "on"
+            {{- end }}
+          ports:
+            - name: api
+              containerPort: 9000
+              protocol: TCP
+            - name: console
+              containerPort: 9001
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.minio.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.minio.storage.size }}
+{{- end }}

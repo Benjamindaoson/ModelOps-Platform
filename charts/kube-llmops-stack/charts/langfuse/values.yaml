@@ -1,0 +1,126 @@
+enabled: false
+
+image:
+  repository: langfuse/langfuse
+  tag: "3.163.0"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+# External URL for NextAuth redirects (set when using port-forward or ingress)
+# Example: http://localhost:3001 or https://langfuse.example.com
+externalUrl: ""
+
+service:
+  type: ClusterIP
+  port: 3000
+  nodePort: null              # Set when service.type=NodePort, e.g. 30301
+
+# Langfuse needs its own database (can share PG instance but separate DB)
+postgresql:
+  # When false, reuse LiteLLM's PostgreSQL by creating a DB in the same instance
+  enabled: false
+  auth:
+    database: langfuse
+    username: langfuse
+    password: langfuse-default-pw
+
+# Langfuse auth
+auth:
+  nextAuthSecret: kube-llmops-langfuse-secret
+  salt: kube-llmops-langfuse-salt
+  encryptionKey: "0000000000000000000000000000000000000000000000000000000000000000"
+
+# Auto-provisioning: creates org, project, user, and API keys on first startup
+# API keys (projectPublicKey/projectSecretKey) must match LiteLLM's langfusePublicKey/langfuseSecretKey
+init:
+  enabled: true
+  orgId: kube-llmops
+  orgName: kube-llmops
+  projectId: kube-llmops
+  projectName: kube-llmops
+  projectPublicKey: pk-lf-kube-llmops
+  projectSecretKey: sk-lf-kube-llmops
+  userEmail: admin@kube-llmops.local
+  userName: admin
+  userPassword: admin123!
+
+# OIDC/SSO integration (Keycloak, etc.)
+oidc:
+  enabled: false
+  clientId: langfuse
+  clientSecret: ""
+  issuerUrl: ""           # e.g. http://kube-llmops-keycloak:8080/realms/kube-llmops
+  name: Keycloak
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+readinessProbe:
+  httpGet:
+    path: /api/public/health
+    port: 3000
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+
+livenessProbe:
+  httpGet:
+    path: /api/public/health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# ClickHouse for Langfuse v3 trace storage
+clickhouse:
+  image:
+    repository: clickhouse/clickhouse-server
+    tag: "26.2.5-alpine"
+    pullPolicy: IfNotPresent
+  password: "clickhouse123!"
+  storage:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+# Redis for Langfuse v3 async worker queue
+redis:
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  password: "redis-langfuse-pw"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# S3/MinIO blob storage for Langfuse v3 events and media
+s3:
+  bucket: langfuse
+  region: auto
+  accessKeyId: minioadmin
+  secretAccessKey: minioadmin
+  # endpoint defaults to http://<release>-minio:9000
+
+pdb:
+  enabled: true
+
+# Use an existing Secret instead of auto-generated credentials
+existingSecret: ""

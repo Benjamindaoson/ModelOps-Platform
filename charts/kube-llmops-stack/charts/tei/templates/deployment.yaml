@@ -1,0 +1,147 @@
+{{- $models := .Values.models }}
+{{- if and .Values.global .Values.global.models }}
+{{- $models = .Values.global.models }}
+{{- end }}
+{{- range $idx, $model := $models }}
+{{- $resolvedEngine := include "kube-llmops.resolveEngine" (dict "model" $model "global" $.Values.global) | trim }}
+{{- if eq $resolvedEngine "tei" }}
+{{- $resources := default dict $model.resources }}
+{{- $gpu := ternary (int $resources.gpu) 1 (hasKey $resources "gpu") }}
+{{- $memory := default "4Gi" $resources.memory }}
+{{- $cpu := default "2" $resources.cpu }}
+{{- $replicas := default 1 $model.replicas }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tei-{{ $model.name }}
+  labels:
+    app.kubernetes.io/name: tei
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: model-serving
+    app.kubernetes.io/part-of: kube-llmops
+    kube-llmops/model: {{ $model.name }}
+    kube-llmops/engine: tei
+spec:
+  replicas: {{ $replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tei
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      kube-llmops/model: {{ $model.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tei
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: model-serving
+        app.kubernetes.io/part-of: kube-llmops
+        kube-llmops/model: {{ $model.name }}
+        kube-llmops/engine: tei
+    spec:
+      initContainers:
+        - name: model-loader
+          image: {{ (default dict (default dict $.Values.global).modelStore).image | default "kube-llmops/model-loader:latest" }}
+          imagePullPolicy: IfNotPresent
+          command: ["bash", "-c"]
+          args:
+            - |
+{{ include "kube-llmops.modelLoaderScript" . | indent 14 }}
+          env:
+{{ include "kube-llmops.modelLoaderEnv" (dict "model" $model "root" $ "mountPath" "/data" "hfHome" "/data/huggingface") | indent 12 }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      containers:
+        - name: tei
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          {{- $slug := replace "/" "--" $model.source }}
+          args:
+            - "--model-id"
+            - "/data/{{ $slug }}"
+            - "--hostname"
+            - "0.0.0.0"
+            - "--port"
+            - "8080"
+            {{- range $key, $val := $model.engineArgs }}
+            - {{ $key | quote }}
+            {{- if $val }}
+            - {{ $val | quote }}
+            {{- end }}
+            {{- end }}
+          env:
+            - name: HF_HOME
+              value: /data/huggingface
+            - name: HUGGINGFACE_HUB_CACHE
+              value: /data/huggingface
+            - name: HF_HUB_OFFLINE
+              value: "{{ if $.Values.offlineMode }}1{{ else }}0{{ end }}"
+          {{- if and $.Values.global $.Values.global.hfToken }}
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-hf-token
+                  key: token
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ $.Values.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ $.Values.livenessProbe.failureThreshold }}
+          resources:
+            requests:
+              cpu: {{ $cpu | quote }}
+              memory: {{ $memory }}
+              {{- if gt $gpu 0 }}
+              {{ include "kube-llmops.gpuResourceName" $ }}: {{ $gpu | quote }}
+              {{- end }}
+            limits:
+              {{- if gt $gpu 0 }}
+              {{ include "kube-llmops.gpuResourceName" $ }}: {{ $gpu | quote }}
+              {{- end }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /data
+      {{- if gt $gpu 0 }}
+      tolerations:
+        - key: {{ include "kube-llmops.gpuTolerationKey" $ }}
+          operator: {{ $.Values.gpuToleration.operator }}
+          effect: {{ $.Values.gpuToleration.effect }}
+      {{- end }}
+      volumes:
+        - name: model-cache
+          {{- if and $.Values.modelCache.enabled (not $.Values.modelCache.existingClaim) }}
+          persistentVolumeClaim:
+            claimName: tei-{{ $model.name }}-cache
+          {{- else if $.Values.modelCache.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ $.Values.modelCache.existingClaim }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: {{ $.Values.modelCache.size }}
+          {{- end }}
+{{- end }}
+{{- end }}

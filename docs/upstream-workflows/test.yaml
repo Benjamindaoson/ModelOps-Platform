@@ -1,0 +1,147 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  helm-template:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile:
+          - name: default
+            args: ""
+          - name: ci
+            args: "-f charts/kube-llmops-stack/values-ci.yaml"
+          - name: minimal
+            args: "-f charts/kube-llmops-stack/values-minimal.yaml"
+          - name: single-node
+            args: "-f charts/kube-llmops-stack/values-single-node.yaml"
+          - name: standard
+            args: "-f charts/kube-llmops-stack/values-standard.yaml"
+          - name: production
+            args: "-f charts/kube-llmops-stack/values-production.yaml"
+          - name: ci-finetune
+            args: "-f charts/kube-llmops-stack/values-ci-finetune.yaml"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - name: Helm dependency update
+        run: helm dependency update charts/kube-llmops-stack/
+      - name: Helm template (${{ matrix.profile.name }})
+        run: helm template test charts/kube-llmops-stack/ ${{ matrix.profile.args }} > /dev/null
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install pytest pyyaml
+      - name: Run model-resolver tests
+        run: |
+          cd images/model-resolver
+          python -m pytest tests/ -v --tb=short
+      - name: Run finetune Helm template tests
+        run: |
+          helm dependency update charts/kube-llmops-stack/
+          python -m pytest tests/helm/test_finetune_templates.py -v --tb=short
+
+  chart-install-test:
+    runs-on: ubuntu-latest
+    needs: [helm-template, python-tests]
+    # Install test MUST pass — no continue-on-error
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+      - name: Helm dependency update
+        run: helm dependency update charts/kube-llmops-stack/
+      - name: Pre-pull critical images
+        run: |
+          docker pull ghcr.io/berriai/litellm:main-v1.82.3-stable || true
+          docker pull pgvector/pgvector:pg16 || true
+          kind load docker-image ghcr.io/berriai/litellm:main-v1.82.3-stable || true
+          kind load docker-image pgvector/pgvector:pg16 || true
+      - name: Install with CI profile
+        run: |
+          helm install kube-llmops charts/kube-llmops-stack/ \
+            -f charts/kube-llmops-stack/values-ci.yaml \
+            --wait --timeout 10m
+        timeout-minutes: 12
+      - name: Wait for core pods
+        run: |
+          echo "Waiting for PostgreSQL..."
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=litellm-postgresql --timeout=600s
+          echo "Waiting for LiteLLM..."
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=litellm --timeout=600s
+          kubectl get pods
+      - name: Verify LiteLLM health
+        run: |
+          kubectl port-forward svc/kube-llmops-litellm 4000:4000 &
+          sleep 10
+          curl -sf http://localhost:4000/health/liveliness
+      - name: Verify PDBs exist
+        run: |
+          PDB_COUNT=$(kubectl get pdb --no-headers 2>/dev/null | wc -l)
+          echo "PDB count: $PDB_COUNT"
+          [ "$PDB_COUNT" -ge 2 ] || (echo "FAIL: expected >=2 PDBs" && exit 1)
+      - name: Helm uninstall
+        run: helm uninstall kube-llmops
+        if: always()
+
+  # Story 2.7: Run QA verification after chart install
+  qa-verification:
+    runs-on: ubuntu-latest
+    needs: [chart-install-test]
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate values.schema.json
+        run: |
+          python3 -c "
+          import json
+          with open('charts/kube-llmops-stack/values.schema.json') as f:
+              schema = json.load(f)
+          print(f'Schema valid: {len(schema.get(\"properties\",{}))} top-level properties')
+          "
+      - name: Validate eval dataset
+        run: |
+          python3 -c "
+          import json
+          with open('examples/eval/eval-dataset-v2.json') as f:
+              d = json.load(f)
+          assert len(d['corpus']) >= 10
+          assert len(d['samples']) >= 35
+          print(f'Eval dataset OK: {len(d[\"corpus\"])} docs, {len(d[\"samples\"])} samples')
+          "
+      - name: Validate finetune sample data
+        run: |
+          python3 -c "
+          import json
+          with open('examples/finetune/sample-training-data.json') as f:
+              data = json.load(f)
+          assert isinstance(data, list), 'Expected JSON array'
+          assert len(data) >= 10, f'Expected >=10 samples, got {len(data)}'
+          for i, item in enumerate(data):
+              assert 'instruction' in item, f'Sample {i} missing instruction'
+              assert 'output' in item, f'Sample {i} missing output'
+          print(f'Finetune sample data OK: {len(data)} samples (Alpaca format)')
+          "
