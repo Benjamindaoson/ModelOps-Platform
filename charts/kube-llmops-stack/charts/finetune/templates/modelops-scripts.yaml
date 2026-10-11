@@ -10,3 +10,9 @@ data:
 {{ .Files.Get "files/modelops_evaluate.py" | indent 4 }}
   merge.py: |
 {{ .Files.Get "files/modelops_merge.py" | indent 4 }}
+  modelops_prepare_dynamic.py: |
+{{ .Files.Get "files/modelops_prepare_dynamic.py" | indent 4 }}
+  modelops_train_dynamic.py: |
+{{ .Files.Get "files/modelops_train_dynamic.py" | indent 4 }}
+  modelops_publish_dynamic.py: |
+{{ .Files.Get "files/modelops_publish_dynamic.py" | indent 4 }}

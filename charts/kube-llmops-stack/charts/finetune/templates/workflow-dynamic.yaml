@@ -1,0 +1,322 @@
+{{- if and .Values.dynamicTemplate.enabled (or .Values.renderWorkflowsWithoutCRD (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "workflows.argoproj.io")) }}
+# Tenant-scoped, per-run Argo template. Arguments are bound by the control API;
+# only dataset/model hashes verified by a trusted runner can release artifacts.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: modelops-finetune-dynamic
+  labels:
+    app.kubernetes.io/name: modelops-dynamic-finetune
+    app.kubernetes.io/part-of: modelops
+spec:
+  serviceAccountName: {{ $.Release.Name }}-finetune
+  activeDeadlineSeconds: 28800
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: base_model
+      - name: base_revision
+      - name: base_sha256
+      - name: dataset_uri
+      - name: dataset_sha256
+      - name: method
+      - name: output_name
+      - name: epochs
+      - name: batch_size
+      - name: learning_rate
+      - name: lora_rank
+      - name: lora_alpha
+      - name: gpu
+      - name: gradient_accumulation_steps
+      - name: min_token_f1
+  volumeClaimTemplates:
+    - metadata:
+        name: workspace
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: {{ .Values.dynamicTemplate.workspaceSize }}
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: prepare
+            template: prepare
+          - name: validate-data
+            template: validate-data
+            dependencies: [prepare]
+          - name: train
+            template: train
+            dependencies: [validate-data]
+          - name: merge
+            template: merge
+            dependencies: [train]
+          - name: evaluate
+            template: evaluate
+            dependencies: [merge]
+          - name: quality-gate
+            template: quality-gate
+            dependencies: [evaluate]
+          - name: publish
+            template: publish
+            dependencies: [quality-gate]
+    - name: prepare
+      container:
+        image: {{ .Values.dynamicTemplate.prepareImage | quote }}
+        command: [bash, -c]
+        args:
+          - |
+            set -euo pipefail
+            python3 -m pip install --no-cache-dir "minio>=7,<8" "huggingface_hub>=0.26,<2"
+            python3 /opt/modelops/modelops_prepare_dynamic.py
+        env:
+          - name: MODELOPS_BASE_MODEL
+            value: {{ "{{workflow.parameters.base_model}}" | quote }}
+          - name: MODELOPS_BASE_REVISION
+            value: {{ "{{workflow.parameters.base_revision}}" | quote }}
+          - name: MODELOPS_DATASET_URI
+            value: {{ "{{workflow.parameters.dataset_uri}}" | quote }}
+          - name: MODELOPS_DATASET_SHA256
+            value: {{ "{{workflow.parameters.dataset_sha256}}" | quote }}
+          - name: MODELOPS_S3_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.dynamicTemplate.objectStoreSecret | quote }}
+                key: endpoint
+          - name: MODELOPS_S3_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.dynamicTemplate.objectStoreSecret | quote }}
+                key: accessKey
+          - name: MODELOPS_S3_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.dynamicTemplate.objectStoreSecret | quote }}
+                key: secretKey
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+    - name: validate-data
+      container:
+        image: {{ .Values.dynamicTemplate.prepareImage | quote }}
+        command: [python3, /opt/modelops/evaluate.py]
+        args:
+          - check-data
+          - --train-data
+          - /workspace/data/train.json
+          - --heldout
+          - /workspace/data/heldout.jsonl
+          - --min-samples
+          - "20"
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+    - name: train
+      container:
+        image: {{ .Values.dynamicTemplate.image | quote }}
+        command: [bash, -c]
+        args:
+          - |
+            set -euo pipefail
+            python3 /opt/modelops/modelops_train_dynamic.py
+            llamafactory-cli train /workspace/train_config.yaml
+            test -d /workspace/output
+            test -n "$(ls -A /workspace/output)"
+        env:
+          - name: MODELOPS_BASE_MODEL
+            value: {{ "{{workflow.parameters.base_model}}" | quote }}
+          - name: MODELOPS_BASE_REVISION
+            value: {{ "{{workflow.parameters.base_revision}}" | quote }}
+          - name: MODELOPS_DATASET_URI
+            value: {{ "{{workflow.parameters.dataset_uri}}" | quote }}
+          - name: MODELOPS_DATASET_SHA256
+            value: {{ "{{workflow.parameters.dataset_sha256}}" | quote }}
+          - name: MODELOPS_METHOD
+            value: {{ "{{workflow.parameters.method}}" | quote }}
+          - name: MODELOPS_OUTPUT_NAME
+            value: {{ "{{workflow.parameters.output_name}}" | quote }}
+          - name: MODELOPS_EPOCHS
+            value: {{ "{{workflow.parameters.epochs}}" | quote }}
+          - name: MODELOPS_BATCH_SIZE
+            value: {{ "{{workflow.parameters.batch_size}}" | quote }}
+          - name: MODELOPS_LR
+            value: {{ "{{workflow.parameters.learning_rate}}" | quote }}
+          - name: MODELOPS_LORA_RANK
+            value: {{ "{{workflow.parameters.lora_rank}}" | quote }}
+          - name: MODELOPS_LORA_ALPHA
+            value: {{ "{{workflow.parameters.lora_alpha}}" | quote }}
+          - name: MODELOPS_GPU
+            value: {{ "{{workflow.parameters.gpu}}" | quote }}
+          - name: MODELOPS_GRAD_ACC
+            value: {{ "{{workflow.parameters.gradient_accumulation_steps}}" | quote }}
+          - name: MODELOPS_MIN_TOKEN_F1
+            value: {{ "{{workflow.parameters.min_token_f1}}" | quote }}
+        resources:
+          requests:
+            cpu: "4"
+            memory: 16Gi
+            nvidia.com/gpu: {{ "{{workflow.parameters.gpu}}" | quote }}
+          limits:
+            memory: 48Gi
+            nvidia.com/gpu: {{ "{{workflow.parameters.gpu}}" | quote }}
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+    - name: merge
+      container:
+        image: {{ .Values.dynamicTemplate.image | quote }}
+        command: [python3, /opt/modelops/merge.py]
+        args:
+          - --base
+          - /workspace/base-model
+          - --trained
+          - /workspace/output
+          - --output
+          - /workspace/merged
+          - --method
+          - {{ "{{workflow.parameters.method}}" | quote }}
+          - --receipt
+          - /workspace/eval/merge_receipt.json
+        resources:
+          requests: {cpu: "4", memory: 16Gi}
+          limits: {memory: 64Gi}
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+    - name: evaluate
+      container:
+        image: {{ .Values.dynamicTemplate.image | quote }}
+        command: [python3, /opt/modelops/evaluate.py]
+        args:
+          - run
+          - --base-model
+          - /workspace/base-model
+          - --candidate
+          - /workspace/merged
+          - --train-data
+          - /workspace/data/train.json
+          - --heldout
+          - /workspace/data/heldout.jsonl
+          - --output
+          - /workspace/eval/results.json
+          - --min-samples
+          - "20"
+        resources:
+          requests:
+            cpu: "4"
+            memory: 16Gi
+            nvidia.com/gpu: {{ "{{workflow.parameters.gpu}}" | quote }}
+          limits:
+            memory: 48Gi
+            nvidia.com/gpu: {{ "{{workflow.parameters.gpu}}" | quote }}
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+    - name: quality-gate
+      container:
+        image: {{ .Values.dynamicTemplate.prepareImage | quote }}
+        command: [python3, /opt/modelops/evaluate.py]
+        args:
+          - gate
+          - --candidate
+          - /workspace/merged
+          - --train-data
+          - /workspace/data/train.json
+          - --heldout
+          - /workspace/data/heldout.jsonl
+          - --report
+          - /workspace/eval/results.json
+          - --approval
+          - /workspace/eval/APPROVED.json
+          - --min-samples
+          - "20"
+          - --min-f1
+          - {{ "{{workflow.parameters.min_token_f1}}" | quote }}
+          - --min-delta
+          - "-0.02"
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+    - name: publish
+      container:
+        image: {{ .Values.dynamicTemplate.image | quote }}
+        command: [bash, -c]
+        args:
+          - |
+            set -euo pipefail
+            python3 -m pip install --no-cache-dir "minio>=7,<8" "mlflow>=2,<4"
+            python3 /opt/modelops/modelops_publish_dynamic.py
+        env:
+          - name: MODELOPS_OUTPUT_NAME
+            value: {{ "{{workflow.parameters.output_name}}" | quote }}
+          - name: MLFLOW_TRACKING_URI
+            value: {{ printf "http://%s-mlflow:5000" $.Release.Name | quote }}
+          - name: MODELOPS_S3_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.dynamicTemplate.objectStoreSecret | quote }}
+                key: endpoint
+          - name: MODELOPS_S3_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.dynamicTemplate.objectStoreSecret | quote }}
+                key: accessKey
+          - name: MODELOPS_S3_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.dynamicTemplate.objectStoreSecret | quote }}
+                key: secretKey
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: scripts
+            mountPath: /opt/modelops
+            readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
+{{- end }}

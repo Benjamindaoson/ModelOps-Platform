@@ -11,6 +11,7 @@ on:
       - "tests/helm/**"
       - "benchmarks/inference/**"
       - "pipelines/**"
+      - "control-plane/**"
       - "images/deploy-runner/**"
       - "ops/**"
   pull_request:
@@ -112,6 +113,7 @@ jobs:
         run: |
           python -m unittest discover -s pipelines/evaluation -p 'test_*.py' -v
           python -m unittest discover -s pipelines/training -p 'test_*.py' -v
+          python -m pytest pipelines/training/test_dynamic_contracts.py -q
 
   argo-render-contract:
     runs-on: ubuntu-latest
@@ -129,6 +131,7 @@ jobs:
             -f charts/kube-llmops-stack/values-ci-finetune.yaml \
             --set finetune.renderWorkflowsWithoutCRD=true > /tmp/modelops-with-argo.yaml
           grep -q "kind: WorkflowTemplate" /tmp/modelops-with-argo.yaml
+          grep -q "name: modelops-finetune-dynamic" /tmp/modelops-with-argo.yaml
           grep -q "name: quality-gate" /tmp/modelops-with-argo.yaml
           grep -q "APPROVED.json" /tmp/modelops-with-argo.yaml
           grep -q "kind: ConfigMap" /tmp/modelops-with-argo.yaml
