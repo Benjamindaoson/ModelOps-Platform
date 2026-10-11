@@ -24,7 +24,7 @@ def publication_contract(report: dict, gate: dict, artifact_digest: str) -> None
 def main():
     from minio import Minio
     import mlflow
-    from modelops_evaluate import sha256_artifact, sha256_file
+    from evaluate import sha256_artifact, sha256_file
 
     root = Path("/workspace")
     checkpoint = root / "merged"
