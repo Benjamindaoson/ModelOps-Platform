@@ -14,7 +14,8 @@ data:
     ### Method
     stage: sft
     do_train: true
-    finetuning_type: {{ .Values.method }}
+    # QLoRA is PEFT LoRA on a 4-bit base, not a finetuning_type named qlora.
+    finetuning_type: {{ if eq .Values.method "qlora" }}lora{{ else }}{{ .Values.method }}{{ end }}
     {{- if or (eq .Values.method "lora") (eq .Values.method "qlora") }}
     lora_rank: {{ .Values.loraRank }}
     lora_alpha: {{ .Values.loraAlpha }}

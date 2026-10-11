@@ -282,8 +282,12 @@ spec:
             # Create dataset_info.json for LLaMA-Factory
             python3 -c "
             import json, os, glob
-            data_files = glob.glob('/workspace/data/*.json') + glob.glob('/workspace/data/*.jsonl')
-            info = {'train': {'file_name': data_files[0] if data_files else '/workspace/data/train.json'}}
+            # Only use the explicitly validated training split; globbing can
+            # accidentally pick up heldout/eval or dataset_info.json.
+            train_file = '/workspace/data/train.json'
+            if not os.path.isfile(train_file):
+                raise RuntimeError('Missing train.json; cannot start training')
+            info = {'train': {'file_name': train_file}}
             with open('/workspace/data/dataset_info.json', 'w') as f:
                 json.dump(info, f)
             print(f'Dataset info: {info}')
