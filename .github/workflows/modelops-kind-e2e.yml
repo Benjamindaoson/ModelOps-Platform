@@ -69,7 +69,7 @@ jobs:
       - name: Build real Go Operator and load into kind
         run: |
           docker build -t modelops/operator:e2e -f operator/Dockerfile operator/
-          kind load docker-image modelops/operator:e2e
+          kind load docker-image modelops/operator:e2e --name chart-testing
       - name: Deploy namespace-scoped runtime Operator
         run: |
           helm install modelops-op operator/charts/kube-llmops-operator \
