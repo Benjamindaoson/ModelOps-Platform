@@ -203,7 +203,7 @@ class TestConfigMapTrainingConfig:
         docs = helm_template(set_values=vals)
         cms = find_by_kind(docs, "ConfigMap", "finetune-config")
         config = cms[0]["data"]["train_config.yaml"]
-        assert "finetuning_type: qlora" in config
+        assert "finetuning_type: lora" in config  # QLoRA is LoRA with 4-bit quantization
         assert "quantization_bit: 4" in config
         assert "quantization_method: bitsandbytes" in config
         assert "lora_rank:" in config
