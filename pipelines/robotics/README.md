@@ -24,3 +24,11 @@ cd /data/ModelOps-Platform
 ```
 
 The service accepts raw 256×256 dual camera RGB observations, an 8D robot state, a task instruction, and a simulation-only scope; it returns a 50×7 continuous action chunk. Version changes load and hash-check the candidate before the registry is activated. Rollback returns to a previously qualified revision. It is not a language-model chat endpoint or a hardware robot controller. The server listens only on loopback.
+
+### M05 measured admission and simulator service
+
+The VLA-Forge M05 development protocol uses eight fixed LIBERO initial states per checkpoint. `ingest_evaluation.py` verifies all eight receipt identities, model/checkpoint hashes, video/trajectory/action-trace hashes, and legal executed 7D actions before emitting an admission JSON. This is an artifact-integrity gate for **simulation development only**, not M06 release approval. Candidate promotion must additionally consider the measured success rate against the frozen baseline; the camera-corrected corrective-only candidate scored 1/8 versus the frozen 3/8 and was not promoted.
+
+The active `serve.py` revision is bound to an immutable registry version and local policy/processor/normalizer files. It launches with the VLA-Forge `.venv` because LeRobot, PyTorch, and LIBERO belong to that project's independent runtime; the ModelOps control-plane `.venv` remains separate. Serving holds `/data/VLA-Forge/Evidence/M05/gpu.lock`, listens only on loopback, accepts simulation observations, and never sends actions to a physical robot. The action API reports queue, inference, memory, and error telemetry. Development version changes and rollback are recorded in the registry revision log.
+
+For the frozen cloud run, the shared evidence directory is `/data/VLA-Forge/Evidence/M05`. ModelOps job `m05-corrective-cam180-s5501` ran 500 genuine Flow Matching/LoRA optimizer updates with an explicit pause after step 250 and a checkpointed resume. Step and resource JSONL logs remain exportable, while the MLflow file store retains the run parameters, metrics, and raw-log artifacts. The separate native/managed 20-step A/B is in `modelops/ab_comparison.json`; exact adapter weights matched, and the two-process managed resume added measured overhead for this short job. Kubernetes, Argo, and cluster HA were not tested.

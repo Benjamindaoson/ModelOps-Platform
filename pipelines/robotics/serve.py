@@ -1,5 +1,6 @@
 """Simulation-only SmolVLA serving from qualified immutable ModelOps versions."""
 import argparse
+import fcntl
 import json
 from pathlib import Path
 
@@ -59,13 +60,17 @@ def main():
     parser.add_argument("--log", type=Path, required=True)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=18767)
+    parser.add_argument("--gpu-lock", type=Path, default=Path("/data/VLA-Forge/Evidence/M05/gpu.lock"))
     args = parser.parse_args()
     if args.host not in ("127.0.0.1", "localhost"):
         raise ValueError("M05 policy serving is authorized only on loopback")
     import uvicorn
 
-    app = create_managed_app(args.registry, args.backend, args.log)
-    uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="info")
+    args.gpu_lock.parent.mkdir(parents=True, exist_ok=True)
+    with args.gpu_lock.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        app = create_managed_app(args.registry, args.backend, args.log)
+        uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="info")
 
 if __name__ == "__main__":
     main()
