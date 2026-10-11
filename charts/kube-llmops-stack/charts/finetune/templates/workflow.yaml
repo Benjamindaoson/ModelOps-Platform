@@ -545,9 +545,18 @@ spec:
         args:
           - |
             set -euo pipefail
-            # Deploy only after checksum-verifiable independent holdout approval.
-            test -s /workspace/eval/APPROVED.json
+            # Revalidate the candidate bytes, dataset and metric report at deploy time.
+            # A stale approval marker by itself is NOT authorization.
             test -s /workspace/eval/model_version.txt
+            python3 /opt/modelops/evaluate.py gate \
+              --report /workspace/eval/results.json \
+              --candidate /workspace/merged \
+              --train-data /workspace/data/train.json \
+              --heldout /workspace/data/heldout.jsonl \
+              --approval /workspace/eval/APPROVED.json \
+              --min-samples {{ .Values.evaluation.minSamples | default 20 }} \
+              --min-f1 {{ .Values.evaluation.thresholds.tokenF1 | default 0.55 }} \
+              --min-delta {{ .Values.evaluation.thresholds.minDeltaTokenF1 | default -0.02 }}
             OUTPUT_NAME="{{ .Values.outputName }}"
             RELEASE="{{ $.Release.Name }}"
             NAMESPACE="{{ $.Release.Namespace }}"
@@ -905,8 +914,15 @@ spec:
         volumeMounts:
           - name: workspace
             mountPath: /workspace
+          - name: modelops-scripts
+            mountPath: /opt/modelops
+            readOnly: true
         resources:
           requests:
             cpu: 250m
             memory: 256Mi
+      volumes:
+        - name: modelops-scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
 {{- end }}
