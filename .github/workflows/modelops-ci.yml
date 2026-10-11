@@ -10,6 +10,8 @@ on:
       - "images/model-resolver/**"
       - "tests/helm/**"
       - "benchmarks/inference/**"
+      - "pipelines/**"
+      - "images/deploy-runner/**"
   pull_request:
     branches: [main]
   workflow_dispatch: {}
@@ -92,3 +94,37 @@ jobs:
           python -m unittest discover -s benchmarks/inference -p 'test_*.py' -v
           python benchmarks/inference/run.py \
             --base-url http://127.0.0.1:8000 --model dry-run-model --dry-run
+
+  training-evidence-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify independent heldout evaluation and checkpoint merge
+        run: |
+          python -m unittest discover -s pipelines/evaluation -p 'test_*.py' -v
+          python -m unittest discover -s pipelines/training -p 'test_*.py' -v
+
+  argo-render-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - name: Resolve chart dependencies
+        run: helm dependency update charts/kube-llmops-stack
+      - name: Offline-render the actual Argo DAG and embedded model scripts
+        run: |
+          helm template modelops charts/kube-llmops-stack \
+            -f charts/kube-llmops-stack/values-ci-finetune.yaml \
+            --set finetune.renderWorkflowsWithoutCRD=true > /tmp/modelops-with-argo.yaml
+          grep -q "kind: WorkflowTemplate" /tmp/modelops-with-argo.yaml
+          grep -q "name: quality-gate" /tmp/modelops-with-argo.yaml
+          grep -q "APPROVED.json" /tmp/modelops-with-argo.yaml
+          grep -q "kind: ConfigMap" /tmp/modelops-with-argo.yaml
+          echo "Argo manifests rendered — NOT actual model training."
