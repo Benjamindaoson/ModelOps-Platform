@@ -25,7 +25,7 @@ Convert the Apache-2.0-licensed `GaeaRuiW/kube-llmops` foundation into a verifia
 
 - **T0 (source)**: verified all 473 upstream original Git blobs, license and attribution preserved.
 - **T1 (static)**: CI runs Helm render/lint, Go operator/builder tests, Python benchmark/training gate/ops unit tests and a full Argo WorkflowTemplate render. Verify [Actions](https://github.com/Benjamindaoson/ModelOps-Platform/actions) for the commit-specific verdict.
-- **T2 (CPU Kubernetes)**: separate [kind smoke workflow](../.github/workflows/modelops-kind-e2e.yml) installs a real CPU-only LiteLLM gateway and tests health; status is whatever GitHub Actions actually reports.
+- **T2 (CPU Kubernetes)**: **PASS** — [live Kubernetes smoke](https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38107366314) created a kind cluster, Helm-installed real LiteLLM/PostgreSQL services, verified HTTP health and uninstalled cleanly.
 - **T3 (GPU Serving)**: NOT VALIDATED. No true TTFT/TPOT/VRAM/goodput improvement has been measured here.
 - **T4 (GPU Training)**: NOT VALIDATED. A training pipeline implementation does not prove training weights were produced or improved.
 - **T5 (high availability)**: NOT VALIDATED. Single kind or single-GPU tests cannot prove a multi-GPU/high-availability service.
@@ -68,3 +68,10 @@ cd operator && go test ./internal/engine ./internal/builder ./internal/gateway .
 ## Claim policy
 
 In job interviews and résumés, explicitly distinguish imported upstream functionality from independent new work, and **never claim** production throughput, fault tolerance or GPU training results without the corresponding reproducible real-run artifact.
+
+## Main branch integration verification
+
+- PR #2 merged at commit `d01fefa79099ab6ef84365597c744d656c5a104c`.
+- **All 8 jobs succeeded** in [main branch ModelOps CI](https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38107649984).
+- **Image build and GHCR publish succeeded** in [deploy-runner workflow](https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38107649989), image tag `ghcr.io/benjamindaoson/modelops-deploy-runner:v0.1.0`.
+- Hardware and production follow-up evidence gates are tracked explicitly as [GPU Serving #3](https://github.com/Benjamindaoson/ModelOps-Platform/issues/3), [GPU Training #4](https://github.com/Benjamindaoson/ModelOps-Platform/issues/4), [Production Security #5](https://github.com/Benjamindaoson/ModelOps-Platform/issues/5), and [ASR/TTS adapters #6](https://github.com/Benjamindaoson/ModelOps-Platform/issues/6). These are **open limitations**, not passed tests.
