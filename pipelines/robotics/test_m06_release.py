@@ -28,7 +28,8 @@ def test_registry_only_deploys_bound_m06_promote(tmp_path):
     references = {}
     for kind in ('protocol','validation','episodes'):
         path = tmp_path / kind
-        path.write_text(json.dumps({'status':'PASS','valid':1600,'illegal_executed_actions':0}) if kind == 'validation' else
+        path.write_text(json.dumps({'status':'PASS','valid':1600,'illegal_executed_actions':0,
+                                               'floating_parameter_dtypes':['torch.float32'], 'tf32_allowed':False}) if kind == 'validation' else
                         json.dumps({'rules':{'backend':'fp32_eager'}}) if kind == 'protocol' else 'fixture episodes')
         references[f'{kind}_path'] = str(path)
         references[f'{kind}_sha256'] = sha256_file(path)

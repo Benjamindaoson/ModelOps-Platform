@@ -62,6 +62,8 @@ def ingest(evidence: Path, registry_root: Path) -> dict:
     if (validation.get('status') != 'PASS' or validation.get('valid') != 1600
             or manifest['protocol_sha256'] != sha256_file(protocol_path)
             or protocol['rules']['backend'] != 'fp32_eager'
+            or validation.get('floating_parameter_dtypes') != ['torch.float32']
+            or validation.get('tf32_allowed') is not False
             or protocol['rules']['statistics']['legacy_noninferiority_margin'] != -.03
             or protocol['rules']['release']['latency_p95_ratio_max'] != 1.2):
         raise ValueError('M06 validation/protocol gate not satisfied')

@@ -105,6 +105,8 @@ class Registry:
             protocol = json.loads(Path(evaluation["protocol_path"]).read_text())
             if (validation.get("status") != "PASS" or validation.get("valid") != 1600
                     or validation.get("illegal_executed_actions") != 0
+                    or validation.get("floating_parameter_dtypes") != ["torch.float32"]
+                    or validation.get("tf32_allowed") is not False
                     or protocol.get("rules", {}).get("backend") != "fp32_eager"):
                 raise ValueError("M06 validation or frozen protocol failed")
         else:
