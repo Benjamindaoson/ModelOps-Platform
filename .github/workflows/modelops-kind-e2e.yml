@@ -81,10 +81,23 @@ jobs:
         run: |
           set -euo pipefail
           SA=system:serviceaccount:default:kube-llmops-operator
-          kubectl auth can-i create deployments --as="$SA" -n default | grep -qx yes
-          kubectl auth can-i create deployments --as="$SA" -n kube-system | grep -qx no
-          kubectl auth can-i delete namespaces --as="$SA" | grep -qx no
-          kubectl auth can-i get secrets --as="$SA" -n default | grep -qx no
+          kubectl get role,rolebinding -n default
+          # kubectl auth can-i exits nonzero for DENIED; under pipefail, piping
+          # that result through grep -qx no incorrectly fails the test.
+          kubectl auth can-i create deployments --as="$SA" -n default --quiet
+          if kubectl auth can-i create deployments --as="$SA" -n kube-system --quiet; then
+            echo "SECURITY FAILURE: operator may modify kube-system" >&2
+            exit 1
+          fi
+          if kubectl auth can-i delete namespaces --as="$SA" --quiet; then
+            echo "SECURITY FAILURE: operator may delete namespaces" >&2
+            exit 1
+          fi
+          if kubectl auth can-i get secrets --as="$SA" -n default --quiet; then
+            echo "SECURITY FAILURE: operator may read tenant Secrets" >&2
+            exit 1
+          fi
+          echo "Actual Kubernetes RBAC: tenant writes allowed; cross-namespace and secret access denied"
       - name: Verify genuine Controller reconciliation without a GPU
         run: |
           set -euo pipefail
