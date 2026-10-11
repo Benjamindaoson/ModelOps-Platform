@@ -25,3 +25,7 @@ SQL storage: SQLite is development-only; production requires PostgreSQL. Schema 
 - K8s calls are not transactional with SQL. Failure/error compensation and reconciliation need further hardening for simultaneous clients, network partitions and cluster loss.
 - Real multi-tenant security requires Kubernetes RBAC, namespace quotas, NetworkPolicies and separate cluster provisioning (not provided by a development JWT).
 - ASR/TTS, TensorRT-LLM and training GPU performance are not validated.
+
+## Database migrations
+
+Use `alembic upgrade head` after setting `MODELOPS_DATABASE_URL`. Production startup intentionally never creates metadata tables automatically. The initial migration is versioned under `migrations/versions/`.
