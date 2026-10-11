@@ -14,7 +14,8 @@ def test_operator_runtime_is_namespace_scoped():
     assert "Role" in kinds and "RoleBinding" in kinds
     assert "ClusterRoleBinding" not in kinds
     assert "ClusterRole" not in kinds
-    assert all(d.get("roleRef", {}).get("name") != "cluster-admin" for d in docs)\n    assert all(d.get("kind") not in ("ClusterRole", "ClusterRoleBinding") for d in docs)
+    assert all(d.get("roleRef", {}).get("name") != "cluster-admin" for d in docs)
+    assert all(d.get("kind") not in ("ClusterRole", "ClusterRoleBinding") for d in docs)
     dep = next(d for d in docs if d.get("kind") == "Deployment")
     pod = dep["spec"]["template"]["spec"]
     env = {x["name"]:x for x in pod["containers"][0]["env"]}
