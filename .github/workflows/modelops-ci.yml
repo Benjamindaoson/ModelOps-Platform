@@ -9,6 +9,7 @@ on:
       - "charts/**"
       - "images/model-resolver/**"
       - "tests/helm/**"
+      - "benchmarks/inference/**"
   pull_request:
     branches: [main]
   workflow_dispatch: {}
@@ -77,3 +78,17 @@ jobs:
           test -s docs/upstream/README.md
           test -s docs/IMPLEMENTATION_PLAN.md
           echo "Static/CPU-only CI. This job does NOT validate GPU inference or fine-tuning."
+
+  benchmark-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify benchmark CLI without GPU or vLLM
+        run: |
+          python -m unittest discover -s benchmarks/inference -p 'test_*.py' -v
+          python benchmarks/inference/run.py \
+            --base-url http://127.0.0.1:8000 --model dry-run-model --dry-run
