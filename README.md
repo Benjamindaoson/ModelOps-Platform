@@ -4,7 +4,7 @@
 
 A Kubernetes-native engineering project for the complete **model lifecycle**: register, deploy, benchmark, fine-tune, evaluate, release, observe, and roll back AI models.
 
-> **Development status: M0 upstream foundation imported. Production functionality and GPU performance have not been independently validated in this repository.** This is an active engineering adaptation of [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops), not an independently implemented product from scratch.
+> **Development status: source foundation imported; independent static/CI gates and CPU Kubernetes/LiteLLM smoke have passed.** A separate runtime-hardening branch adds SGLang Operator deployment, independent training evaluation/approval, inference performance instrumentation and security preflight. **Actual GPU serving, GPU fine-tuning and multi-node HA are not yet validated.** This is an active engineering adaptation of [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops), not an independently implemented product from scratch.
 
 ## Architecture at a glance
 
@@ -27,7 +27,7 @@ Kubernetes Operator + Helm   Reconcile | deploy | canary | rollback
 The imported baseline already contains:
 - **Operator + CLI:** Kubernetes `LLMPlatform`, `ModelDeployment` and `FineTuneRun` resource types with controllers and `kubectl-llmops` command implementation.
 - **Inference packaging:** vLLM, llama.cpp and TEI Helm components, LiteLLM gateway, Kubernetes resources and prebuilt dashboards.
-- **Training scaffolding:** Argo workflow + LLaMA-Factory + MLflow components and a FineTuneRun reconciliation path.
+- **Training scaffolding:** Argo workflow + LLaMA-Factory + MLflow components. ModelOps changes use the real WorkflowTemplate, verify dataset separation, merge actual checkpoints and evaluate real weights with a fail-closed quality gate (GPU job not yet exercised).
 - **Observability:** Prometheus/Grafana/Langfuse components, example dashboards and alerting.
 - **Management UI:** Headlamp integration via an upstream plugin.
 
@@ -38,7 +38,7 @@ The imported baseline already contains:
 | Gate | Outcome | Evidence |
 |---|---|---|
 | M0 | License-preserved upstream import | 473/473 source Git blobs verified, source SHA documented |
-| M1 | Trustworthy installation and CI | Go tests, Helm template checks, CPU-kind smoke, secure secrets |
+| M1 | Trustworthy installation and CI | Go/Helm/Python tests, Argo DAG render, real CPU-kind LiteLLM health check: verified |
 | M2 | Serving lifecycle | Versioned model deployment, gateway routing, health/rollback |
 | M3 | Optimization bench | TTFT, TPOT, p95/p99 latency, tokens/s, VRAM, KV, concurrency A/B |
 | M4 | Real fine-tune → serving | Dataset, LoRA/QLoRA, held-out eval, MLflow artifacts, release gate |
@@ -69,6 +69,10 @@ These are static / CPU-oriented checks and do not constitute a working productio
 - [`plugins/`](plugins/) — Headlamp plugin UI.
 - [`tests/`](tests/) — existing integration and Helm template tests.
 - [`docs/UPSTREAM_PROVENANCE.md`](docs/UPSTREAM_PROVENANCE.md) — pinned upstream source and license attribution.
+- [`docs/DELIVERY_STATUS_2026-10-11.md`](docs/DELIVERY_STATUS_2026-10-11.md) — completed changes, real evidence and outstanding hardware/security requirements.
+- [`benchmarks/inference/`](benchmarks/inference/) — live-load benchmarking and A/B evidence checks.
+- [`pipelines/`](pipelines/) — real adapter merge, heldout dataset verification and fail-closed promotion.
+- [`ops/`](ops/) — HTTP smoke probes and production preflight.
 - [`docs/upstream/README.md`](docs/upstream/README.md) — unchanged original upstream README.
 
 ## Licensing & attribution
