@@ -117,3 +117,41 @@ def test_dev_registration_and_rollback_keep_revision_history(tmp_path):
         )
     x = r.rollback("base")
     assert x["revision"] == 3 and x["previous"] == "new" and x["version"] == "base"
+
+
+def test_serving_lists_only_evaluated_and_compatible_versions(tmp_path):
+    from pipelines.robotics.serve import qualified_versions
+
+    m = module()
+    registry = m.Registry(tmp_path / "registry")
+    for name in ("base", "corrective"):
+        model = tmp_path / name
+        model.write_bytes(name.encode())
+        digest = m.sha256_file(model)
+        registry.register({"version": name, "checkpoint": str(model), "checkpoint_sha256": digest, "processor_sha256": "a" * 64, "normalizer_sha256": "b" * 64, "dataset_sha256": "c" * 64, "base_sha256": "d" * 64, "run_id": name, "model_kind": "base" if name == "base" else "adapter"})
+    with pytest.raises(ValueError, match="No real"):
+        qualified_versions(registry)
+    base = registry.resolve("base")
+    registry.deploy("base", {"scope": "M05-development", "passed": True, "checkpoint_sha256": base["checkpoint_sha256"], "total": 1, "success": 0, "illegal_actions": 0})
+    versions, _ = qualified_versions(registry)
+    assert versions == {"base": None}
+    corrective = registry.resolve("corrective")
+    registry.deploy("corrective", {"scope": "M05-development", "passed": True, "checkpoint_sha256": corrective["checkpoint_sha256"], "total": 1, "success": 0, "illegal_actions": 0})
+    versions, _ = qualified_versions(registry)
+    assert versions["corrective"] == str((tmp_path / "corrective").parent)
+    (tmp_path / "corrective").write_bytes(b"mutated")
+    with pytest.raises(ValueError, match="mutated"):
+        qualified_versions(registry)
+
+
+def test_registry_rechecks_processor_and_dataset_contract_files(tmp_path):
+    m = module()
+    files = {name: tmp_path / name for name in ("weight", "processor", "normalizer", "dataset", "base")}
+    for name, path in files.items():
+        path.write_bytes(name.encode())
+    registry = m.Registry(tmp_path / "registry")
+    record = {"version": "bound", "run_id": "run", "checkpoint": str(files["weight"]), "checkpoint_sha256": m.sha256_file(files["weight"]), "processor_file": str(files["processor"]), "processor_sha256": m.sha256_file(files["processor"]), "normalizer_file": str(files["normalizer"]), "normalizer_sha256": m.sha256_file(files["normalizer"]), "dataset_manifest": str(files["dataset"]), "dataset_sha256": m.sha256_file(files["dataset"]), "base_file": str(files["base"]), "base_sha256": m.sha256_file(files["base"])}
+    registry.register(record)
+    files["dataset"].write_bytes(b"changed")
+    with pytest.raises(ValueError, match="Dataset|dataset"):
+        registry.resolve("bound")

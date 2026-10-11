@@ -35,6 +35,20 @@ def write(path, obj):
     os.replace(temp, path)
 
 
+def verify_bound_files(record):
+    """Reject drift in a registered VLA processor, normalizer, data or base."""
+    for path_field, digest_field in (
+        ("processor_file", "processor_sha256"),
+        ("normalizer_file", "normalizer_sha256"),
+        ("dataset_manifest", "dataset_sha256"),
+        ("base_file", "base_sha256"),
+    ):
+        if path_field in record:
+            path = Path(record[path_field])
+            if not path.is_file() or sha256_file(path) != record.get(digest_field):
+                raise ValueError(f"{path_field} artifact integrity failure")
+
+
 class Registry:
     def __init__(self, root):
         self.root = Path(root)
@@ -56,6 +70,7 @@ class Registry:
             or sha256_file(record["checkpoint"]) != record["checkpoint_sha256"]
         ):
             raise ValueError("Artifact integrity failure")
+        verify_bound_files(record)
         if p.exists():
             if json.loads(p.read_text()) != record:
                 raise ValueError("Immutable version already exists")
@@ -69,6 +84,7 @@ class Registry:
         r = json.loads((self.root / (identity(version) + ".json")).read_text())
         if sha256_file(r["checkpoint"]) != r["checkpoint_sha256"]:
             raise ValueError("Registered artifact mutated")
+        verify_bound_files(r)
         return r
 
     def deploy(self, version, evaluation):
