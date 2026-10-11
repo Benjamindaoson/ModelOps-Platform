@@ -18,16 +18,16 @@ package v1alpha1
 
 import "fmt"
 
-// +kubebuilder:webhook:path=/validate-llmops-kubeai-io-v1alpha1-modeldeployment,mutating=false,failurePolicy=fail,sideEffects=None,groups=llmops.kubeai.io,resources=modeldeployments,verbs=create;update,versions=v1alpha1,name=vmodeldeployment.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-llmops-kubellmops-io-v1alpha1-modeldeployment,mutating=false,failurePolicy=fail,sideEffects=None,groups=llmops.kubellmops.io,resources=modeldeployments,verbs=create;update,versions=v1alpha1,name=vmodeldeployment.kubellmops.io,admissionReviewVersions=v1
 
 // ValidateModelDeploymentSpec validates a ModelDeploymentSpec.
 func ValidateModelDeploymentSpec(spec *ModelDeploymentSpec) error {
 	if spec.Source == "" {
 		return fmt.Errorf("source is required")
 	}
-	validEngines := map[string]bool{"auto": true, "vllm": true, "tei": true, "llamacpp": true, "": true}
+	validEngines := map[string]bool{"auto": true, "vllm": true, "sglang": true, "tei": true, "llamacpp": true, "": true}
 	if !validEngines[spec.Engine] {
-		return fmt.Errorf("engine must be one of: auto, vllm, tei, llamacpp (got %q)", spec.Engine)
+		return fmt.Errorf("engine must be one of: auto, vllm, sglang, tei, llamacpp (got %q)", spec.Engine)
 	}
 	if spec.Replicas != nil && *spec.Replicas < 0 {
 		return fmt.Errorf("replicas must be >= 0")

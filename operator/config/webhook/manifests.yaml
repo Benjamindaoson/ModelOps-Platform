@@ -10,12 +10,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-llmops-kubeai-io-v1alpha1-finetunerun
+      path: /validate-llmops-kubellmops-io-v1alpha1-finetunerun
   failurePolicy: Fail
-  name: vfinetunerun.kb.io
+  name: vfinetunerun.kubellmops.io
   rules:
   - apiGroups:
-    - llmops.kubeai.io
+    - llmops.kubellmops.io
     apiVersions:
     - v1alpha1
     operations:
@@ -30,12 +30,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-llmops-kubeai-io-v1alpha1-llmplatform
+      path: /validate-llmops-kubellmops-io-v1alpha1-llmplatform
   failurePolicy: Fail
-  name: vllmplatform.kb.io
+  name: vllmplatform.kubellmops.io
   rules:
   - apiGroups:
-    - llmops.kubeai.io
+    - llmops.kubellmops.io
     apiVersions:
     - v1alpha1
     operations:
@@ -50,12 +50,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-llmops-kubeai-io-v1alpha1-modeldeployment
+      path: /validate-llmops-kubellmops-io-v1alpha1-modeldeployment
   failurePolicy: Fail
-  name: vmodeldeployment.kb.io
+  name: vmodeldeployment.kubellmops.io
   rules:
   - apiGroups:
-    - llmops.kubeai.io
+    - llmops.kubellmops.io
     apiVersions:
     - v1alpha1
     operations:

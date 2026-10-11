@@ -356,3 +356,10 @@ func TestValidateFineTuneRunSpec_QualityGateWithoutEvaluation(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
+
+func TestValidateModelDeploymentSpec_SGLangIsAllowed(t *testing.T) {
+    spec := &ModelDeploymentSpec{Source: "Qwen/Qwen2.5-0.5B-Instruct", Engine: "sglang"}
+    if err := ValidateModelDeploymentSpec(spec); err != nil {
+        t.Errorf("SGLang is supported by the ModelDeployment controller: %v",err)
+    }
+}
