@@ -8,6 +8,7 @@ Never fabricates latency numbers or stores API secrets in manifests.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import platform
@@ -15,6 +16,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -35,6 +37,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--run-id", default=None)
     p.add_argument("--output-root", type=Path, default=Path("benchmarks/results"))
     p.add_argument("--dry-run", action="store_true", help="Print command without invoking a server")
+    p.add_argument("--timeout-s", type=int, default=1800, help="Kill overlong benchmarks")
+    p.add_argument("--gpu-poll-s", type=float, default=1.0, help="Live GPU telemetry interval (seconds)")
+    p.add_argument("--no-gpu-profile", action="store_true", help="Disable nvidia-smi polling")
     p.add_argument("--min-success-rate", type=float, default=0.99,
                    help="Reject runs where real successful requests / planned requests is too low")
     return p.parse_args(argv)
@@ -60,6 +65,8 @@ def validate(a: argparse.Namespace) -> None:
         raise ValueError("input/output lengths must be positive and warmups nonnegative")
     if a.run_id and not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", a.run_id):
         raise ValueError("--run-id may contain only ASCII letters, digits, dot, dash, underscore")
+    if a.timeout_s < 1 or not (0.25 <= a.gpu_poll_s <= 60):
+        raise ValueError("timeout must be positive and GPU polling interval 0.25-60 seconds")
     if not (0 < a.min_success_rate <= 1):
         raise ValueError("--min-success-rate must be in (0,1]")
     if a.backend == "openai-embeddings" and a.output_len != 128:
@@ -145,8 +152,53 @@ def main(argv: list[str] | None = None) -> int:
     manifest = metadata(a, cmd)
     (result_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"Real benchmark starting; evidence directory: {result_dir}")
+    gpu_samples = []
+    stop_sampling = threading.Event()
+    gpu_enabled = not a.no_gpu_profile and shutil.which("nvidia-smi") is not None
+    def poll_gpu() -> None:
+        while not stop_sampling.is_set():
+            try:
+                result = subprocess.run([
+                    "nvidia-smi",
+                    "--query-gpu=index,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw",
+                    "--format=csv,noheader,nounits",
+                ], capture_output=True, text=True, timeout=5, check=False)
+                if result.returncode == 0:
+                    for line in result.stdout.splitlines():
+                        fields = [v.strip() for v in line.split(",")]
+                        if len(fields) == 6:
+                            gpu_samples.append([datetime.now(timezone.utc).isoformat(), *fields])
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            stop_sampling.wait(a.gpu_poll_s)
+    sampler = threading.Thread(target=poll_gpu, name="gpu-metrics-poller", daemon=True)
+    if gpu_enabled:
+        sampler.start()
+    rc = -1
+    timeout_hit = False
     with (result_dir / "vllm-bench.log").open("w", encoding="utf-8") as log:
-        completed = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, check=False)
+        process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            rc = process.wait(timeout=a.timeout_s)
+        except subprocess.TimeoutExpired:
+            timeout_hit = True
+            process.terminate()
+            try:
+                rc = process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                rc = process.wait()
+        finally:
+            stop_sampling.set()
+            if gpu_enabled:
+                sampler.join(timeout=6)
+    if gpu_samples:
+        with (result_dir / "gpu-telemetry.csv").open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.writer(stream)
+            writer.writerow(["timestamp_utc", "gpu_index", "utilization_percent",
+                             "memory_used_mib", "memory_total_mib",
+                             "temperature_c", "power_w"])
+            writer.writerows(gpu_samples)
     result_file = result_dir / "raw-benchmark.json"
     from math import isfinite
     raw_exists = result_file.is_file() and result_file.stat().st_size > 0
@@ -169,10 +221,13 @@ def main(argv: list[str] | None = None) -> int:
         and (isinstance(failed_count,int) and failed_count >= 0)
         and observed_rate is not None
     )
-    tool_ok = completed.returncode == 0 and measurements_ok
+    tool_ok = (rc == 0 and not timeout_hit and measurements_ok)
     passed = tool_ok and observed_rate >= a.min_success_rate
     outcome = {
-        "tool_exit_code": completed.returncode,
+        "tool_exit_code": rc,
+        "benchmark_timed_out": timeout_hit,
+        "gpu_samples": len(gpu_samples),
+        "gpu_profile_collected": bool(gpu_samples),
         "raw_results_exist": raw_exists,
         "measurements_valid": measurements_ok,
         "successful_requests": completed_count,
