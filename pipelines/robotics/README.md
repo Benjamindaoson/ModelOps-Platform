@@ -32,3 +32,17 @@ The VLA-Forge M05 development protocol uses eight fixed LIBERO initial states pe
 The active `serve.py` revision is bound to an immutable registry version and local policy/processor/normalizer files. It launches with the VLA-Forge `.venv` because LeRobot, PyTorch, and LIBERO belong to that project's independent runtime; the ModelOps control-plane `.venv` remains separate. Serving holds `/data/VLA-Forge/Evidence/M05/gpu.lock`, listens only on loopback, accepts simulation observations, and never sends actions to a physical robot. The action API reports queue, inference, memory, and error telemetry. Development version changes and rollback are recorded in the registry revision log.
 
 For the frozen cloud run, the shared evidence directory is `/data/VLA-Forge/Evidence/M05`. ModelOps job `m05-corrective-cam180-s5501` ran 500 genuine Flow Matching/LoRA optimizer updates with an explicit pause after step 250 and a checkpointed resume. Step and resource JSONL logs remain exportable, while the MLflow file store retains the run parameters, metrics, and raw-log artifacts. The separate native/managed 20-step A/B is in `modelops/ab_comparison.json`; exact adapter weights matched, and the two-process managed resume added measured overhead for this short job. Kubernetes, Argo, and cluster HA were not tested.
+
+## M06 independent policy release gate
+
+`ingest_m06_release.py` opens the frozen 40-task / 400-case test **only after** VLA-Forge has independently validated all 1,600 FP32 Eager rollouts. It binds the private episode matrix, protocol, validation receipt and checkpoint to four immutable registry versions, recomputes the target paired discordance test and Holm adjustment from the raw outcomes, then applies the preregistered target/legacy/latency/safety gate. `PROMOTE` remains simulation-only; rejected and insufficient candidates cannot be deployed through the M06 path. The gate does not claim that foundation-model pretraining excluded these states.
+
+```bash
+cd /data/ModelOps-Platform
+.venv/bin/python -m pipelines.robotics.ingest_m06_release \
+  --evidence /data/VLA-Forge/Evidence/M06 \
+  --registry /data/VLA-Forge/Evidence/M05/modelops/registry \
+  --output /data/VLA-Forge/Evidence/M06/modelops/evaluations
+```
+
+This command refuses incomplete or unverified runs; M05 development admissions retain their separate, narrower scope. All visual evidence remains private under the VLA-Forge evidence root.

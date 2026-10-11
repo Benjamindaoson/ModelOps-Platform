@@ -89,14 +89,30 @@ class Registry:
 
     def deploy(self, version, evaluation):
         record = self.resolve(version)
-        if evaluation.get("scope") != "M05-development" or not evaluation.get("passed"):
-            raise ValueError(
-                "Only qualified M05 simulation development revisions can deploy"
-            )
+        scope = evaluation.get("scope")
+        if scope == "M05-development":
+            if not evaluation.get("passed") or evaluation.get("total", 0) < 1:
+                raise ValueError("Unqualified M05 development evaluation")
+        elif scope == "M06-independent":
+            if (not evaluation.get("passed") or evaluation.get("decision") != "PROMOTE"
+                    or evaluation.get("total") != 400):
+                raise ValueError("M06 policy failed the independent release gate")
+            for kind in ("protocol", "validation", "episodes"):
+                path = Path(evaluation.get(f"{kind}_path", ""))
+                if (not path.is_file() or sha256_file(path) != evaluation.get(f"{kind}_sha256")):
+                    raise ValueError(f"M06 {kind} artifact integrity failure")
+            validation = json.loads(Path(evaluation["validation_path"]).read_text())
+            protocol = json.loads(Path(evaluation["protocol_path"]).read_text())
+            if (validation.get("status") != "PASS" or validation.get("valid") != 1600
+                    or validation.get("illegal_executed_actions") != 0
+                    or protocol.get("rules", {}).get("backend") != "fp32_eager"):
+                raise ValueError("M06 validation or frozen protocol failed")
+        else:
+            raise ValueError("Unknown robot evaluation scope")
         if evaluation.get("checkpoint_sha256") != record["checkpoint_sha256"]:
             raise ValueError("Evaluation/checkpoint mismatch")
-        if evaluation.get("total", 0) < 1 or evaluation.get("illegal_actions", 1) != 0:
-            raise ValueError("Missing actual robot evaluation")
+        if evaluation.get("illegal_actions", 1) != 0:
+            raise ValueError("Illegal robot action in evaluation")
         p = self.root / "deployments.jsonl"
         entries = (
             [json.loads(x) for x in p.read_text().splitlines()] if p.exists() else []
