@@ -1,0 +1,78 @@
+name: Import pinned kube-llmops foundation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bootstrap-upstream.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  import-snapshot:
+    if: github.repository == 'Benjamindaoson/ModelOps-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: https://github.com/GaeaRuiW/kube-llmops.git
+      SOURCE_SHA: 74f8db47fa2690a4e71ae31532f36b35a587d266
+      IMPORT_BRANCH: bootstrap/kube-llmops-import
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Import exact upstream snapshot on a review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "refs/heads/$IMPORT_BRANCH" >/dev/null; then
+            echo "Existing import branch detected; refusing to overwrite it."
+            exit 0
+          fi
+
+          SOURCE_DIR="$RUNNER_TEMP/kube-llmops-source"
+          git init -q "$SOURCE_DIR"
+          git -C "$SOURCE_DIR" remote add origin "$SOURCE_REPO"
+          git -C "$SOURCE_DIR" fetch --quiet --depth 1 origin "$SOURCE_SHA"
+          git -C "$SOURCE_DIR" checkout --quiet --detach FETCH_HEAD
+
+          ACTUAL_SHA="$(git -C "$SOURCE_DIR" rev-parse HEAD)"
+          test "$ACTUAL_SHA" = "$SOURCE_SHA" || { echo "Upstream SHA mismatch"; exit 1; }
+
+          git switch -c "$IMPORT_BRANCH"
+
+          # Do not activate arbitrary third-party CI on our own repository.
+          # Preserve source workflows as reference, outside .github/workflows.
+          rsync -a --exclude='.git/' --exclude='.github/workflows/' "$SOURCE_DIR/" "$GITHUB_WORKSPACE/"
+          mkdir -p docs/upstream-workflows
+          cp -a "$SOURCE_DIR/.github/workflows/." docs/upstream-workflows/
+
+          cat > docs/UPSTREAM_PROVENANCE.md <<'PROVENANCE'
+          # Upstream provenance — ModelOps Platform foundation
+
+          - **Source**: https://github.com/GaeaRuiW/kube-llmops
+          - **Commit**: `74f8db47fa2690a4e71ae31532f36b35a587d266`
+          - **Original license**: Apache License, Version 2.0 (see `LICENSE`)
+          - **Import strategy**: reviewable vendor snapshot, original file-level notices retained
+          - **Excluded from active GitHub Actions**: source `.github/workflows/*`, archived verbatim at `docs/upstream-workflows/`.
+          - **Original source README and implementation**: retained in the initial import; subsequent changes must be traceable in Git history.
+          - **Additions independent of upstream**: `docs/IMPLEMENTATION_PLAN.md` and this import/provenance infrastructure.
+
+          We do not represent inherited code, imported deployments, or upstream
+          test statuses as original ModelOps Platform engineering achievements.
+          Training, inference, reliability and benchmark claims require independent
+          GPU and/or Kubernetes runs with saved evidence.
+          PROVENANCE
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m "chore: import kube-llmops foundation pinned at ${SOURCE_SHA:0:12}"
+          COUNT="$(git ls-files | wc -l)"
+          test "$COUNT" -gt 400 || { echo "Incomplete import: $COUNT files"; exit 1; }
+          git push --set-upstream origin "HEAD:refs/heads/$IMPORT_BRANCH"
+          echo "Imported $COUNT files into $IMPORT_BRANCH; ready for review."
