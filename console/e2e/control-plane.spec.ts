@@ -20,7 +20,7 @@ test("authenticates and registers real metadata; refuses disconnected Kubernetes
   await page.getByLabel("SHA-256 digest (64 hexadecimal characters)").fill("b".repeat(64));
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page.getByText("qwen-smoke-model")).toBeVisible();
-  await expect(page.getByText("DECLARED")).toBeVisible();
+  await expect(page.getByText("DECLARED", { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Dataset registry" }).click();
   await page.getByRole("button", { name: "Add dataset" }).click();
