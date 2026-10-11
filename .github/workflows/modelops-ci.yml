@@ -1,0 +1,79 @@
+name: ModelOps CI — static and controller checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/modelops-ci.yml"
+      - "operator/**"
+      - "charts/**"
+      - "images/model-resolver/**"
+      - "tests/helm/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  helm-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - name: Resolve chart dependencies
+        run: helm dependency update charts/kube-llmops-stack
+      - name: Validate CPU-only and fine-tune chart manifests
+        run: |
+          set -euo pipefail
+          helm lint charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml
+          helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml > /tmp/modelops-ci.yaml
+          helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci-finetune.yaml > /tmp/modelops-finetune.yaml
+          test -s /tmp/modelops-ci.yaml
+          test -s /tmp/modelops-finetune.yaml
+
+  operator-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: operator/go.mod
+          cache-dependency-path: operator/go.sum
+      - name: Test engine selection, resource builders and gateway
+        working-directory: operator
+        run: go test ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...
+
+  python-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - run: python -m pip install pytest pyyaml
+      - run: helm dependency update charts/kube-llmops-stack
+      - name: Verify model resolution and Helm contract tests
+        run: |
+          python -m pytest images/model-resolver/tests/ tests/helm/ -q --tb=short
+
+  evidence-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm attribution and independent validation plan
+        run: |
+          test -s LICENSE
+          test -s docs/UPSTREAM_PROVENANCE.md
+          test -s docs/upstream/README.md
+          test -s docs/IMPLEMENTATION_PLAN.md
+          echo "Static/CPU-only CI. This job does NOT validate GPU inference or fine-tuning."
