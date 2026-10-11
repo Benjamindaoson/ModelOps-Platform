@@ -12,6 +12,7 @@ on:
       - "benchmarks/inference/**"
       - "pipelines/**"
       - "images/deploy-runner/**"
+      - "ops/**"
   pull_request:
     branches: [main]
   workflow_dispatch: {}
@@ -128,3 +129,22 @@ jobs:
           grep -q "APPROVED.json" /tmp/modelops-with-argo.yaml
           grep -q "kind: ConfigMap" /tmp/modelops-with-argo.yaml
           echo "Argo manifests rendered — NOT actual model training."
+
+  operations-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install production preflight YAML validator
+        run: python -m pip install "PyYAML==6.0.2"
+      - name: Verify live HTTP protocol contracts and production preflight
+        run: python -m unittest discover -s ops -p "test_*.py" -v
+      - name: Reject unsafe upstream production example
+        run: |
+          if python ops/preflight.py --values charts/kube-llmops-stack/values-production.yaml; then
+            echo "Unsafe upstream production examples must NOT pass security preflight"
+            exit 1
+          fi

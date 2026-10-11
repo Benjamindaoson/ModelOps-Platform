@@ -1,0 +1,50 @@
+name: ModelOps CPU Kubernetes live smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "charts/**"
+      - "ops/**"
+      - ".github/workflows/modelops-kind-e2e.yml"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+
+jobs:
+  kind-gateway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - uses: helm/kind-action@v1
+      - name: Prepare chart dependencies
+        run: helm dependency update charts/kube-llmops-stack
+      - name: Install real CPU-only Kubernetes services
+        run: |
+          helm install kube-llmops charts/kube-llmops-stack \
+            -f charts/kube-llmops-stack/values-ci.yaml --wait --timeout 12m
+      - name: Verify actual pods and LiteLLM health endpoint
+        run: |
+          kubectl get pods -A -o wide
+          kubectl rollout status deployment/kube-llmops-litellm-pg --timeout=120s
+          kubectl rollout status deployment/kube-llmops-litellm --timeout=120s
+          kubectl port-forward svc/kube-llmops-litellm 4000:4000 > /tmp/pf.log 2>&1 &
+          PF_PID=$!
+          trap 'kill $PF_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 25); do
+            if curl --max-time 5 -fsS http://127.0.0.1:4000/health/liveliness; then
+              echo "Kubernetes gateway LIVE; no GPU model has been deployed."
+              exit 0
+            fi
+            sleep 3
+          done
+          cat /tmp/pf.log
+          exit 1
+      - name: Uninstall and inspect leftovers
+        if: always()
+        run: |
+          helm uninstall kube-llmops || true
+          kubectl get pods -A || true
