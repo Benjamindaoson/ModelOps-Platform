@@ -75,7 +75,7 @@ var _ = Describe("FineTuneRun Controller", func() {
 			}, timeout, interval).ShouldNot(BeEmpty())
 		})
 
-		It("should have a condition with reason ArgoCRDMissing", func() {
+		It("should have a condition with reason TemplateContractMismatch", func() {
 			Eventually(func() string {
 				updated := &v1alpha1.FineTuneRun{}
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: namespace}, updated); err != nil {
@@ -87,7 +87,7 @@ var _ = Describe("FineTuneRun Controller", func() {
 					}
 				}
 				return ""
-			}, timeout, interval).Should(Equal("ArgoCRDMissing"))
+			}, timeout, interval).Should(Equal("TemplateContractMismatch"))
 		})
 	})
 })

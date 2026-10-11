@@ -31,18 +31,29 @@ resources:
 nodeSelector: {}
 tolerations: []
 
-# Evaluation + quality gate
+# Independent holdout quality evaluation. train.json and heldout.jsonl
+# must be present in the downloaded dataset. Absence aborts the workflow.
+# Token F1 is lexical match, not semantic faithfulness.
+# Runtime jobs must evaluate real weights before any release is approved.
+renderWorkflowsWithoutCRD: false
 evaluation:
   enabled: true
+  minSamples: 20
+  maxNewTokens: 128
   benchmarks:
     - ragas
   thresholds:
+    tokenF1: 0.55
+    minDeltaTokenF1: -0.02
+    # Old illustrative keys retained only for chart compatibility;
+    # they are NOT used by the ModelOps artifact gate.
     faithfulness: 0.7
     answer_relevancy: 0.7
 
 # Deployment strategy
 deploy:
   auto: false
+  runnerImage: ghcr.io/benjamindaoson/modelops-deploy-runner:v0.1.0
   canaryPercent: 20
   notifyWebhook: ""
 
