@@ -9,6 +9,9 @@ function sameOrigin(req: NextRequest): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  if (process.env.MODELOPS_CONSOLE_AUTH === "oidc") {
+    return NextResponse.json({detail:"Manual token login disabled; use SSO"},{status:403});
+  }
   if (!sameOrigin(req)) return NextResponse.json({ detail: "Origin rejected" }, { status: 403 });
   const api = process.env.MODELOPS_API_URL;
   if (!api) return NextResponse.json({ detail: "Control API not configured" }, { status: 503 });

@@ -21,6 +21,12 @@ const NAV = [
 
 function Login({ onLogin }: { onLogin: (p: Principal) => void }) {
   const [jwt, setJwt] = useState("");
+  const [authMode, setAuthMode] = useState("development-token");
+  useEffect(() => {
+    fetch("/api/auth/config", { cache: "no-store" }).then(r => r.json())
+      .then(d => setAuthMode(d.mode === "oidc" ? "oidc" : "development-token"))
+      .catch(() => setAuthMode("oidc"));
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function submit(e: FormEvent) {
@@ -45,7 +51,9 @@ function Login({ onLogin }: { onLogin: (p: Principal) => void }) {
         <div className="eyebrow">MODEL INFRASTRUCTURE</div>
         <h1>ModelOps <span>Platform</span></h1>
         <p className="muted">One control plane for your model registry, deployments, training and operational evidence.</p>
-        <form onSubmit={submit}>
+        {authMode === "oidc" ? (
+          <a href="/api/auth/start" className="primary-button wide">Continue with enterprise SSO</a>
+        ) : <form onSubmit={submit}>
           <label htmlFor="token-input">OIDC or local development access token</label>
           <textarea id="token-input" rows={4} value={jwt}
             onChange={e => setJwt(e.target.value)}
@@ -55,7 +63,7 @@ function Login({ onLogin }: { onLogin: (p: Principal) => void }) {
           <button className="primary-button wide" disabled={busy || jwt.trim().length < 20}>
             <KeyRound size={16}/>{busy ? "Verifying…" : "Connect to workspace"}
           </button>
-        </form>
+        </form>}
         <div className="login-foot"><ShieldCheck size={16}/>
           <span>Validated server-side. Session token stays in an HttpOnly cookie.</span></div>
         <div className="login-foot muted">Engineering Preview · Kubernetes is required for real deployments.</div>
