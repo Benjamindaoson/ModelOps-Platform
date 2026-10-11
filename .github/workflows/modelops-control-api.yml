@@ -28,6 +28,13 @@ jobs:
       - name: Install API
         working-directory: control-plane
         run: python -m pip install -e ".[dev]"
+      - name: Apply database migration on actual SQLite test instance
+        working-directory: control-plane
+        env:
+          MODELOPS_DATABASE_URL: sqlite:////tmp/modelops-alembic-ci.sqlite
+        run: |
+          alembic upgrade head
+          python -c "from sqlalchemy import create_engine,inspect; e=create_engine('sqlite:////tmp/modelops-alembic-ci.sqlite'); assert 'model_artifacts' in inspect(e).get_table_names()"
       - name: Test control API and explicit Kubernetes contracts
         working-directory: control-plane
         env:

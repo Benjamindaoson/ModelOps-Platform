@@ -52,3 +52,66 @@ jobs:
         run: |
           helm uninstall kube-llmops || true
           kubectl get pods -A || true
+
+  kind-operator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+      - uses: helm/kind-action@v1
+      - name: Bootstrap CRDs and namespace boundaries
+        run: |
+          kubectl apply -f operator/config/crd/bases/
+          kubectl create secret generic kube-llmops-litellm-secret --from-literal=master-key=test-only-not-valid-for-production
+      - name: Build real Go Operator and load into kind
+        run: |
+          docker build -t modelops/operator:e2e -f operator/Dockerfile operator/
+          kind load docker-image modelops/operator:e2e
+      - name: Deploy namespace-scoped runtime Operator
+        run: |
+          helm install modelops-op operator/charts/kube-llmops-operator \
+            --set image.repository=modelops/operator --set image.tag=e2e \
+            --set image.pullPolicy=IfNotPresent --set gateway.url=http://127.0.0.1:4000 \
+            --wait --timeout 8m
+          kubectl rollout status deployment/modelops-op-operator --timeout=180s
+      - name: Assert least privilege against actual Kubernetes RBAC
+        run: |
+          set -euo pipefail
+          SA=system:serviceaccount:default:kube-llmops-operator
+          kubectl auth can-i create deployments --as="$SA" -n default | grep -qx yes
+          kubectl auth can-i create deployments --as="$SA" -n kube-system | grep -qx no
+          kubectl auth can-i delete namespaces --as="$SA" | grep -qx no
+          kubectl auth can-i get secrets --as="$SA" -n default | grep -qx no
+      - name: Verify genuine Controller reconciliation without a GPU
+        run: |
+          set -euo pipefail
+          cat <<'YAML' | kubectl apply -f -
+          apiVersion: llmops.kubellmops.io/v1alpha1
+          kind: ModelDeployment
+          metadata:
+            name: modelops-controller-e2e
+          spec:
+            source: Qwen/Qwen2.5-0.5B-Instruct
+            engine: vllm
+            replicas: 1
+            resources:
+              gpu: 1
+              cpu: "1"
+              memory: 4Gi
+          YAML
+          for i in $(seq 1 45); do
+            if kubectl get deployment modelops-controller-e2e >/dev/null 2>&1 &&
+               kubectl get service modelops-controller-e2e >/dev/null 2>&1 &&
+               kubectl get pvc modelops-controller-e2e-cache >/dev/null 2>&1; then
+              echo "Operator reconciled PVC/Deployment/Service. GPU workload is NOT running."
+              kubectl get modeldeployment modelops-controller-e2e -o yaml
+              exit 0
+            fi
+            sleep 4
+          done
+          kubectl get all
+          kubectl logs deployment/modelops-op-operator --tail=200
+          exit 1
