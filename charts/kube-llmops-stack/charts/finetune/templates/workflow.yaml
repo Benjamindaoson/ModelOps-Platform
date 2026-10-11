@@ -412,10 +412,10 @@ spec:
           - name: modelops-scripts
             mountPath: /opt/modelops
             readOnly: true
-        volumes:
-          - name: modelops-scripts
-            configMap:
-              name: {{ $.Release.Name }}-modelops-scripts
+      volumes:
+        - name: modelops-scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
         resources:
           requests:
             cpu: "1"
