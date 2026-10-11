@@ -98,9 +98,20 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
     try:
         observed = runtime.get_deployment(dep)
         status = observed.get("status", {})
-        return {**data, "observed_phase": status.get("phase", "Pending"),
+        phase = status.get("phase", "Pending")
+        actual_generation = observed.get("metadata", {}).get("generation")
+        if actual_generation is not None:
+            conditions = status.get("conditions", [])
+            current_ready = any(c.get("type") == "ModelReady" and
+                                c.get("status") == "True" and
+                                c.get("observedGeneration", 0) >= actual_generation
+                                for c in conditions)
+            if phase == "Ready" and not current_ready:
+                # An old Ready state must never certify the new model version.
+                phase = "Reconciling"
+        return {**data, "observed_phase": phase,
                 "ready_replicas": status.get("readyReplicas", 0),
-                "runtime_verified": True}
+                "runtime_verified": actual_generation is None or phase == "Ready"}
     except RuntimeFailure:
         return {**data, "observed_phase": "RuntimeUnreachable",
                 "ready_replicas": None, "runtime_verified": False}
@@ -303,6 +314,13 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                  "verified": r.verified, "passed": r.passed,
                  "metrics": json.loads(r.metrics_json), "created_at": r.created_at.isoformat()}
                 for r in rows]
+
+    @app.get("/api/v1/approvals")
+    def approvals(p: Principal = Depends(require_principal), db: Session = Depends(get_db)):
+        rows = db.scalars(select(ReleaseApproval).where(ReleaseApproval.tenant == p.tenant)
+                          .order_by(ReleaseApproval.created_at.desc()).limit(100)).all()
+        return [render(row, "id", "artifact_id", "evaluation_id", "approver",
+                       "reason", "created_at") for row in rows]
 
     @app.post("/api/v1/approvals", status_code=201)
     def approve(req: ApprovalIn, p: Principal = Depends(require_principal),
