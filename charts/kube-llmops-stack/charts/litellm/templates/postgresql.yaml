@@ -90,7 +90,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ $.Release.Name }}-litellm-pg-secret
+                  name: {{ .Values.postgresql.existingSecret | default (printf "%s-litellm-pg-secret" $.Release.Name) }}
                   key: password
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
@@ -140,6 +140,7 @@ spec:
   selector:
     app.kubernetes.io/name: litellm-postgresql
     app.kubernetes.io/instance: {{ $.Release.Name }}
+{{- if not .Values.postgresql.existingSecret }}
 ---
 apiVersion: v1
 kind: Secret
@@ -152,4 +153,5 @@ metadata:
 type: Opaque
 data:
   password: {{ .Values.postgresql.auth.password | b64enc | quote }}
+{{- end }}
 {{- end }}

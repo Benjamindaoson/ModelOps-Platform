@@ -91,6 +91,8 @@ service:
 
 postgresql:
   enabled: true
+  # Existing K8s Secret key "password" (preferred for production).
+  existingSecret: ""
   image:
     repository: pgvector/pgvector
     tag: "pg17"                   # pgvector-enabled PostgreSQL 17

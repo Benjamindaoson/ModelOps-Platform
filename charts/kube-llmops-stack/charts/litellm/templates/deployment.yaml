@@ -56,7 +56,7 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ $.Release.Name }}-litellm-pg-secret
+                  name: {{ .Values.postgresql.existingSecret | default (printf "%s-litellm-pg-secret" $.Release.Name) }}
                   key: password
             - name: DATABASE_URL
               value: "postgresql://{{ .Values.postgresql.auth.username }}:$(DB_PASSWORD)@{{ $.Release.Name }}-litellm-pg:{{ .Values.postgresql.service.port }}/{{ .Values.postgresql.auth.database }}"
