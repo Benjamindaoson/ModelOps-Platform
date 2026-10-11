@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-modelops-scripts
+  labels:
+    app.kubernetes.io/name: finetune
+    app.kubernetes.io/component: modelops-evidence
+data:
+  evaluate.py: |
+{{ .Files.Get "files/modelops_evaluate.py" | indent 4 }}
+  merge.py: |
+{{ .Files.Get "files/modelops_merge.py" | indent 4 }}
