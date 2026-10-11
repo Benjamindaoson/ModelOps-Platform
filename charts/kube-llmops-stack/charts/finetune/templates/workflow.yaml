@@ -412,10 +412,6 @@ spec:
           - name: modelops-scripts
             mountPath: /opt/modelops
             readOnly: true
-      volumes:
-        - name: modelops-scripts
-          configMap:
-            name: {{ $.Release.Name }}-modelops-scripts
         resources:
           requests:
             cpu: "1"
@@ -423,6 +419,10 @@ spec:
           limits:
             cpu: "4"
             memory: 32Gi
+      volumes:
+        - name: modelops-scripts
+          configMap:
+            name: {{ $.Release.Name }}-modelops-scripts
     - name: evaluate
       container:
         # The model weights are evaluated *locally* on the actual checkpoint,
