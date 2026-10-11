@@ -35,6 +35,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--run-id", default=None)
     p.add_argument("--output-root", type=Path, default=Path("benchmarks/results"))
     p.add_argument("--dry-run", action="store_true", help="Print command without invoking a server")
+    p.add_argument("--min-success-rate", type=float, default=0.99,
+                   help="Reject runs where real successful requests / planned requests is too low")
     return p.parse_args(argv)
 
 
@@ -58,6 +60,8 @@ def validate(a: argparse.Namespace) -> None:
         raise ValueError("input/output lengths must be positive and warmups nonnegative")
     if a.run_id and not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", a.run_id):
         raise ValueError("--run-id may contain only ASCII letters, digits, dot, dash, underscore")
+    if not (0 < a.min_success_rate <= 1):
+        raise ValueError("--min-success-rate must be in (0,1]")
     if a.backend == "openai-embeddings" and a.output_len != 128:
         raise ValueError("--output-len has no meaning for embedding benchmarks")
 
@@ -111,6 +115,7 @@ def metadata(a: argparse.Namespace, cmd: list[str]) -> dict:
         "input_len_tokens": a.input_len,
         "output_len_tokens": None if a.backend == "openai-embeddings" else a.output_len,
         "seed": a.seed,
+        "min_success_rate": a.min_success_rate,
         "python": platform.python_version(),
         "os": platform.platform(),
         "git_sha": os.getenv("GITHUB_SHA") or _capture(["git", "rev-parse", "HEAD"]),
@@ -143,11 +148,38 @@ def main(argv: list[str] | None = None) -> int:
     with (result_dir / "vllm-bench.log").open("w", encoding="utf-8") as log:
         completed = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, check=False)
     result_file = result_dir / "raw-benchmark.json"
-    passed = completed.returncode == 0 and result_file.is_file() and result_file.stat().st_size > 0
+    from math import isfinite
+    raw_exists = result_file.is_file() and result_file.stat().st_size > 0
+    raw = {}
+    if raw_exists:
+        try:
+            raw = json.loads(result_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+    completed_count = raw.get("completed")
+    failed_count = raw.get("failed", 0)
+    observed_rate = (completed_count / a.prompts
+                     if isinstance(completed_count, int) and not isinstance(completed_count,bool)
+                     and 0 <= completed_count <= a.prompts else None)
+    measurements_ok = bool(
+        isinstance(raw.get("duration"), (int,float))
+        and isfinite(raw["duration"]) and raw["duration"] > 0
+        and isinstance(raw.get("request_throughput"), (int,float))
+        and isfinite(raw["request_throughput"]) and raw["request_throughput"] > 0
+        and (isinstance(failed_count,int) and failed_count >= 0)
+        and observed_rate is not None
+    )
+    tool_ok = completed.returncode == 0 and measurements_ok
+    passed = tool_ok and observed_rate >= a.min_success_rate
     outcome = {
         "tool_exit_code": completed.returncode,
-        "raw_results_exist": result_file.is_file() and result_file.stat().st_size > 0,
-        "status": "PASS" if passed else "FAIL",
+        "raw_results_exist": raw_exists,
+        "measurements_valid": measurements_ok,
+        "successful_requests": completed_count,
+        "failed_requests": failed_count if measurements_ok else None,
+        "observed_success_rate": observed_rate,
+        "required_success_rate": a.min_success_rate,
+        "status": "PASS" if passed else ("FAIL_SLO" if tool_ok else "FAIL_BENCHMARK"),
     }
     (result_dir / "status.json").write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(outcome, indent=2))
