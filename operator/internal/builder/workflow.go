@@ -26,6 +26,11 @@ import (
 
 // BuildArgoWorkflow creates an Argo Workflow that references the Helm-managed WorkflowTemplate.
 // It also injects parameters from the FineTuneRun spec for fine-grained control.
+// Dynamic runs share exactly the same parameter names as the product Control API.
+func IsDynamicFineTuneRun(ftr *v1alpha1.FineTuneRun) bool {
+	return ftr.Spec.BaseRevision != "" || ftr.Spec.BaseDigest != "" || ftr.Spec.DataSource.Digest != ""
+}
+
 func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructured.Unstructured {
 	outputTrunc := ftr.Spec.OutputName
 	if len(outputTrunc) > 8 {
@@ -33,8 +38,14 @@ func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructu
 	}
 	name := strings.TrimRight(fmt.Sprintf("%s-%s", ftr.Name, outputTrunc), "-")
 
-	// Build workflow parameters from FineTuneRun spec
+	// The dynamic Argo template is the same one called from FastAPI.
+	// The legacy template remains available for existing explicitly fixed releases.
 	parameters := buildWorkflowParameters(ftr)
+	templateName := releaseName + "-finetune"
+	if IsDynamicFineTuneRun(ftr) {
+		templateName = "modelops-finetune-dynamic"
+		parameters = buildDynamicWorkflowParameters(ftr)
+	}
 
 	wf := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -56,7 +67,7 @@ func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructu
 			},
 			"spec": map[string]interface{}{
 				"workflowTemplateRef": map[string]interface{}{
-					"name": releaseName + "-finetune",
+					"name": templateName,
 				},
 			},
 		},
@@ -71,6 +82,35 @@ func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructu
 	}
 
 	return wf
+}
+
+// buildDynamicWorkflowParameters follows the single Argo contract
+// shared with control-plane/modelops/runtime.py (underscored parameter names).
+// Validation is performed in the controller BEFORE this helper is called.
+func buildDynamicWorkflowParameters(ftr *v1alpha1.FineTuneRun) []map[string]string {
+	t := ftr.Spec.Training
+	method := ftr.Spec.Method
+	if method == "" { method = "lora" }
+	values := []struct{name, value string}{
+		{"base_model", ftr.Spec.BaseModel},
+		{"base_revision", ftr.Spec.BaseRevision},
+		{"base_sha256", ftr.Spec.BaseDigest},
+		{"dataset_uri", ftr.Spec.DataSource.Path},
+		{"dataset_sha256", ftr.Spec.DataSource.Digest},
+		{"method", method},
+		{"output_name", ftr.Spec.OutputName},
+		{"epochs", fmt.Sprintf("%d", t.Epochs)},
+		{"batch_size", fmt.Sprintf("%d", t.BatchSize)},
+		{"learning_rate", t.LearningRate},
+		{"lora_rank", fmt.Sprintf("%d", t.LoraRank)},
+		{"lora_alpha", fmt.Sprintf("%d", t.LoraAlpha)},
+		{"gpu", fmt.Sprintf("%d", ftr.Spec.Resources.GPU)},
+		{"gradient_accumulation_steps", fmt.Sprintf("%d", t.GradientAccumulationSteps)},
+		{"min_token_f1", ftr.Spec.Evaluation.MinTokenF1},
+	}
+	parameters := make([]map[string]string,0,len(values))
+	for _,v := range values { parameters = append(parameters,map[string]string{"name":v.name,"value":v.value}) }
+	return parameters
 }
 
 // buildWorkflowParameters converts FineTuneRun spec to Argo Workflow parameters.

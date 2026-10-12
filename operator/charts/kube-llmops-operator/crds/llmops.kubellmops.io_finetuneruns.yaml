@@ -63,6 +63,14 @@ spec:
             description: FineTuneRunSpec defines the desired state of a fine-tuning
               job.
             properties:
+              baseDigest:
+                description: Immutable SHA-256 of declared base model artifact.
+                pattern: ^[a-f0-9]{64}$
+                type: string
+              baseRevision:
+                description: Immutable upstream base model revision.
+                minLength: 7
+                type: string
               baseModel:
                 description: BaseModel is the HuggingFace model ID to fine-tune.
                 minLength: 1
@@ -77,6 +85,10 @@ spec:
                     - alpaca
                     - sharegpt
                     - custom
+                    type: string
+                  digest:
+                    description: SHA-256 of dataset_manifest.json.
+                    pattern: ^[a-f0-9]{64}$
                     type: string
                   path:
                     description: Path is the data location (e.g. "s3://datasets/my-data/"
@@ -105,6 +117,9 @@ spec:
               evaluation:
                 description: Evaluation configures post-training evaluation.
                 properties:
+                  minTokenF1:
+                    description: Independent heldout token F1 threshold.
+                    type: string
                   dataset:
                     type: string
                   enabled:
