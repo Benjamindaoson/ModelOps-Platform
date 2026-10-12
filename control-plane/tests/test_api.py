@@ -750,9 +750,9 @@ def test_recovery_rejects_changed_or_duplicated_training_arguments(api):
     params.append(dict(params[0]))
     assert client.post(path, headers=headers()).status_code == 502
     params.pop()
-    params.pop()
+    removed = params.pop()
     assert client.post(path, headers=headers()).status_code == 502
-    params.insert(0, {"name": "base_model", "value": model["source"]})
+    params.append(removed)
     recovered = client.post(path, headers=headers())
     assert recovered.status_code == 200, recovered.text
     assert recovered.json()["intent"] == "requested"
