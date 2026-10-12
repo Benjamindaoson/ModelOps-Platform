@@ -79,6 +79,8 @@ class RecordingRuntime:
             raise RuntimeFailure("Injected Kubernetes patch outage")
         self.deployment_patch_calls += 1
         self.deployments[(row.tenant, row.name)] = deployment_body(row, artifact)
+        if row.canary_artifact_id is None:
+            self.canaries.pop((row.tenant, row.name), None)
         if self.patch_timeout_after_apply:
             self.patch_timeout_after_apply = False
             from modelops.runtime import RuntimeFailure
@@ -999,3 +1001,35 @@ def test_canary_schema_migration_on_existing_metadata(tmp_path, monkeypatch):
     names = {c["name"] for c in inspect(engine).get_columns("deployments")}
     assert {"canary_artifact_id", "canary_weight"} <= names
     engine.dispose()
+
+
+def test_promote_releases_canary_and_restored_version_has_no_old_traffic(api):
+    client, runtime = api
+    stable, dataset = register(client)
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    row = client.post("/api/v1/deployments", json={
+        "name": "canary-to-promote", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    path = "/api/v1/deployments/" + row["id"]
+    start = client.post(path + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 25, "expected_generation": 1,
+    }, headers=headers())
+    assert start.status_code == 200, start.text
+    assert runtime.canaries[("alpha", "canary-to-promote")]["weight"] == 25
+    promoted = client.post(path + "/promote", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "expected_generation": 2,
+    }, headers=headers())
+    assert promoted.status_code == 200, promoted.text
+    assert promoted.json()["artifact_id"] == candidate["id"]
+    assert promoted.json()["canary_artifact_id"] is None
+    assert promoted.json()["canary_weight"] is None
+    assert promoted.json()["canary_spec"] is None
+    assert ("alpha", "canary-to-promote") not in runtime.canaries
+    restored = client.post(path + "/rollback", json={
+        "replicas": 1, "expected_generation": 3,
+    }, headers=headers())
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["artifact_id"] == stable["id"]
+    assert restored.json()["canary_spec"] is None

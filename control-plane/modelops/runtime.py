@@ -134,7 +134,8 @@ class KubernetesRuntime:
                              "modelops.io/artifact-revision": artifact.revision,
                          }},
                           "spec": {"source": artifact.source, "replicas": dep.replicas,
-                                   "engineArgs": None}})
+                                   "engineArgs": None,
+                                   **({"canary": None} if dep.canary_artifact_id is None else {})}})
 
     def patch_canary(self, dep, candidate, weight: int):
         if not 0 <= weight <= 100:

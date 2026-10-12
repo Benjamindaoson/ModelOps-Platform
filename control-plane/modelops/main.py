@@ -563,7 +563,10 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; cannot promote")
         stage_deployment_revision(db, row, p, req.expected_generation, "promote",
-                                  artifact.id, changes={"artifact_id": artifact.id},
+                                  artifact.id,
+                                  changes={"artifact_id": artifact.id,
+                                           "canary_artifact_id": None,
+                                           "canary_weight": None},
                                   detail={"artifact_id": artifact.id,
                                           "approval_id": approval.id})
         return apply_staged_revision(db, app.state.runtime, row, artifact, p)
@@ -588,7 +591,10 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; cannot roll back")
         stage_deployment_revision(db, row, p, req.expected_generation, "rollback",
-                                  artifact.id, changes={"artifact_id": artifact.id},
+                                  artifact.id,
+                                  changes={"artifact_id": artifact.id,
+                                           "canary_artifact_id": None,
+                                           "canary_weight": None},
                                   detail={"artifact_id": artifact.id})
         return apply_staged_revision(db, app.state.runtime, row, artifact, p)
 

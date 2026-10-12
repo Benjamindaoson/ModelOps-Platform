@@ -109,6 +109,10 @@ def ensure_updated_deployment(runtime, record, artifact) -> str:
             and current.get("engine") == record.engine
             and current.get("replicas") == record.replicas
             and (current.get("resources") or {}).get("gpu") == record.gpu
+            # A newly promoted stable version must release the canary:
+            # just matching model weights does not mean cleanup succeeded.
+            and (record.canary_artifact_id is not None
+                 or current.get("canary") is None)
         )
     if matches(existing):
         return "adopted"
