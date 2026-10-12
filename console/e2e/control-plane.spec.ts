@@ -34,9 +34,17 @@ test("authenticates and registers real metadata; refuses disconnected Kubernetes
   await expect(page.getByText("support-dataset")).toBeVisible();
 
   await page.getByRole("link", { name: "Training jobs" }).click();
+  await expect(page.getByText("No training jobs.")).toBeVisible();
   await page.getByRole("button", { name: "New training job" }).click();
+  // Model/dataset choices arrive from real asynchronous API calls. Do not
+  // click submit while the browser has an invalid empty select.
+  await expect(page.locator('select[name="artifact_id"]')).not.toHaveValue("");
+  await expect(page.locator('select[name="dataset_id"]')).not.toHaveValue("");
   await page.getByLabel("Job name").fill("offline-lora");
   await page.getByLabel("Output model name").fill("offline-adapter");
+  await expect.poll(async () =>
+    page.locator("form.create-form").evaluate(form => (form as HTMLFormElement).checkValidity())
+  ).toBe(true);
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page.locator(".message.error[role='alert']")).toContainText("Runtime not connected");
   await page.getByRole("button", { name: "Close form" }).click();
