@@ -57,6 +57,17 @@ class ScaleIn(BaseModel):
     expected_generation: int = Field(ge=1)
 
 
+class CanaryReleaseIn(BaseModel):
+    artifact_id: str
+    approval_id: str = Field(min_length=1, max_length=100)
+    weight: int = Field(ge=0, le=100)
+    expected_generation: int = Field(ge=1)
+
+
+class CanaryStopIn(BaseModel):
+    expected_generation: int = Field(ge=1)
+
+
 class ReleaseIn(BaseModel):
     artifact_id: str
     expected_generation: int = Field(ge=1)

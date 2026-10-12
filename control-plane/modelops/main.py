@@ -22,7 +22,8 @@ from .evidence import EvidenceError, digest_report, verify_report
 from .runtime import (DisabledRuntime, KubernetesRuntime, RuntimeFailure,
                       RuntimeUnavailable, namespace_for)
 from .schemas import (ApprovalIn, ArtifactIn, DatasetIn, DeploymentIn,
-                      EvaluationIn, FineTuneIn, ReleaseIn, ScaleIn)
+                      EvaluationIn, FineTuneIn, ReleaseIn, ScaleIn,
+                      CanaryReleaseIn, CanaryStopIn)
 
 
 def render(obj, *fields) -> dict:
@@ -111,6 +112,8 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
                 phase = "Reconciling"
         return {**data, "observed_phase": phase,
                 "ready_replicas": status.get("readyReplicas", 0),
+                "canary_status": status.get("canary"),
+                "canary_spec": observed.get("spec", {}).get("canary"),
                 "runtime_verified": actual_generation is None or phase == "Ready"}
     except RuntimeFailure:
         return {**data, "observed_phase": "RuntimeUnreachable",
@@ -340,6 +343,59 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         commit(db)
         return {"id": row.id, "artifact_id": row.artifact_id,
                 "approver": row.approver, "reason": row.reason}
+
+    @app.post("/api/v1/deployments/{key}/canary")
+    def start_canary(key: str, req: CanaryReleaseIn,
+                     p: Principal = Depends(require_principal),
+                     db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, Deployment, p.tenant, key)
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, req.artifact_id)
+        approval = fetch_owned(db, ReleaseApproval, p.tenant, req.approval_id)
+        if approval.artifact_id != artifact.id:
+            raise HTTPException(409, detail="Canary candidate lacks independent release approval")
+        if row.generation != req.expected_generation or row.intent == "deleted":
+            raise HTTPException(409, detail="Stale generation/deleted deployment")
+        stable = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        if artifact.id == stable.id or artifact.family != stable.family:
+            raise HTTPException(422, detail="Candidate must be a distinct same-family model")
+        if artifact.family not in ("llm", "embedding"):
+            raise HTTPException(422, detail="Canary engine is not supported for this model family")
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; canary was not started")
+        app.state.runtime.patch_canary(row, artifact, req.weight)
+        row.generation += 1
+        row.intent = "canary"
+        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
+                                  artifact_id=artifact.id, operation="canary",
+                                  requested_by=p.subject))
+        audit(db, p, "deployment.canary", "deployment", row.id, {
+            "candidate": artifact.id, "approval_id": approval.id,
+            "weight": req.weight, "generation": row.generation,
+        })
+        commit(db)
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+
+    @app.post("/api/v1/deployments/{key}/canary/stop")
+    def stop_canary(key: str, req: CanaryStopIn,
+                    p: Principal = Depends(require_principal),
+                    db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, Deployment, p.tenant, key)
+        if row.generation != req.expected_generation or row.intent == "deleted":
+            raise HTTPException(409, detail="Stale generation/deleted deployment")
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; canary was not removed")
+        app.state.runtime.patch_canary(row, None, 0)
+        row.generation += 1
+        row.intent = "canary_stopping"
+        audit(db, p, "deployment.canary.stop", "deployment", row.id,
+              {"generation": row.generation})
+        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
+                                  artifact_id=row.artifact_id, operation="canary_stop",
+                                  requested_by=p.subject))
+        commit(db)
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
 
     @app.post("/api/v1/deployments/{key}/promote")
     def promote(key: str, req: ReleaseIn, p: Principal = Depends(require_principal),
