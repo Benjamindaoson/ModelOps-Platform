@@ -1,0 +1,51 @@
+# PRODUCTION CONTRACT: intentionally not installable until supplied with real
+# immutable OCI digests, external credentials, TLS, OIDC and tenant bootstrap.
+api:
+  replicas: 2
+  image:
+    repository: ""
+    digest: ""
+  resources:
+    requests: {cpu: 200m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  # Only explicitly provisioned PostgreSQL/Kubernetes API/HTTPS endpoints.
+  egressCidrs: []
+console:
+  replicas: 2
+  image:
+    repository: ""
+    digest: ""
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  # HTTPS IdP endpoints reachable from the Console Pod.
+  egressCidrs: []
+oidc:
+  issuer: ""
+  jwksUrl: ""
+  audience: ""
+  clientId: ""
+  # Must equal https://<ingress.host>. No HTTP in production.
+  publicOrigin: ""
+secrets:
+  database:
+    name: ""
+    key: database-url
+  attestation:
+    name: ""
+    key: attestation-key
+  # Optional confidential OIDC client. Empty for public PKCE.
+  oidcClient:
+    name: ""
+    key: client-secret
+ingress:
+  className: nginx
+  host: ""
+  tlsSecret: ""
+  # Namespace of the ingress controller (not its own namespace).
+  controllerNamespace: ingress-nginx
+tenants: [] # Existing modelops-<tenant> namespaces provisioned out of band.
+recovery:
+  schedule: "*/5 * * * *"
+networkPolicy:
+  enabled: true

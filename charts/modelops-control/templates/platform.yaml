@@ -1,0 +1,214 @@
+{{- include "modelops.validate" . }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: modelops-control-api
+  namespace: {{ .Release.Namespace }}
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: modelops-control-console
+  namespace: {{ .Release.Namespace }}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modelops-control-api
+  namespace: {{ .Release.Namespace }}
+  labels: {app.kubernetes.io/name: modelops-control-api}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app.kubernetes.io/name: modelops-control-api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: modelops-control-api}
+    spec:
+      serviceAccountName: modelops-control-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: control-api
+          image: "{{ .Values.api.image.repository }}@{{ .Values.api.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: MODELOPS_ENV, value: production}
+            - {name: MODELOPS_RUNTIME, value: kubernetes}
+            - {name: MODELOPS_AUTH_MODE, value: oidc}
+            - {name: MODELOPS_OIDC_ISSUER, value: {{ .Values.oidc.issuer | quote }}}
+            - {name: MODELOPS_OIDC_AUDIENCE, value: {{ .Values.oidc.audience | quote }}}
+            - {name: MODELOPS_OIDC_JWKS_URL, value: {{ .Values.oidc.jwksUrl | quote }}}
+            - name: MODELOPS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.database.name }}
+                  key: {{ .Values.secrets.database.key }}
+            - name: MODELOPS_ATTESTATION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.attestation.name }}
+                  key: {{ .Values.secrets.attestation.key }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modelops-control-api
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector: {app.kubernetes.io/name: modelops-control-api}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modelops-control-console
+  namespace: {{ .Release.Namespace }}
+  labels: {app.kubernetes.io/name: modelops-control-console}
+spec:
+  replicas: {{ .Values.console.replicas }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app.kubernetes.io/name: modelops-control-console}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: modelops-control-console}
+    spec:
+      serviceAccountName: modelops-control-console
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: console
+          image: "{{ .Values.console.image.repository }}@{{ .Values.console.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - {name: NODE_ENV, value: production}
+            - {name: MODELOPS_ENV, value: production}
+            - {name: MODELOPS_CONSOLE_AUTH, value: oidc}
+            - {name: MODELOPS_API_URL, value: "http://modelops-control-api:8080"}
+            - {name: MODELOPS_OIDC_ISSUER, value: {{ .Values.oidc.issuer | quote }}}
+            - {name: MODELOPS_OIDC_CLIENT_ID, value: {{ .Values.oidc.clientId | quote }}}
+            - {name: MODELOPS_PUBLIC_ORIGIN, value: {{ .Values.oidc.publicOrigin | quote }}}
+            {{- if .Values.secrets.oidcClient.name }}
+            - name: MODELOPS_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.oidcClient.name }}
+                  key: {{ .Values.secrets.oidcClient.key }}
+            {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: next-cache, mountPath: /app/.next/cache}
+          livenessProbe:
+            httpGet: {path: /api/auth/config, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: {path: /api/auth/config, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.console.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 128Mi}
+        - name: next-cache
+          emptyDir: {sizeLimit: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modelops-control-console
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector: {app.kubernetes.io/name: modelops-control-console}
+  ports: [{name: http, port: 3000, targetPort: http}]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: modelops-control-api
+  namespace: {{ .Release.Namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: modelops-control-api}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: modelops-control-console
+  namespace: {{ .Release.Namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: modelops-control-console}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: modelops-control-console
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "512k"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tlsSecret }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: modelops-control-console
+                port: {name: http}
