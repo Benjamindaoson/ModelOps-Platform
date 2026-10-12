@@ -104,6 +104,9 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
     satisfy a production release gate. These checks are read-only and do not
     claim anything about quality, throughput or real GPU performance.
     """
+    if dep.intent in ("deleting", "deleted"):
+        return {**data, "observed_phase": "Deleting" if dep.intent == "deleting" else "Deleted",
+                "ready_replicas": None, "runtime_verified": False}
     if not runtime.connected:
         return {**data, "observed_phase": "RuntimeDisconnected", "ready_replicas": None,
                 "runtime_verified": False}
@@ -143,7 +146,7 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
             and fresh("Ready")
             and fresh("GatewayReady")
             and dep.intent not in ("submitting", "updating", "rolling_back",
-                                   "runtime_unknown", "deleted")
+                                   "runtime_unknown", "deleting", "deleted")
         )
         if not identity_ok:
             phase = "ConfigurationDrift"
@@ -352,7 +355,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                            db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.intent not in ("submitting", "updating", "runtime_unknown"):
+        if row.intent not in ("submitting", "updating", "deleting", "runtime_unknown"):
             raise HTTPException(409, detail="Only incomplete deployment mutations can be recovered")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; recovery could not be performed")
@@ -376,6 +379,8 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             commit(db)
             raise
         row.intent = ("deleted" if latest and latest.operation == "delete"
+                      and disposition == "already_deleted"
+                      else "deleting" if latest and latest.operation == "delete"
                       else "canary" if latest and latest.operation == "canary"
                       else "requested")
         audit(db, p, "deployment.recovered", "deployment", row.id,
@@ -603,8 +608,9 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                           db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.intent == "deleted":
-            return {"status": "deletion_requested", "id": row.id}
+        if row.intent in ("deleted", "deleting"):
+            return {"status": "deleted" if row.intent == "deleted" else "deletion_requested",
+                    "id": row.id}
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; deletion could not be verified")
         artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
@@ -618,8 +624,11 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             row.intent = "runtime_unknown"
             commit(db)
             raise
-        row.intent = "deleted"
-        audit(db, p, "deployment.delete.confirmed", "deployment", row.id,
+        # A successful DELETE request is not proof that finalizers finished.
+        # Keep polling on a separately scheduled recovery worker until the
+        # Kubernetes API returns an authoritative NotFound.
+        row.intent = "deleted" if outcome == "already_deleted" else "deleting"
+        audit(db, p, "deployment.delete.acknowledged", "deployment", row.id,
               {"outcome": outcome, "generation": row.generation})
         commit(db)
         return {"status": "deletion_requested", "id": row.id}

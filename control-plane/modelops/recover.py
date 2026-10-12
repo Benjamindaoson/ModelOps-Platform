@@ -21,7 +21,8 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
         raise ValueError("Recovery tenant must be a validated lower-case namespace slug")
     if max_items < 1 or max_items > 500:
         raise ValueError("Recovery batch limit must be in 1..500")
-    summary = {"tenant": tenant, "recovered": 0, "still_unknown": 0, "examined": 0}
+    summary = {"tenant": tenant, "recovered": 0, "still_unknown": 0,
+               "pending_deletions": 0, "examined": 0}
     # The intent record is durable and has immutable resource name/inputs.
     # A failed Kubernetes response is not proof that the CREATE did not occur.
     with sessions() as db:
@@ -34,7 +35,7 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
         deployments = list(db.scalars(
             select(Deployment).where(
                 Deployment.tenant == tenant,
-                Deployment.intent.in_(("submitting", "updating", "runtime_unknown")))
+                Deployment.intent.in_(("submitting", "updating", "deleting", "runtime_unknown")))
             .order_by(Deployment.created_at).limit(left)).all())
         for kind, record in ([("training", job) for job in jobs] +
                              [("deployment", item) for item in deployments]):
@@ -62,11 +63,21 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
                         latest.operation if latest else "create",
                         candidate=candidate,
                     )
-                record.intent = (
-                    "deleted" if kind == "deployment" and latest and latest.operation == "delete"
+                pending_delete = (
+                    kind == "deployment" and latest is not None and
+                    latest.operation == "delete" and outcome != "already_deleted"
+                )
+                new_intent = (
+                    "deleting" if pending_delete
+                    else "deleted" if kind == "deployment" and latest and latest.operation == "delete"
                     else "canary" if kind == "deployment" and latest and latest.operation == "canary"
                     else "requested"
                 )
+                if pending_delete and record.intent == "deleting":
+                    # Don't create a new audit event for every polling interval.
+                    summary["pending_deletions"] += 1
+                    continue
+                record.intent = new_intent
                 db.add(AuditEvent(
                     tenant=tenant, actor="system:recovery-worker",
                     action=kind + ".recovered", object_kind=kind,
@@ -74,7 +85,10 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
                     detail='{"outcome":"' + outcome + '"}',
                 ))
                 db.commit()
-                summary["recovered"] += 1
+                if pending_delete:
+                    summary["pending_deletions"] += 1
+                else:
+                    summary["recovered"] += 1
             except RuntimeFailure:
                 # Avoid a flood of identical audit entries on every retry.
                 if record.intent != "runtime_unknown":
@@ -100,7 +114,7 @@ def main() -> int:
         runtime = KubernetesRuntime(os.environ.get("MODELOPS_K8S_CONTEXT", ""))
         result = recover_once(sessions, runtime, tenant)
         print("ModelOps reconciliation:", {k: v for k, v in result.items() if k != "tenant"})
-        return 0 if result["still_unknown"] == 0 else 1
+        return 0 if result["still_unknown"] == 0 and result["pending_deletions"] == 0 else 1
     finally:
         engine.dispose()
 

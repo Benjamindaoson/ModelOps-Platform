@@ -123,5 +123,8 @@ def test_real_api_kubernetes_operator_lifecycle(tmp_path):
             "llmops.kubellmops.io", "v1alpha1", namespace, "modeldeployments"
         ).get("items", [])
     ))
-    assert api.get("/api/v1/deployments/" + deployment_id,
-                   headers=auth).json()["intent"] == "deleted"
+    # A DELETE HTTP 200 only requests finalizer cleanup. After actual
+    # Kubernetes disappearance, the reconciliation API certifies completion.
+    final = api.post("/api/v1/deployments/" + deployment_id + "/recover", headers=auth)
+    assert final.status_code == 200, final.text
+    assert final.json()["intent"] == "deleted"
