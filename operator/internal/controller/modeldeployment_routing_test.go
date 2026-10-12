@@ -17,7 +17,7 @@ func TestCanaryUsesSamePublicGroupForWeightedTraffic(t *testing.T){
  if routes[0].ModelName!="tenant-a--qwen" || *routes[0].LiteLLMParams.Weight!=100 {
   t.Fatalf("public model group is not tenant-safe: %+v",routes)
  }
- md.Spec.Canary=&v1alpha1.CanaryConfig{Source:"Qwen/new-version",Weight:20}
+ md.Spec.Canary=&v1alpha1.CanaryConfig{Source:"Qwen/new-version",Revision:"a1234567890123456789012345678901234567890",Digest:"b"+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",Weight:20}
  md.Status.Canary=&v1alpha1.CanaryStatus{Phase:"Pending",Endpoint:"http://canary:8000"}
  routes,err=desiredGatewayRoutes(md)
  if err!=nil || len(routes)!=1 {t.Fatal("pending candidate must receive no production traffic")}

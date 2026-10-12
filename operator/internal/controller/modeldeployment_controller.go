@@ -187,6 +187,11 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if err := r.reconcileCanary(ctx, md, resolvedEngine, platform); err != nil {
 			return ctrl.Result{}, err
 		}
+	} else {
+		if err := r.cleanupCanary(ctx, md); err != nil {
+			return ctrl.Result{}, err
+		}
+		md.Status.Canary = nil
 	}
 
 	// 11. Handle AutoScaling
@@ -291,6 +296,34 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 		Phase:         getCanaryPhase(canaryDep),
 		Endpoint:      fmt.Sprintf("http://%s-canary.%s.svc.cluster.local:%d", md.Name, md.Namespace, port),
 		ReadyReplicas: canaryDep.Status.ReadyReplicas,
+	}
+	return nil
+}
+
+// Turning Canary off must reclaim its GPU Deployment, Service, PDB and PVC,
+// not just remove a LiteLLM route. Only objects owned by this ModelDeployment
+// are eligible for deletion, preserving other tenants' resources.
+func (r *ModelDeploymentReconciler) cleanupCanary(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	name:=md.Name+"-canary"
+	objects:=[]struct {
+		obj client.Object
+		name string
+	}{
+		{obj:&appsv1.Deployment{},name:name},
+		{obj:&corev1.Service{},name:name},
+		{obj:&policyv1.PodDisruptionBudget{},name:name},
+		{obj:&corev1.PersistentVolumeClaim{},name:name+"-cache"},
+	}
+	for _,item:=range objects {
+		key:=types.NamespacedName{Name:item.name,Namespace:md.Namespace}
+		if err:=r.Get(ctx,key,item.obj);err!=nil {
+			if apierrors.IsNotFound(err){continue}
+			return err
+		}
+		if !metav1.IsControlledBy(item.obj,md) {
+			return fmt.Errorf("refusing to delete unmanaged Canary resource %s/%s",md.Namespace,item.name)
+		}
+		if err:=client.IgnoreNotFound(r.Delete(ctx,item.obj));err!=nil{return err}
 	}
 	return nil
 }
@@ -487,7 +520,7 @@ func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.
 	existing := &policyv1.PodDisruptionBudget{}
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = controllerutil.SetControllerReference(md, pdb, r.Scheme)
+			if err:=controllerutil.SetControllerReference(md,pdb,r.Scheme);err!=nil {return err}
 			return r.Create(ctx, pdb)
 		}
 		return err
