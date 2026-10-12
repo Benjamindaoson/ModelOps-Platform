@@ -26,13 +26,13 @@ jobs:
       - name: Smoke real container API without Kubernetes
         run: |
           set -euo pipefail
-          docker run --rm -d --name modelops-control-api-smoke \
+          docker run -d --name modelops-control-api-smoke \
             -p 127.0.0.1:18080:8080 \
             -e MODELOPS_ENV=development \
             -e MODELOPS_AUTH_MODE=dev \
             -e MODELOPS_JWT_SECRET=only-for-ci-container-32-plus-characters \
             modelops/control-api:ci
-          trap 'docker logs modelops-control-api-smoke || true; docker stop modelops-control-api-smoke || true' EXIT
+          trap 'docker logs modelops-control-api-smoke || true; docker rm -f modelops-control-api-smoke || true' EXIT
           for i in $(seq 1 40); do
             if curl --max-time 2 -fsS http://127.0.0.1:18080/readyz | grep -q '"metadata_database":"ready"'; then
               echo "API container started, SQLite metadata ready (NOT a GPU/platform HA validation)."

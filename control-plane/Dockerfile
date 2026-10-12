@@ -8,7 +8,10 @@ COPY migrations/ ./migrations/
 COPY alembic.ini ./
 RUN pip install --no-cache-dir ".[postgres]" \
   && groupadd -r -g 10001 modelops \
-  && useradd -r -u 10001 -g modelops -d /srv/modelops modelops
+  && useradd -r -u 10001 -g modelops -d /srv/modelops modelops \
+  && mkdir -p /srv/modelops/data \
+  && chown 10001:10001 /srv/modelops/data
+ENV MODELOPS_DATABASE_URL=sqlite:////srv/modelops/data/modelops.db
 USER 10001
 EXPOSE 8080
 # Database migrations are a distinct privileged job, not a startup side effect.
