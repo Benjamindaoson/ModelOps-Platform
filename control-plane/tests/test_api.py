@@ -27,6 +27,7 @@ class RecordingRuntime:
     def __init__(self):
         self.deployments = {}
         self.jobs = {}
+        self.canaries = {}
         self.last_workflow = None
         self.fail_next = False
 
@@ -40,10 +41,32 @@ class RecordingRuntime:
     def get_deployment(self, row):
         if (row.tenant, row.name) not in self.deployments:
             raise AssertionError("test runtime not populated")
-        return {"status": {"phase": "Ready", "readyReplicas": row.replicas}}
+        candidate = self.canaries.get((row.tenant,row.name))
+        return {
+            "status": {
+                "phase": "Ready", "readyReplicas": row.replicas,
+                "canary": {"phase": "Pending", "readyReplicas": 0} if candidate else None,
+            },
+            "spec": {"canary": candidate},
+        }
 
     def patch_deployment(self, row, artifact):
         self.deployments[(row.tenant, row.name)] = deployment_body(row, artifact)
+
+    def patch_canary(self, row, candidate, weight):
+        if self.fail_next:
+            self.fail_next = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Simulated Kubernetes canary patch failure")
+        if (row.tenant,row.name) not in self.deployments:
+            raise AssertionError("Cannot patch a missing Kubernetes model")
+        if candidate is None:
+            self.canaries.pop((row.tenant,row.name),None)
+        else:
+            self.canaries[(row.tenant,row.name)] = {
+                "source":candidate.source,"revision":candidate.revision,
+                "digest":candidate.digest,"weight":weight,
+            }
 
     def delete_deployment(self, row):
         self.deployments.pop((row.tenant, row.name), None)
@@ -239,3 +262,94 @@ def test_configuration_fails_closed():
         Settings(auth_mode="dev", environment="production", jwt_secret="x" * 40).validate()
     with pytest.raises(ValueError):
         Settings(auth_mode="oidc", environment="production", runtime="kubernetes").validate()
+
+
+def _issue_approved_candidate(client, dataset):
+    candidate_payload = model_payload(name="candidate",version=2)
+    candidate_payload["revision"] = "c"*40
+    candidate_payload["digest"] = "d"*64
+    candidate = client.post("/api/v1/models", json=candidate_payload, headers=headers()).json()
+    report = {
+        "schema":"modelops.heldout.v1","proof_type":"real_checkpoint_holdout",
+        "num_samples":20,"train_overlap_count":0,"generation_success_rate":1.0,
+        "artifact_sha256":candidate["digest"],"heldout_sha256":dataset["digest"],
+        "metrics":{"base_token_f1":0.6,"candidate_token_f1":0.8,"delta_token_f1":0.2},
+    }
+    signature = hmac.new(os.environ["MODELOPS_ATTESTATION_KEY"].encode(),
+                         digest_report(report).encode(), hashlib.sha256).hexdigest()
+    ev = client.post("/api/v1/evaluations/attest",json={
+        "artifact_id":candidate["id"],"dataset_id":dataset["id"],"report":report,
+    },headers={**headers(sub="evaluator"),
+              "X-ModelOps-Attestation":signature})
+    assert ev.status_code == 201,ev.text
+    approval = client.post("/api/v1/approvals",json={
+        "artifact_id":candidate["id"],"evaluation_id":ev.json()["id"],
+        "reason":"Independent validated model release candidate",
+    },headers=headers(sub="security-reviewer"))
+    assert approval.status_code == 201,approval.text
+    return candidate,approval.json()
+
+
+def test_canary_requires_independently_approved_new_version(api):
+    client, runtime = api
+    stable, dataset = register(client)
+    deployment = client.post("/api/v1/deployments",json={
+        "name":"prod","artifact_id":stable["id"],"engine":"vllm",
+        "replicas":1,"gpu":1,
+    },headers=headers()).json()
+    path="/api/v1/deployments/"+deployment["id"]+"/canary"
+
+    # No approval and no previous successful model evaluation => no route changes.
+    without = client.post(path,json={
+        "artifact_id":stable["id"],"approval_id":"not-approved",
+        "weight":20,"expected_generation":1,
+    },headers=headers())
+    assert without.status_code==404
+    assert runtime.canaries=={}
+
+    candidate,approval=_issue_approved_candidate(client,dataset)
+    payload={"artifact_id":candidate["id"],"approval_id":approval["id"],
+             "weight":20,"expected_generation":1}
+    response=client.post(path,json=payload,headers=headers())
+    assert response.status_code==200,response.text
+    row=response.json()
+    assert row["generation"]==2
+    assert row["canary_spec"]["revision"]==candidate["revision"]
+    assert row["canary_spec"]["digest"]==candidate["digest"]
+    assert row["canary_spec"]["weight"]==20
+    # Runtime has not run the candidate model in the fake test; never advertise
+    # the candidate Ready. Actual Operator E2E is a separate gate.
+    assert row["canary_status"]["phase"]=="Pending"
+
+    stale=client.post(path,json=payload,headers=headers())
+    assert stale.status_code==409
+    assert client.post(path,json={**payload,"weight":101,"expected_generation":2},
+                       headers=headers()).status_code==422
+    assert client.post(path,json={**payload,"expected_generation":2},
+                       headers=headers("other-tenant")).status_code==404
+
+    stopped=client.post(path+"/stop",json={"expected_generation":2},headers=headers())
+    assert stopped.status_code==200,stopped.text
+    assert stopped.json()["generation"]==3
+    assert stopped.json()["canary_spec"] is None
+    operations=client.get("/api/v1/deployments/"+deployment["id"]+"/revisions",
+                          headers=headers()).json()
+    assert [x["operation"] for x in operations[:3]]==["canary_stop","canary","create"]
+
+
+def test_canary_cluster_error_must_not_report_success(api):
+    client,runtime=api
+    stable,data=register(client)
+    candidate,approval=_issue_approved_candidate(client,data)
+    deployment=client.post("/api/v1/deployments",json={
+        "name":"prod","artifact_id":stable["id"],"engine":"vllm"},headers=headers()).json()
+    runtime.fail_next=True
+    result=client.post("/api/v1/deployments/"+deployment["id"]+"/canary",json={
+        "artifact_id":candidate["id"],"approval_id":approval["id"],
+        "weight":20,"expected_generation":1,
+    },headers=headers())
+    assert result.status_code==502
+    assert runtime.canaries=={}
+    records=client.get("/api/v1/deployments/"+deployment["id"]+"/revisions",
+                       headers=headers()).json()
+    assert len(records)==1

@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - "charts/**"
+      - "operator/**"
       - "ops/**"
       - ".github/workflows/modelops-kind-e2e.yml"
   workflow_dispatch: {}
@@ -127,4 +128,52 @@ jobs:
           done
           kubectl get all
           kubectl logs deployment/modelops-op-operator --tail=200
+          exit 1
+      - name: Verify Canary model-loader and safe cleanup in real Kubernetes
+        run: |
+          set -euo pipefail
+          REVISION=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          DIGEST=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          kubectl patch modeldeployment modelops-controller-e2e --type=merge -p \
+            "{\"spec\":{\"canary\":{\"source\":\"Qwen/Qwen2.5-0.5B-Instruct\",\"revision\":\"$REVISION\",\"digest\":\"$DIGEST\",\"weight\":20,\"resources\":{\"gpu\":1,\"cpu\":\"1\",\"memory\":\"4Gi\"}}}}"
+          for i in $(seq 1 45); do
+            if kubectl get deployment modelops-controller-e2e-canary >/dev/null 2>&1 &&
+               kubectl get service modelops-controller-e2e-canary >/dev/null 2>&1 &&
+               kubectl get pvc modelops-controller-e2e-canary-cache >/dev/null 2>&1; then
+              break
+            fi
+            sleep 4
+          done
+          kubectl get deployment modelops-controller-e2e-canary
+          kubectl get service modelops-controller-e2e-canary
+          kubectl get pvc modelops-controller-e2e-canary-cache
+          # The candidate model Pod cannot be Ready without GPU and an
+          # independently signed real model artifact. Its Init Container
+          # must still be pinned to the correct source and checksum.
+          IMAGE=$(kubectl get deployment modelops-controller-e2e-canary \
+            -o jsonpath='{.spec.template.spec.initContainers[0].image}')
+          test "$IMAGE" = "ghcr.io/benjamindaoson/modelops-model-loader:v0.1.0"
+          GOT_REV=$(kubectl get deployment modelops-controller-e2e-canary \
+            -o jsonpath='{.spec.template.spec.initContainers[0].env[?(@.name=="MODEL_REVISION")].value}')
+          test "$GOT_REV" = "$REVISION"
+          GOT_HASH=$(kubectl get deployment modelops-controller-e2e-canary \
+            -o jsonpath='{.spec.template.spec.initContainers[0].env[?(@.name=="MODEL_ARTIFACT_SHA256")].value}')
+          test "$GOT_HASH" = "$DIGEST"
+          echo "Canary deployment has a real pinned model-loader; no real GPU serving claim."
+
+          # Removing Canary must delete its owned K8s resources to avoid GPU
+          # and PV leaks, not just disable a LiteLLM route.
+          kubectl patch modeldeployment modelops-controller-e2e --type=merge \
+            -p '{"spec":{"canary":null}}'
+          for i in $(seq 1 45); do
+            if ! kubectl get deployment modelops-controller-e2e-canary >/dev/null 2>&1 &&
+               ! kubectl get service modelops-controller-e2e-canary >/dev/null 2>&1 &&
+               ! kubectl get pvc modelops-controller-e2e-canary-cache >/dev/null 2>&1; then
+              echo "Canary resources fully cleaned up by Operator."
+              exit 0
+            fi
+            sleep 4
+          done
+          kubectl get pods,deploy,pvc,svc,pdb
+          kubectl logs deployment/modelops-op-operator --tail=100
           exit 1

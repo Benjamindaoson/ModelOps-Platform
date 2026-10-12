@@ -99,6 +99,7 @@ function Deployments({ rows, act, busy, artifacts, approvals }: {
   const [revisions, setRevisions] = useState<{ id: string; generation: number; artifact_id: string; operation: string; created_at: string }[]>([]);
   const [releaseModel, setReleaseModel] = useState("");
   const [releaseApproval, setReleaseApproval] = useState("");
+  const [canaryWeight, setCanaryWeight] = useState(20);
   const [historyError, setHistoryError] = useState("");
   const current = selected ? rows.find(x => x.id === selected.id) || selected : null;
 
@@ -174,6 +175,40 @@ function Deployments({ rows, act, busy, artifacts, approvals }: {
               } }}>Rollback</button>
           </div>
           <p className="form-hint">A release is requested, not marked Ready, until Kubernetes observes the new generation.</p>
+          <h3 style={{marginTop: 22}}>Weighted canary rollout</h3>
+          {current.canary_spec ? <div className="health-row">
+            <span>Candidate: {current.canary_spec.source} · {current.canary_spec.weight}% target</span>
+            <Status tone={current.canary_status?.phase==="Ready" ? "good" : "warning"}>
+              {current.canary_status?.phase || "PENDING"}
+            </Status>
+          </div> : <p className="form-hint">No active Canary candidate. A separate approved version is required.</p>}
+          <label className="field">Candidate traffic percentage (0 to 100)
+            <input type="number" min={0} max={100} step={1}
+              value={canaryWeight} onChange={e => setCanaryWeight(Number(e.target.value))}/>
+          </label>
+          <div className="row-actions release-actions">
+            <button className="primary-button"
+              disabled={!releaseModel || !releaseApproval || busy || !Number.isInteger(canaryWeight)
+                || canaryWeight<0 || canaryWeight>100}
+              onClick={() => void act("deployments/"+current.id+"/canary",{
+                artifact_id:releaseModel,approval_id:releaseApproval,
+                weight:canaryWeight,expected_generation:current.generation,
+              }).then(() => setSelected(null)).catch(() => {})}>
+              Start / update canary
+            </button>
+            <button className="secondary-button"
+              disabled={!current.canary_spec || busy}
+              onClick={() => {if(window.confirm("Stop canary traffic and delete candidate serving resources?")) {
+                void act("deployments/"+current.id+"/canary/stop",{
+                  expected_generation:current.generation,
+                }).then(()=>setSelected(null)).catch(()=>{});
+              }}}>Stop canary</button>
+          </div>
+          <p className="form-hint">
+            Stable and candidate share one public LiteLLM group; this UI displays the requested
+            weight, not measured traffic. The candidate cannot receive traffic until real
+            serving Pods are Ready and the Gateway accepts the routing configuration.
+          </p>
         </div>
       </div>
     </div>}

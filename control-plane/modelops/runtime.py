@@ -84,6 +84,7 @@ class DisabledRuntime:
         raise RuntimeUnavailable("Kubernetes runtime is disconnected; no fake deployment was created")
     create_deployment = _deny
     patch_deployment = _deny
+    patch_canary = _deny
     get_deployment = _deny
     delete_deployment = _deny
     submit_finetune = _deny
@@ -126,6 +127,20 @@ class KubernetesRuntime:
                          }},
                           "spec": {"source": artifact.source, "replicas": dep.replicas,
                                    "engineArgs": None}})
+
+    def patch_canary(self, dep, candidate, weight: int):
+        if not 0 <= weight <= 100:
+            raise ValueError("Canary weight must be in 0..100")
+        spec = {"canary": None if candidate is None else {
+            "source": candidate.source,
+            "revision": candidate.revision,
+            "digest": candidate.digest,
+            "weight": weight,
+            "resources": {"gpu": dep.gpu, "cpu": "4", "memory": "16Gi"},
+        }}
+        return self._run(self.objects.patch_namespaced_custom_object,
+                         GROUP, VERSION, namespace_for(dep.tenant),
+                         "modeldeployments", dep.name, {"spec": spec})
 
     def get_deployment(self, dep):
         return self._run(self.objects.get_namespaced_custom_object, GROUP, VERSION,

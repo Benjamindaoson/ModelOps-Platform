@@ -84,11 +84,13 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// 2. Handle deletion
 	if !md.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(md, modelDeploymentFinalizer) {
-			if r.GatewayClient != nil {
-				if err := r.GatewayClient.DeregisterModel(ctx, md.Name); err != nil { return ctrl.Result{}, err }
-				if md.Spec.Canary != nil {
-					if err := r.GatewayClient.DeregisterModel(ctx, md.Name+"-canary"); err != nil { return ctrl.Result{}, err }
-				}
+			if r.GatewayClient == nil {
+				return ctrl.Result{}, fmt.Errorf("cannot clear LiteLLM group during deletion: Gateway missing")
+			}
+			router,ok:=r.GatewayClient.(gateway.RouteManager)
+			if !ok {return ctrl.Result{}, fmt.Errorf("gateway does not support safe managed route deletion")}
+			if err:=router.DeleteModelGroup(ctx,gatewayPublicGroup(md));err!=nil {
+				return ctrl.Result{},fmt.Errorf("delete owned LiteLLM deployments before finalizer: %w",err)
 			}
 			controllerutil.RemoveFinalizer(md, modelDeploymentFinalizer)
 			if err := r.Update(ctx, md); err != nil { return ctrl.Result{}, err }
@@ -185,6 +187,11 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if err := r.reconcileCanary(ctx, md, resolvedEngine, platform); err != nil {
 			return ctrl.Result{}, err
 		}
+	} else {
+		if err := r.cleanupCanary(ctx, md); err != nil {
+			return ctrl.Result{}, err
+		}
+		md.Status.Canary = nil
 	}
 
 	// 11. Handle AutoScaling
@@ -200,17 +207,15 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// 13. Register with gateway
 	if md.Status.Phase == "Ready" {
 		if r.GatewayClient == nil { return r.setGatewayDegraded(ctx, req, "GatewayNotConfigured") }
-		if gatewayConditionUpToDate(md) {
-			if err := r.GatewayClient.HealthCheck(ctx); err != nil {
-				log.Error(err, "Gateway health check failed")
-				return r.setGatewayDegraded(ctx, req, "GatewayHealthFailed")
-			}
-		} else {
-			if err := r.registerWithGateway(ctx, md, resolvedEngine); err != nil {
-				log.Error(err, "serving replicas ready but Gateway registration failed")
-				return r.setGatewayDegraded(ctx, req, "GatewayRegistrationFailed")
-			}
-			if err := r.setGatewayReady(ctx, req); err != nil { return ctrl.Result{}, err }
+		// Reconcile the actual LiteLLM deployment IDs every interval. A
+		// Kubernetes generation check alone would miss a canary that becomes
+		// Ready after its CRD generation has already been registered.
+		if err:=r.registerWithGateway(ctx,md,resolvedEngine);err!=nil {
+			log.Error(err,"managed public model route failed to converge")
+			return r.setGatewayDegraded(ctx,req,"GatewayRegistrationFailed")
+		}
+		if !gatewayConditionUpToDate(md) {
+			if err:=r.setGatewayReady(ctx,req);err!=nil{return ctrl.Result{},err}
 		}
 	}
 	return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
@@ -220,6 +225,9 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1alpha1.ModelDeployment, eng string, platform *v1alpha1.LLMPlatform) error {
 	log := logf.FromContext(ctx)
 	canary := md.Spec.Canary
+	if canary == nil || len(canary.Revision)<7 || len(canary.Digest)!=64 {
+		return fmt.Errorf("candidate requires pinned revision and 64-character artifact digest")
+	}
 	canarySlug := builder.CanarySlug(canary.Source)
 
 	// Canary PVC
@@ -237,7 +245,13 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 
 	// Canary Deployment
 	canaryMD := &v1alpha1.ModelDeployment{
-		ObjectMeta: metav1.ObjectMeta{Name: md.Name + "-canary", Namespace: md.Namespace},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: md.Name + "-canary", Namespace: md.Namespace,
+			Annotations: map[string]string{
+				"modelops.io/artifact-revision": canary.Revision,
+				"modelops.io/artifact-sha256": canary.Digest,
+			},
+		},
 		Spec: v1alpha1.ModelDeploymentSpec{
 			Source: canary.Source, Engine: md.Spec.Engine,
 			Replicas: ptr.To(int32(1)), Resources: canary.Resources,
@@ -282,6 +296,34 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 		Phase:         getCanaryPhase(canaryDep),
 		Endpoint:      fmt.Sprintf("http://%s-canary.%s.svc.cluster.local:%d", md.Name, md.Namespace, port),
 		ReadyReplicas: canaryDep.Status.ReadyReplicas,
+	}
+	return nil
+}
+
+// Turning Canary off must reclaim its GPU Deployment, Service, PDB and PVC,
+// not just remove a LiteLLM route. Only objects owned by this ModelDeployment
+// are eligible for deletion, preserving other tenants' resources.
+func (r *ModelDeploymentReconciler) cleanupCanary(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	name:=md.Name+"-canary"
+	objects:=[]struct {
+		obj client.Object
+		name string
+	}{
+		{obj:&appsv1.Deployment{},name:name},
+		{obj:&corev1.Service{},name:name},
+		{obj:&policyv1.PodDisruptionBudget{},name:name},
+		{obj:&corev1.PersistentVolumeClaim{},name:name+"-cache"},
+	}
+	for _,item:=range objects {
+		key:=types.NamespacedName{Name:item.name,Namespace:md.Namespace}
+		if err:=r.Get(ctx,key,item.obj);err!=nil {
+			if apierrors.IsNotFound(err){continue}
+			return err
+		}
+		if !metav1.IsControlledBy(item.obj,md) {
+			return fmt.Errorf("refusing to delete unmanaged Canary resource %s/%s",md.Namespace,item.name)
+		}
+		if err:=client.IgnoreNotFound(r.Delete(ctx,item.obj));err!=nil{return err}
 	}
 	return nil
 }
@@ -478,7 +520,7 @@ func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.
 	existing := &policyv1.PodDisruptionBudget{}
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = controllerutil.SetControllerReference(md, pdb, r.Scheme)
+			if err:=controllerutil.SetControllerReference(md,pdb,r.Scheme);err!=nil {return err}
 			return r.Create(ctx, pdb)
 		}
 		return err
@@ -580,39 +622,53 @@ func (r *ModelDeploymentReconciler) getInitContainerStatus(ctx context.Context, 
 	return nil, nil
 }
 
+// A namespace-qualified public group prevents two tenants from accidentally
+// using a shared gateway routing alias even if their CRD names match.
+func gatewayPublicGroup(md *v1alpha1.ModelDeployment) string {
+	return md.Namespace+"--"+md.Name
+}
+
+// desiredGatewayRoutes uses *one* public name for all upstream versions; an
+// independent "-canary" public name never produces traffic splitting.
+func desiredGatewayRoutes(md *v1alpha1.ModelDeployment) ([]gateway.GatewayModel,error) {
+	public:=gatewayPublicGroup(md)
+	prefix:="openai/"
+	isEmbedding:=engine.ResolveModelType(md.Spec.Source)=="embedding" || engine.ResolveModelType(md.Spec.Source)=="reranker"
+	if isEmbedding {prefix="huggingface/"}
+	base:=md.Status.Endpoint
+	if !isEmbedding {base=strings.TrimSuffix(base,"/")+"/v1"} else {base=strings.TrimSuffix(base,"/v1")}
+	if base=="" {return nil,fmt.Errorf("stable endpoint not available")}
+	weight:=100
+	canaryWeight:=0
+	ready:=md.Spec.Canary!=nil && md.Status.Canary!=nil && md.Status.Canary.Phase=="Ready"
+	if ready {
+		canaryWeight=int(md.Spec.Canary.Weight)
+		if canaryWeight<0 || canaryWeight>100 {return nil,fmt.Errorf("canary weight out of range")}
+		weight=100-canaryWeight
+	}
+	routes:=make([]gateway.GatewayModel,0,2)
+	if weight>0 {
+		routes=append(routes,gateway.BuildOwnedRoute(public,md.Namespace,md.Name,
+			"stable",prefix+md.Name,base,weight))
+	}
+	if canaryWeight>0 {
+		canaryBase:=md.Status.Canary.Endpoint
+		if !isEmbedding {canaryBase=strings.TrimSuffix(canaryBase,"/")+"/v1"}
+		if canaryBase=="" {return nil,fmt.Errorf("ready canary endpoint missing")}
+		routes=append(routes,gateway.BuildOwnedRoute(public,md.Namespace,md.Name,
+			"canary",prefix+md.Name+"-canary",canaryBase,canaryWeight))
+	}
+	return routes,nil
+}
+
 func (r *ModelDeploymentReconciler) registerWithGateway(ctx context.Context, md *v1alpha1.ModelDeployment, eng string) error {
-	modelType := engine.ResolveModelType(md.Spec.Source)
-	prefix := "openai/"
-	apiBase := md.Status.Endpoint
-	if modelType == "embedding" || modelType == "reranker" {
-		prefix = "huggingface/"
-		apiBase = strings.TrimSuffix(apiBase, "/v1")
-	}
-
-	model := gateway.GatewayModel{
-		ModelName: md.Name,
-		LiteLLMParams: gateway.LiteLLMParams{
-			Model: prefix + md.Name, APIBase: apiBase,
-		},
-	}
-	if err := r.GatewayClient.RegisterModel(ctx, model); err != nil {
-		return fmt.Errorf("register model: %w", err)
-	}
-
-	if md.Spec.Canary != nil && md.Status.Canary != nil && md.Status.Canary.Phase == "Ready" && md.Spec.Canary.Weight > 0 {
-		canaryModel := gateway.GatewayModel{
-			ModelName: md.Name + "-canary",
-			LiteLLMParams: gateway.LiteLLMParams{
-				Model:   prefix + md.Name,
-				APIBase: md.Status.Canary.Endpoint,
-				Weight: ptr.To(int(md.Spec.Canary.Weight)),
-			},
-		}
-		if err := r.GatewayClient.RegisterModel(ctx, canaryModel); err != nil {
-			return fmt.Errorf("register canary: %w", err)
-		}
-	}
-	return nil
+	if r.GatewayClient==nil {return fmt.Errorf("gateway is not configured")}
+	router,ok:=r.GatewayClient.(gateway.RouteManager)
+	if !ok{return fmt.Errorf("gateway lacks managed weighted-route reconciliation")}
+	if err:=r.GatewayClient.HealthCheck(ctx);err!=nil{return err}
+	modelRoutes,err:=desiredGatewayRoutes(md)
+	if err!=nil{return err}
+	return router.ReconcileModelGroup(ctx,gatewayPublicGroup(md),modelRoutes)
 }
 
 // Never report a model Ready if the route through LiteLLM failed.
