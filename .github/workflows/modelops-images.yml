@@ -1,0 +1,102 @@
+name: ModelOps API and Console Images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+    paths:
+      - "control-plane/**"
+      - "console/**"
+      - ".github/workflows/modelops-images.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  api-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build complete API image
+        run: docker build -t modelops/control-api:ci control-plane
+      - name: Smoke real container API without Kubernetes
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name modelops-control-api-smoke \
+            -p 127.0.0.1:18080:8080 \
+            -e MODELOPS_ENV=development \
+            -e MODELOPS_AUTH_MODE=dev \
+            -e MODELOPS_JWT_SECRET=only-for-ci-container-32-plus-characters \
+            modelops/control-api:ci
+          trap 'docker logs modelops-control-api-smoke || true; docker stop modelops-control-api-smoke || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --max-time 2 -fsS http://127.0.0.1:18080/readyz | grep -q '"metadata_database":"ready"'; then
+              echo "API container started, SQLite metadata ready (NOT a GPU/platform HA validation)."
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - uses: docker/setup-buildx-action@v3
+        if: startsWith(github.ref, 'refs/tags/v')
+      - uses: docker/login-action@v3
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          context: control-plane
+          push: true
+          tags: ghcr.io/benjamindaoson/modelops-control-plane:\${{ github.ref_name }}
+          provenance: true
+          sbom: true
+
+  console-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build real production Next.js bundle
+        run: docker build -t modelops/console:ci console
+      - name: Verify production OIDC mode fails closed
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name modelops-console-smoke \
+            -p 127.0.0.1:13000:3000 \
+            -e MODELOPS_ENV=production \
+            -e MODELOPS_CONSOLE_AUTH=oidc \
+            -e MODELOPS_PUBLIC_ORIGIN=https://modelops.example.com \
+            -e MODELOPS_API_URL=http://127.0.0.1:8080 \
+            modelops/console:ci
+          trap 'docker logs modelops-console-smoke || true; docker stop modelops-console-smoke || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --max-time 2 -fsS http://127.0.0.1:13000/api/auth/config | grep -q '"mode":"oidc"'; then
+              echo "Production console container booted with OIDC mode (IdP connectivity not tested)."
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - uses: docker/setup-buildx-action@v3
+        if: startsWith(github.ref, 'refs/tags/v')
+      - uses: docker/login-action@v3
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          context: console
+          push: true
+          tags: ghcr.io/benjamindaoson/modelops-console:\${{ github.ref_name }}
+          provenance: true
+          sbom: true
