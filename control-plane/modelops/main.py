@@ -97,7 +97,7 @@ def require_role(principal: Principal, role: str):
     return principal
 
 
-def with_runtime_state(runtime, dep: Deployment, data: dict):
+def with_runtime_state(runtime, dep: Deployment, data: dict, db: Session):
     """Only current Operator+Gateway readiness is evidence of a usable service.
 
     A CRD with a stale Ready phase or missing observed generation must never
@@ -119,13 +119,35 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
         conditions = status.get("conditions") or []
         generation = metadata.get("generation")
         annotations = metadata.get("annotations") or {}
+        artifact = db.get(ModelArtifact, dep.artifact_id)
+        artifact_owned = artifact is not None and artifact.tenant == dep.tenant
+        candidate = (db.get(ModelArtifact, dep.canary_artifact_id)
+                     if dep.canary_artifact_id else None)
+        observed_canary = spec.get("canary")
+        if dep.canary_artifact_id is None:
+            canary_matches = observed_canary is None and dep.canary_weight is None
+        else:
+            canary_matches = bool(
+                candidate is not None and candidate.tenant == dep.tenant
+                and isinstance(observed_canary, dict)
+                and observed_canary.get("source") == candidate.source
+                and observed_canary.get("revision") == candidate.revision
+                and observed_canary.get("digest") == candidate.digest
+                and observed_canary.get("weight") == dep.canary_weight
+            )
         identity_ok = (
-            metadata.get("namespace") == namespace_for(dep.tenant)
+            artifact_owned
+            and metadata.get("namespace") == namespace_for(dep.tenant)
             and metadata.get("name") == dep.name
             and annotations.get("modelops.io/tenant") == dep.tenant
+            and annotations.get("modelops.io/artifact-id") == artifact.id
+            and annotations.get("modelops.io/artifact-revision") == artifact.revision
+            and annotations.get("modelops.io/artifact-sha256") == artifact.digest
+            and spec.get("source") == artifact.source
             and spec.get("engine") == dep.engine
             and spec.get("replicas") == dep.replicas
             and (spec.get("resources") or {}).get("gpu") == dep.gpu
+            and canary_matches
         )
         def fresh(condition_type: str) -> bool:
             return any(
@@ -145,6 +167,10 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
             and phase == "Ready"
             and fresh("Ready")
             and fresh("GatewayReady")
+            and (not dep.canary_weight or (
+                isinstance(status.get("canary"), dict)
+                and status["canary"].get("phase") == "Ready"
+            ))
             and dep.intent not in ("submitting", "updating", "rolling_back",
                                    "runtime_unknown", "deleting", "deleted")
         )
@@ -209,7 +235,7 @@ def apply_staged_revision(db: Session, runtime, row: Deployment,
     audit(db, p, "deployment.update_confirmed", "deployment", row.id,
           {"generation": row.generation, "outcome": result})
     commit(db)
-    return with_runtime_state(runtime, row, render(row, *DEPLOY_FIELDS))
+    return with_runtime_state(runtime, row, render(row, *DEPLOY_FIELDS), db)
 
 
 def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
@@ -310,7 +336,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
     def deployments(p: Principal = Depends(require_principal), db: Session = Depends(get_db)):
         rows = db.scalars(select(Deployment).where(Deployment.tenant == p.tenant)
                           .order_by(Deployment.created_at.desc()).limit(100)).all()
-        return [with_runtime_state(app.state.runtime, d, render(d, *DEPLOY_FIELDS)) for d in rows]
+        return [with_runtime_state(app.state.runtime, d, render(d, *DEPLOY_FIELDS), db) for d in rows]
 
     @app.post("/api/v1/deployments", status_code=201)
     def create_deployment(req: DeploymentIn, p: Principal = Depends(require_principal),
@@ -348,7 +374,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row.intent = "requested"
         audit(db, p, "deployment.submit_confirmed", "deployment", row.id)
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.post("/api/v1/deployments/{key}/recover")
     def recover_deployment(key: str, p: Principal = Depends(require_principal),
@@ -386,13 +412,13 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         audit(db, p, "deployment.recovered", "deployment", row.id,
               {"outcome": disposition})
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.get("/api/v1/deployments/{key}")
     def get_deployment(key: str, p: Principal = Depends(require_principal),
                        db: Session = Depends(get_db)):
         row = fetch_owned(db, Deployment, p.tenant, key)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.get("/api/v1/deployments/{key}/revisions")
     def deployment_revisions(key: str, p: Principal = Depends(require_principal),
@@ -520,7 +546,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         audit(db, p, "deployment.canary.confirmed", "deployment", row.id,
               {"outcome": outcome, "generation": row.generation})
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.post("/api/v1/deployments/{key}/canary/stop")
     def stop_canary(key: str, req: CanaryStopIn,
@@ -549,7 +575,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         audit(db, p, "deployment.canary_stop.confirmed", "deployment", row.id,
               {"outcome": outcome, "generation": row.generation})
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
 
     @app.post("/api/v1/deployments/{key}/promote")
