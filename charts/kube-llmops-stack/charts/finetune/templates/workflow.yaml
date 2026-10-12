@@ -1,3 +1,4 @@
+{{- if .Values.staticTemplate.enabled }}
 {{- $_ := required "finetune.baseModel is required when finetune is enabled" .Values.baseModel }}
 {{- $_ := required "finetune.outputName is required when finetune is enabled" .Values.outputName }}
 {{- if and (eq .Values.dataSource.type "minio") (not .Values.dataSource.path) }}
@@ -948,4 +949,6 @@ spec:
         - name: modelops-scripts
           configMap:
             name: {{ $.Release.Name }}-modelops-scripts
+{{- end }}
+
 {{- end }}

@@ -153,12 +153,25 @@ func (r *FineTuneRunReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// created six no-op steps and could falsely report successful training.
 	tmpl:=&unstructured.Unstructured{}
 	tmpl.SetGroupVersionKind(schema.GroupVersionKind{Group:"argoproj.io",Version:"v1alpha1",Kind:"WorkflowTemplate"})
-	templateErr:=r.Get(ctx,types.NamespacedName{Name:releaseName+"-finetune",Namespace:ftr.Namespace},tmpl)
+	templateName := releaseName + "-finetune"
+	dynamic := builder.IsDynamicFineTuneRun(ftr)
+	if dynamic { templateName = "modelops-finetune-dynamic" }
+	templateErr:=r.Get(ctx,types.NamespacedName{Name:templateName,Namespace:ftr.Namespace},tmpl)
 	var contractErr error
 	if templateErr==nil {
-		contractErr=VerifyFineTuneTemplateContract(ftr,tmpl.GetAnnotations())
+		if dynamic {
+			contractErr=ValidateDynamicFineTuneRunSpec(ftr)
+			if contractErr==nil {
+				parameters,found,err:=unstructured.NestedSlice(tmpl.Object,"spec","arguments","parameters")
+				if err!=nil || !found { contractErr=fmt.Errorf("dynamic WorkflowTemplate has no parameters") } else {
+					contractErr=DynamicTemplateHasParameters(parameters,builder.DynamicWorkflowParameters(ftr))
+				}
+			}
+		} else {
+			contractErr=VerifyFineTuneTemplateContract(ftr,tmpl.GetAnnotations())
+		}
 	} else {
-		contractErr=fmt.Errorf("missing Argo WorkflowTemplate %s-finetune: %w",releaseName,templateErr)
+		contractErr=fmt.Errorf("missing Argo WorkflowTemplate %s: %w",templateName,templateErr)
 	}
 	if contractErr!=nil {
 		log.Error(contractErr,"FineTuneRun rejected: no matching executable WorkflowTemplate")
@@ -176,8 +189,7 @@ func (r *FineTuneRunReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Set owner reference
 	if err := controllerutil.SetControllerReference(ftr, wf, r.Scheme); err != nil {
-		log.Error(err, "failed to set owner reference on Argo Workflow")
-		// Continue anyway - the workflow can still be created
+		return ctrl.Result{}, fmt.Errorf("Argo Workflow owner reference: %w",err)
 	}
 
 	if err := r.Create(ctx, wf); err != nil {

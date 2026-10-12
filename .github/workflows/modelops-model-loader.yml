@@ -1,0 +1,45 @@
+name: Build verified model-loader runtime
+on:
+  push:
+    branches: [main]
+    paths: ["images/model-loader/**", ".github/workflows/modelops-model-loader.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["images/model-loader/**", ".github/workflows/modelops-model-loader.yml"]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  packages: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: cd images/model-loader && python -m pytest test_loader.py -q
+      - name: Build non-root model-loader
+        run: docker build -t modelops/model-loader:ci images/model-loader
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: images/model-loader
+          push: true
+          tags: |
+            ghcr.io/benjamindaoson/modelops-model-loader:v0.1.0
+            ghcr.io/benjamindaoson/modelops-model-loader:sha-${{ github.sha }}
+          provenance: true

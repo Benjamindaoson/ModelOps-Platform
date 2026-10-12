@@ -27,6 +27,14 @@ type FineTuneRunSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	BaseModel string `json:"baseModel"`
 
+	// BaseRevision must be a pinned upstream model revision for dynamic workflows.
+	// +optional
+	BaseRevision string `json:"baseRevision,omitempty"`
+
+	// BaseDigest is the SHA-256 of the independently attested base artifact.
+	// +optional
+	BaseDigest string `json:"baseDigest,omitempty"`
+
 	// OutputName is the name for the fine-tuned model artifact.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
@@ -71,6 +79,10 @@ type DataSourceSpec struct {
 	// +optional
 	Path string `json:"path,omitempty"`
 
+	// Digest is the immutable SHA-256 dataset manifest checksum.
+	// +optional
+	Digest string `json:"digest,omitempty"`
+
 	// Format is the data format.
 	// +kubebuilder:validation:Enum=alpaca;sharegpt;custom
 	// +kubebuilder:default="alpaca"
@@ -94,6 +106,10 @@ type TrainingSpec struct {
 type EvaluationSpec struct {
 	Enabled bool   `json:"enabled,omitempty"`
 	Dataset string `json:"dataset,omitempty"`
+
+	// MinTokenF1 is the minimum independent held-out quality score.
+	// +optional
+	MinTokenF1 string `json:"minTokenF1,omitempty"`
 }
 
 // QualityGateSpec configures pass/fail thresholds.

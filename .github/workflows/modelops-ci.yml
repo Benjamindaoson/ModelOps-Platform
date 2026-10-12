@@ -11,6 +11,7 @@ on:
       - "tests/helm/**"
       - "benchmarks/inference/**"
       - "pipelines/**"
+      - "control-plane/**"
       - "images/deploy-runner/**"
       - "ops/**"
   pull_request:
@@ -53,6 +54,9 @@ jobs:
         with:
           go-version-file: operator/go.mod
           cache-dependency-path: operator/go.sum
+      - name: Compile all Go packages including controllers
+        working-directory: operator
+        run: go test ./... -run ModelOpsCompileOnlySentinel
       - name: Test engine selection, resource builders and gateway
         working-directory: operator
         run: go test ./api/v1alpha1 ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...
@@ -72,7 +76,7 @@ jobs:
       - run: helm dependency update charts/kube-llmops-stack
       - name: Verify model resolution and Helm contract tests
         run: |
-          python -m pytest images/model-resolver/tests/ tests/helm/ -q --tb=short
+          python -m pytest images/model-resolver/tests/ tests/helm/ tests/operator_security/ -q --tb=short
 
   evidence-boundary:
     runs-on: ubuntu-latest
@@ -108,10 +112,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install test runner
+        run: python -m pip install "pytest>=8,<10"
       - name: Verify independent heldout evaluation and checkpoint merge
         run: |
           python -m unittest discover -s pipelines/evaluation -p 'test_*.py' -v
           python -m unittest discover -s pipelines/training -p 'test_*.py' -v
+          python -m pytest pipelines/training/test_dynamic_contracts.py -q
 
   argo-render-contract:
     runs-on: ubuntu-latest
@@ -129,6 +136,7 @@ jobs:
             -f charts/kube-llmops-stack/values-ci-finetune.yaml \
             --set finetune.renderWorkflowsWithoutCRD=true > /tmp/modelops-with-argo.yaml
           grep -q "kind: WorkflowTemplate" /tmp/modelops-with-argo.yaml
+          grep -q "name: modelops-finetune-dynamic" /tmp/modelops-with-argo.yaml
           grep -q "name: quality-gate" /tmp/modelops-with-argo.yaml
           grep -q "APPROVED.json" /tmp/modelops-with-argo.yaml
           grep -q "kind: ConfigMap" /tmp/modelops-with-argo.yaml

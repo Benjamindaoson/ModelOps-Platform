@@ -1,0 +1,81 @@
+name: ModelOps UI + Real Control API E2E
+on:
+  push:
+    branches: [main]
+    paths:
+      - "console/**"
+      - "control-plane/**"
+      - ".github/workflows/modelops-browser-e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "console/**"
+      - "control-plane/**"
+      - ".github/workflows/modelops-browser-e2e.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modelops-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MODELOPS_ENV: development
+      MODELOPS_AUTH_MODE: dev
+      MODELOPS_RUNTIME: disabled
+      MODELOPS_JWT_SECRET: only-for-browser-tests-32char-000000000
+      MODELOPS_DATABASE_URL: sqlite:///./modelops-e2e.sqlite
+      MODELOPS_API_URL: http://127.0.0.1:8080
+      MODELOPS_PUBLIC_ORIGIN: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Start real ModelOps metadata API
+        working-directory: control-plane
+        run: |
+          python -m pip install -e ".[dev]"
+          uvicorn modelops.main:app --host 127.0.0.1 --port 8080 >/tmp/modelops-api.log 2>&1 &
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:8080/readyz; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/modelops-api.log
+          exit 1
+      - name: Generate short-lived test identity
+        working-directory: control-plane
+        run: |
+          TOKEN=$(python -m modelops.devtoken --tenant browser --role admin --subject ci-user)
+          echo "MODELOPS_E2E_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+      - name: Launch UI and chromium
+        working-directory: console
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run dev >/tmp/modelops-next.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://localhost:3000 >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/modelops-next.log
+          exit 1
+      - name: Run browser create/deny/audit flow
+        working-directory: console
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: modelops-e2e-failure
+          path: |
+            console/test-results/
+            console/playwright-report/

@@ -1,0 +1,42 @@
+# DEVELOPMENT ONLY — not an HA or GPU cluster.
+# A real Kubernetes cluster is required for model deployment/training.
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_USER: modelops
+      POSTGRES_DB: modelops
+      POSTGRES_PASSWORD: ${MODELOPS_PG_PASSWORD:?Set a random local DB password}
+    volumes:
+      - modelops_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modelops -d modelops"]
+      interval: 5s
+      retries: 15
+  api:
+    build:
+      context: ./control-plane
+    environment:
+      MODELOPS_ENV: development
+      MODELOPS_AUTH_MODE: dev
+      MODELOPS_RUNTIME: disabled
+      MODELOPS_JWT_SECRET: ${MODELOPS_JWT_SECRET:?Generate a random 32+ char dev secret}
+      MODELOPS_DATABASE_URL: postgresql+psycopg://modelops:${MODELOPS_PG_PASSWORD}@postgres:5432/modelops
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  console:
+    build:
+      context: ./console
+    environment:
+      MODELOPS_ENV: development
+      MODELOPS_CONSOLE_AUTH: development-token
+      MODELOPS_API_URL: http://api:8080
+      MODELOPS_PUBLIC_ORIGIN: http://localhost:3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on: [api]
+volumes:
+  modelops_pgdata:

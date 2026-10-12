@@ -30,9 +30,7 @@ WORKDIR /
 
 COPY --from=builder /workspace/manager .
 
-# Embed the umbrella Helm chart so the LLMPlatform controller can install it.
-# The chart directory (with pre-built .tgz dependencies) is copied at build time.
-COPY _build_charts/kube-llmops-stack /charts/kube-llmops-stack
+# Runtime Operators do not install umbrella Helm charts; bootstrap is separate.
 
 USER 65532:65532
 

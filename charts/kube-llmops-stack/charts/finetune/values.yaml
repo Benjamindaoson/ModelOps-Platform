@@ -36,6 +36,18 @@ tolerations: []
 # Token F1 is lexical match, not semantic faithfulness.
 # Runtime jobs must evaluate real weights before any release is approved.
 renderWorkflowsWithoutCRD: false
+# The legacy fixed-config example remains available for existing installations;
+# this new dynamic Argo template accepts exact parameters per FineTuneRun.
+staticTemplate:
+  enabled: true
+dynamicTemplate:
+  enabled: true
+  image: hiyouga/llamafactory:latest
+  prepareImage: python:3.12-slim
+  workspaceSize: 60Gi
+  objectStoreSecret: modelops-objectstore
+  mlflowTrackingURI: ""  # Existing external MLflow service (no inline credentials)
+
 evaluation:
   enabled: true
   minSamples: 20

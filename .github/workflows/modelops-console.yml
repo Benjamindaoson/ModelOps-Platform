@@ -1,0 +1,43 @@
+name: ModelOps Console
+on:
+  push:
+    branches: [main]
+    paths:
+      - "console/**"
+      - ".github/workflows/modelops-console.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "console/**"
+      - ".github/workflows/modelops-console.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modelops-console-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      MODELOPS_API_URL: http://127.0.0.1:8080
+      MODELOPS_PUBLIC_ORIGIN: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install exact dependency versions
+        working-directory: console
+        run: npm install --no-audit --no-fund
+      - name: Typecheck UI and secure proxy handlers
+        working-directory: console
+        run: npm run typecheck
+      - name: Production Next.js compilation
+        working-directory: console
+        run: npm run build
