@@ -1,243 +1,81 @@
-[English](README.md) | **中文** | [🌐 项目站点](https://gaearuiw.github.io/kube-llmops/)
+# ModelOps Platform
 
-<div align="center">
+**企业级 AI 模型训练、托管与推理优化一体化平台**
 
-# kube-llmops
+[English](README.md) | [项目架构](ARCHITECTURE.md) | [GitHub Actions](https://github.com/Benjamindaoson/ModelOps-Platform/actions)
 
-[![GitHub Stars](https://img.shields.io/github/stars/GaeaRuiW/kube-llmops?style=flat-square&logo=github)](https://github.com/GaeaRuiW/kube-llmops)
-[![GitHub Forks](https://img.shields.io/github/forks/GaeaRuiW/kube-llmops?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/fork)
-[![License](https://img.shields.io/github/license/GaeaRuiW/kube-llmops?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/blob/main/LICENSE)
-[![Release](https://img.shields.io/github/v/release/GaeaRuiW/kube-llmops?style=flat-square&logo=helm)](https://github.com/GaeaRuiW/kube-llmops/releases)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?style=flat-square&logo=kubernetes)](https://kubernetes.io)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/pulls)
-[![Discuss](https://img.shields.io/badge/chat-discussions-8A2BE2?style=flat-square)](https://github.com/GaeaRuiW/kube-llmops/discussions)
+一个面向企业内部 AI 团队的 Kubernetes 原生模型基础设施平台，统一实现 **模型注册 → 微调训练 → 独立评估 → 部署托管 → 推理性能测试 → 监控 → 灰度发布与回滚**。它不是聊天机器人、Agent 应用或单纯的 API 中转服务；业务应用通过模型网关使用平台托管和外部供应商提供的模型。
 
-**🏆 Kubernetes 原生 LLMOps 平台 — 一条命令部署、管理、监控并优化你的整个 LLM 基础设施。**
+> **当前为 Engineering Preview，不是已完成生产验收的商业平台。** 真实 FastAPI 控制面、Next.js 管理后台、Go Kubernetes Operator、Argo 训练编排、网关及监控基础设施已有代码与部分 CI 证据，但不能凭这些宣称已经完成真实 GPU 推理加速、LoRA/QLoRA 训练效果、多节点高可用或企业生产部署。
 
-</div>
+## 五大功能模块
 
-> [!NOTE]
-> v1.0.0 已发布 -- v1.0 规划的三件套全部完成：**Operator**（LLMPlatform / ModelDeployment / FineTuneRun CRD）+ **kubectl-llmops CLI**（15+ 命令，`kubectl llmops <cmd>`）+ **Headlamp 仪表板**（Kubernetes UI + `kube-llmops-portal` 插件）。详见 [CHANGELOG](CHANGELOG.zh-CN.md)。
-
-## 什么是 kube-llmops？
-
-`kube-llmops` 是一个开箱即用的 Helm Chart，可在 Kubernetes 上一键部署完整的 LLM 运维栈：
-
-- **模型推理服务** -- vLLM、llama.cpp 或 TEI，根据模型名称自动选择推理引擎
-- **CLI 工具（`kubectl-llmops`）** -- kubectl 插件，提供 15+ 命令式操作：`deploy`、`list`、`status`、`scale`、`canary`、`logs`、`test`、`port-forward`、`finetune`、`rag`、`platform`、`migrate` 等
-- **AI 网关** -- LiteLLM 提供统一的 OpenAI 兼容 API、Key 管理、速率限制、预算控制
-- **可观测性** -- Prometheus + Grafana（11 个仪表盘 + 8 条告警规则）+ Langfuse v3 LLM 调用追踪 + node-exporter + kube-state-metrics
-- **日志** -- Fluent Bit + Loki，在 Grafana Explore 中查询
-- **自动扩缩** -- KEDA 根据队列深度、TTFT P95、TPOT P95 自动扩缩 vLLM/llama.cpp Pod，支持规模到零
-- **Kubernetes UI** -- Headlamp K8s 仪表盘 + `kube-llmops-portal` 插件（服务链接 + Grafana 监控内嵌）
-- **声明式管理** -- Kubernetes Operator 管理 LLMPlatform / ModelDeployment / FineTuneRun CRD
-- **安全** -- Keycloak SSO 登录 Grafana/Langfuse，LLM-Guard Prompt 注入防护，NetworkPolicy 网络隔离
-- **RAG 基础设施** -- Dify 平台 + pgvector + TEI 嵌入/重排序 + Ragas 评估 + 质量门控
-- **模型微调** -- LLaMA-Factory LoRA/QLoRA/Full 微调 + Argo Workflows 流水线 + MLflow 实验追踪
-- **模型分发** -- MinIO 模型缓存 + HuggingFace 回退 + hf-transfer 多线程下载
-- **存储** -- MinIO S3 兼容模型存储，PVC 模型缓存
-
-```bash
-# 从本地源码安装（推荐）
-helm install kube-llmops charts/kube-llmops-stack -f values-minimal.yaml
-```
-
-## 使用场景
-
-- **"我想部署 DeepSeek-R1-0528 并让 5 个团队共享，同时设置 Token 预算限制"**
-- **"我想查看本月哪个团队消耗了最多的 GPU 时长"**
-- **"我想让一个 GGUF 模型跑在 llama.cpp 上，同时让一个全精度模型跑在 vLLM 上，并统一到同一个 API 后面"**
-- **"我想对每一次 LLM 请求进行全链路追踪，记录完整的 Prompt（提示词）、Token 用量、费用和延迟"**
-
-## 架构
-
-<p align="center">
-  <img src="docs/images/architecture.svg" alt="kube-llmops Architecture" width="800">
-</p>
-
-详细技术设计请参阅 [ARCHITECTURE.md](ARCHITECTURE.md)。
-
-## 截图演示
-
-<table>
-  <tr>
-    <td align="center"><b>API 调用</b><br/><img src="images/demo/api-demo.png" width="400"/></td>
-    <td align="center"><b>Grafana 仪表盘</b><br/><img src="images/demo/grafana-dashboards.gif" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>GPU 监控 (DCGM)</b><br/><img src="images/demo/grafana-gpu-dashboard.png" width="400"/></td>
-    <td align="center"><b>vLLM 模型服务</b><br/><img src="images/demo/grafana-vllm-dashboard.png" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Langfuse 调用追踪</b><br/><img src="images/demo/langfuse-traces.png" width="400"/></td>
-    <td align="center"><b>MinIO 模型存储</b><br/><img src="images/demo/minio-models.png" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Keycloak SSO</b><br/><img src="images/demo/keycloak-clients.png" width="400"/></td>
-    <td align="center"><b>LiteLLM 网关</b><br/><img src="images/demo/grafana-litellm-dashboard.png" width="400"/></td>
-  </tr>
-</table>
-
-## 快速开始
-
-### 前置条件
-
-- Kubernetes 集群 (1.28+) 且包含 GPU 节点，或使用 `kind` 进行仅 CPU 的演示
-- Helm 3.x
-- kubectl
-
-### 安装
-
-```bash
-# 从本地源码安装
-helm install kube-llmops charts/kube-llmops-stack \
-  -f charts/kube-llmops-stack/values-single-node.yaml \
-  --set global.nodePort.enabled=true \
-  --set global.nodePort.host=$NODE_IP
-
-# 或使用 Ingress 安装
-helm install kube-llmops charts/kube-llmops-stack \
-  -f values-minimal.yaml \
-  --set ingress.enabled=true \
-  --set ingress.host=llmops.local
-
-# 或：仅 CPU 演示模式（无需 GPU）
-helm install kube-llmops charts/kube-llmops-stack -f values-ci.yaml
-```
-
-### 与模型对话
-
-```bash
-curl http://litellm.llmops.local/v1/chat/completions \
-  -H "Authorization: Bearer sk-kube-llmops-dev" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"qwen2-5-0-5b","messages":[{"role":"user","content":"Hello!"}]}'
-```
-
-### 访问管理界面
-
-**方式 A：Ingress（推荐 — 无需 port-forward）**
-
-```bash
-# 安装时启用 Ingress
-helm install kube-llmops charts/kube-llmops-stack \
-  -f values-minimal.yaml \
-  --set ingress.enabled=true \
-  --set ingress.host=llmops.local    # 或你的真实域名
-
-# 如果没有真实域名，添加 hosts 映射：
-NODE_IP=$(kubectl get node -o jsonpath='{.items[0].status.addresses[0].address}')
-echo "$NODE_IP litellm.llmops.local grafana.llmops.local langfuse.llmops.local keycloak.llmops.local minio.llmops.local prometheus.llmops.local" | sudo tee -a /etc/hosts
-```
-
-| 服务 | Ingress 地址 | 默认凭据 |
+| 模块 | 已建设的主要软件能力 | 还需要的独立验收 |
 |---|---|---|
-| **LiteLLM**（AI 网关） | `http://litellm.llmops.local` | 任意用户名 / `sk-kube-llmops-dev` |
-| **Grafana**（监控仪表盘） | `http://grafana.llmops.local` | `admin` / `admin123!` |
-| **Langfuse**（LLM 调用追踪） | `http://langfuse.llmops.local` | `admin@kube-llmops.local` / `admin123!` |
-| **Keycloak**（SSO 管理） | `http://keycloak.llmops.local` | `admin` / `admin123!` |
-| **MinIO**（对象存储） | `http://minio.llmops.local` | `minioadmin` / `minioadmin` |
-| **Prometheus**（指标） | `http://prometheus.llmops.local` | 无需认证 |
-| **Headlamp**（Kubernetes UI） | `http://$NODE_IP:30302`（NodePort） | Keycloak OIDC 登录 |
+| **管模型** | 租户模型注册、不可变版本、数据集、RBAC、审批及审计、统一 Control API | 真实 OIDC、强租户隔离、可信模型产物验真 |
+| **训模型** | 动态训练任务、Argo/LLaMA-Factory、LoRA/QLoRA 配置、留出集评估及质量门禁 | 真 GPU 训练权重、独立测试、完整上线闭环 |
+| **部署模型** | ModelDeployment Operator/CRD、vLLM、SGLang、TEI、llama.cpp、版本/灰度/回滚接口 | GPU 模型实际启动、真实加权流量、故障回滚 |
+| **加速模型** | Benchmark、GPU 指标采集与 A/B 对照、量化/KV Cache/Batch 配置 | 同硬件同模型的 TTFT/TPOT、吞吐、显存、质量实测 |
+| **运营模型** | Prometheus/Grafana、租户级 Operator 权限、API/控制台镜像、审计、恢复 Worker、备份校验 | SLO 告警、真实备份恢复、RPO/RTO、多节点 HA |
 
-**方式 B：Port-forward（备选）**
+整体架构中，**PostgreSQL 保存管理元数据与用户期望状态**，**Kubernetes CRD 和 Argo 提供运行态事实**，**S3/MLflow 保存模型产物与版本**。UI 只调用 Control API，不应持有 Kubernetes 管理凭据。
+
+## 代码结构
+
+- `control-plane/`：FastAPI、SQL、迁移、租户权限、操作审计、任务恢复。
+- `console/`：Next.js 产品管理控制台与 Playwright E2E。
+- `operator/`：Go Kubernetes Operator、CRD、控制器。
+- `charts/`：Helm、网关、推理引擎、训练及观测组件。
+- `pipelines/`：训练后模型产物、留出集评估与质量门禁。
+- `benchmarks/inference/`：对真实推理接口的 Benchmark 和 A/B 一致性检查。
+- `ops/`：安全预检、CPU Kubernetes 测试、备份与恢复。
+- `docs/`：平台架构、实施与验收、技术限制、来源说明。
+
+## 本地启动（无需 GPU）
+
+安装 Docker Compose，在项目根目录执行：
 
 ```bash
-kubectl port-forward svc/kube-llmops-litellm 4000:4000 &
-kubectl port-forward svc/kube-llmops-grafana 3000:3000 &
-kubectl port-forward svc/kube-llmops-langfuse 3001:3000 &
+cp .env.compose.example .env
+# 在 .env 中配置随机、唯一的 MODELOPS_PG_PASSWORD、MODELOPS_JWT_SECRET。
+docker compose up --build -d postgres
+docker compose run --rm --no-deps api alembic upgrade head
+docker compose up --build -d api console
 ```
 
-> [!TIP]
-> 启用 SSO 后，使用 **Keycloak** 凭据（`admin` / `admin123!`）登录 Grafana、Langfuse、MinIO。
-> Keycloak 用户邮箱（`admin@kube-llmops.local`）与 Langfuse 初始用户一致，SSO 登录后自动关联已有的项目和追踪数据。
+Console 默认 `http://localhost:3000`，API 默认 `http://127.0.0.1:8080`。本地开发模式没有接入 Kubernetes 时，**模型部署与训练接口会拒绝创建**，不会以 Mock 状态冒充部署成功。详见 [安装与环境说明](docs/LOCAL_AND_PRODUCTION_SETUP.md)。
 
-> [!WARNING]
-> 以上为开发环境默认配置。生产环境请通过 `--set` 参数进行覆盖：
-> ```bash
-> helm install kube-llmops charts/kube-llmops-stack \
->   --set litellm.masterKey=sk-your-secret-key \
->   --set observability.grafana.adminPassword=your-grafana-pw \
->   --set langfuse.init.userPassword=your-langfuse-pw \
->   --set langfuse.externalUrl=https://langfuse.your-domain.com
-> ```
+### 无 GPU 自动化测试
 
-## 功能对比
+```bash
+cd control-plane
+python -m pip install -e ".[dev]"
+python -m pytest -q
+cd ..
+python -m unittest discover -s benchmarks/inference -p 'test_*.py' -v
+```
 
-| 功能特性 | kube-llmops | 原生 vLLM | KAITO | KServe |
-|---|---|---|---|---|
-| 推理引擎自动选择（GPTQ→vLLM、GGUF→llama.cpp） | 支持 | 不适用 | 不支持 | 不支持 |
-| AI 网关（Key 管理、成本追踪、速率限制） | 支持 | 不支持 | 不支持 | 不支持 |
-| LLM 调用追踪（Prompt、Token、每次请求费用） | 支持 | 不支持 | 不支持 | 不支持 |
-| 预置 Grafana 仪表盘（11 个）+ 告警规则（8 条） | 支持 | 不支持 | 不支持 | 不支持 |
-| GPU 监控（DCGM） | 支持 | 需自行搭建 | 不支持 | 不支持 |
-| KEDA 多触发器自动扩缩（队列 + TTFT P95 + TPOT P95）+ 规模到零 | 支持 | 不支持 | 不支持 | 部分支持 |
-| 高级推理（前缀缓存、会话亲和、金丝雀、llm-d、多加速器） | 支持 | 部分支持 | 不支持 | 部分支持 |
-| Kubernetes Operator（LLMPlatform / ModelDeployment / FineTuneRun CRD） | 支持 | 不支持 | 部分支持 | 支持 |
-| Headlamp Kubernetes UI + 自定义插件 | 支持 | 不支持 | 不支持 | 不支持 |
-| SSO 集成（Keycloak OIDC） | 支持 | 不支持 | 不支持 | 不支持 |
-| S3 模型存储（MinIO） | 支持 | 不支持 | 不支持 | 不支持 |
-| 容器日志聚合（Fluent Bit + Loki） | 支持 | 不支持 | 不支持 | 不支持 |
-| RAG 基础设施（Dify + 评估 + 安全防护） | 支持 | 不支持 | 不支持 | 不支持 |
-| 一键部署完整栈 | 支持 | 不适用 | 不支持 | 不支持 |
-| 云平台无关 | 支持 | 支持 | 仅 Azure | 支持 |
+GitHub Actions 还会运行 Go/Helm 契约测试、Web 控制台端到端测试、容器镜像构建和 CPU kind。最新新增的 `test_kind_runtime_e2e.py` 专门验证真实 **FastAPI → Kubernetes CRD → Operator → 扩缩/删除**，需要在 CI 准备实际 Kubernetes 环境。这不是 GPU 推理测试。
 
-## 部署配置
+## 验收层级
 
-| 配置文件 | GPU | 模型数量 | 监控 | 追踪 | 日志 | 适用场景 |
-|---|---|---|---|---|---|---|
-| `values-ci.yaml` | 无 | 无（CPU） | 基础 | 关闭 | 关闭 | CI / 演示 |
-| `values-minimal.yaml` | 1 块 | 1 个（小） | Prometheus + Grafana | Langfuse | Fluent Bit + Loki | 开发环境 |
-| `values-standard.yaml` | 4-8 块 | 2-3 个 | 完整 OTel 栈 | Langfuse | Fluent Bit + Loki | 团队协作 |
-| `values-production.yaml` | 16+ 块 | N 个 | 完整 + 高可用 | 全量 | 全量 | 企业生产 |
+| 级别 | 证据标准 |
+|---|---|
+| T0 源码 | 代码与上游出处可追溯 |
+| T1 自动化 | 单测、静态校验、UI/API/Helm 契约 |
+| T2 CPU Kubernetes | 真实命名空间、Operator 和服务组件运行 |
+| T3 GPU Serving | 真机测量 TTFT、TPOT、吞吐、显存、延迟尾部 |
+| T4 GPU Training | 真正产生权重、独立评测、模型发布与回滚 |
+| T5 生产类集群 | 多节点容错、最小权限、恢复演练及 SLO |
 
-## 文档
+**只有证据达到对应层级，才对外陈述相应成果。** 2026 年 10 月 11 日的 [旧平台审计](docs/PLATFORM_AUDIT_2026-10-11.md) 是当时快照，不包含后续所有控制面与前端提交，不能作为最新完成度。应以相应提交 SHA 的 [CI 记录](https://github.com/Benjamindaoson/ModelOps-Platform/actions) 和原始运行日志为准。
 
-- [快速入门](docs/getting-started.zh-CN.md) -- 安装、配置与故障排除
-- [架构设计](ARCHITECTURE.md) -- 完整的技术设计与技术选型
-- [更新日志](CHANGELOG.zh-CN.md) -- 版本发布说明
-- [贡献指南](CONTRIBUTING.zh-CN.md) -- 如何参与贡献
-- [RAG 基础设施](docs/rag/rag-plan.md) -- RAG 组件、评估与安全
-- [ADR](docs/adr/) -- 架构决策记录
+## 剩余重点
 
-## 路线图
+优先把无 GPU 的真实跨组件全链路和安全/恢复验收做完，然后用 RTX 3090 测试同权重 vLLM/SGLang、量化、KV Cache、批处理策略，保存原始请求/显存/延迟数据；再跑真实 LoRA/QLoRA 微调、独立留出集评估、质量审核、Canary 与回滚。多 GPU 和多节点 HA 是后续独立测试，不把它们混入单卡成绩。
 
-- [x] **v0.1.0（MVP）** -- 模型推理服务 + 网关 + 指标监控 + 调用追踪
-- [x] **v0.2.0** -- Langfuse v3 + Keycloak SSO + 基础设施自动化 + NodePort
-- [x] **v0.3.0** -- RAG 基础设施（Dify + pgvector + TEI 嵌入/重排序 + Ragas 评估 + LLM-Guard + 质量门控）
-- [x] **v0.4.0** -- 微调流水线（LLaMA-Factory + Argo Workflows + MLflow）+ JupyterHub + Terraform
-- [x] **v0.5.0** -- 高级推理（延迟路由、前缀缓存、多触发器 KEDA、规模到零、金丝雀、llm-d、多加速器）+ Kubernetes Operator（LLMPlatform/ModelDeployment/FineTuneRun CRD）+ Headlamp Kubernetes UI + Harbor 模型仓库 + 独立 PostgreSQL 子 chart
-- [x] **v1.0.0**（当前）-- Kubernetes Operator + kubectl-llmops CLI（15+ 命令）+ Headlamp 仪表板
+相关文档：[跨组件验收计划](docs/INTEGRATION_ROADMAP_2026-10-12.md) · [训练任务生命周期](docs/TRAINING_JOB_LIFECYCLE.md) · [备份恢复](docs/BACKUP_RECOVERY_V2.md) · [推理测试](benchmarks/inference/README.md)。
 
-## 许可证
+## 开源来源与授权
 
-[Apache License 2.0](LICENSE)
-
-### 许可证说明
-
-本项目采用 Apache 2.0 许可证。但部分可选依赖组件使用了不同的许可证：
-
-| 组件 | 许可证 | 是否必需？ |
-|---|---|---|
-| Grafana | AGPL-3.0 | 可选（可替换为自有方案） |
-| Loki | AGPL-3.0 | 可选（可使用 OpenSearch 替代） |
-| 其他所有组件 | Apache 2.0 / MIT / BSD | 是 |
-
-如果 AGPL 许可证对贵组织有合规方面的顾虑，可以禁用 Grafana 和 Loki，并替换为您自有的可视化和日志存储方案。
-
-## 参与贡献
-
-欢迎贡献代码！请参阅 [CONTRIBUTING.md](CONTRIBUTING.md) 了解贡献指南。
-
-## Star 历史
-
-如果您觉得这个项目有用，请给我们一个 Star！⭐
-
-## 🤝 社区
-
-- 💬 [讨论区](https://github.com/GaeaRuiW/kube-llmops/discussions) — 提问、分享你的部署方案、建议新功能
-- 🐛 [Issues](https://github.com/GaeaRuiW/kube-llmops/issues) — 报告 Bug 或请求功能
-- 📖 [贡献指南](CONTRIBUTING.zh-CN.md) — 首次贡献者指南
-- 🏷️ 关注 [`good first issue`](https://github.com/GaeaRuiW/kube-llmops/labels/good%20first%20issue) 和 [`help wanted`](https://github.com/GaeaRuiW/kube-llmops/labels/help%20wanted) 标签开始贡献
-
-**我们需要你的帮助来达到 1,000 Stars！** 每一个 Star、Issue、PR 和讨论都在帮助项目成长。分享 kube-llmops 给你的团队，写一篇博客，或贡献一个功能 — 所有贡献都受欢迎 ❤️
+本仓库基于 [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops) 的 Apache-2.0 开源版本（固定来源提交 `74f8db47fa2690a4e71ae31532f36b35a587d266`）进行二次开发。上游 Operator、Helm 和观测体系是继承基础；新增 Control API、Console、恢复与证据校验等由 Git 历史区分。保留 [上游来源记录](docs/UPSTREAM_PROVENANCE.md)、[原上游 README](docs/upstream/README.md) 和 [LICENSE](LICENSE)。商用需单独审查各依赖许可证及安全配置。
