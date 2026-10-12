@@ -28,7 +28,7 @@ def upgrade() -> None:
         if "canary_artifact_id" not in columns:
             batch.add_column(sa.Column(
                 "canary_artifact_id", sa.String(36),
-                sa.ForeignKey("model_artifacts.id"), nullable=True,
+                sa.ForeignKey("model_artifacts.id", name="fk_deployments_canary_artifact_id"), nullable=True,
             ))
         if "canary_weight" not in columns:
             batch.add_column(sa.Column("canary_weight", sa.Integer(), nullable=True))
