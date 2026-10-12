@@ -76,9 +76,13 @@ func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructu
 	// Add parameters if any are defined
 	if len(parameters) > 0 {
 		spec := wf.Object["spec"].(map[string]interface{})
-		spec["arguments"] = map[string]interface{}{
-			"parameters": parameters,
+		// Unstructured Kubernetes objects require JSON-compatible []interface{}
+		// and map[string]interface{}, not Go-only []map[string]string slices.
+		encoded := make([]interface{}, 0, len(parameters))
+		for _,p:=range parameters {
+			encoded=append(encoded,map[string]interface{}{"name":p["name"],"value":p["value"]})
 		}
+		spec["arguments"] = map[string]interface{}{"parameters":encoded}
 	}
 
 	return wf

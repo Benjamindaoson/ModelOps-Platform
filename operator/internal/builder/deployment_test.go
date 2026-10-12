@@ -67,7 +67,7 @@ func TestBuildDeployment_VLLMEngine(t *testing.T) {
 		t.Fatal("expected init container, got none")
 	}
 	initContainer := dep.Spec.Template.Spec.InitContainers[0]
-	if initContainer.Image != "kube-llmops/model-loader:latest" {
+	if initContainer.Image != "ghcr.io/benjamindaoson/modelops-model-loader:v0.1.0" {
 		t.Errorf("expected model-loader image, got %q", initContainer.Image)
 	}
 
