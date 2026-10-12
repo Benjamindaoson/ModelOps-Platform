@@ -34,6 +34,8 @@ class RecordingRuntime:
         self.timeout_after_create = False
         self.deployment_create_calls = 0
         self.training_create_calls = 0
+        self.deployment_patch_calls = 0
+        self.patch_timeout_after_apply = False
 
     def create_deployment(self, row, artifact):
         if self.fail_next:
@@ -67,7 +69,16 @@ class RecordingRuntime:
         }, "spec": {**body["spec"], "canary": candidate}}
 
     def patch_deployment(self, row, artifact):
+        if self.fail_next:
+            self.fail_next = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Injected Kubernetes patch outage")
+        self.deployment_patch_calls += 1
         self.deployments[(row.tenant, row.name)] = deployment_body(row, artifact)
+        if self.patch_timeout_after_apply:
+            self.patch_timeout_after_apply = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Lost response after Kubernetes patched the Deployment")
 
     def patch_canary(self, row, candidate, weight):
         if self.fail_next:
@@ -765,3 +776,101 @@ def test_tenant_claim_must_be_ascii_kubernetes_namespace_slug(api):
         response = client.get("/api/v1/me", headers=headers(tenant=invalid))
         assert response.status_code == 401, invalid
     assert client.get("/api/v1/me", headers=headers(tenant="team-01")).status_code == 200
+
+
+def test_scale_patch_after_lost_response_is_recoverable_and_idempotent(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    artifact, _ = register(client)
+    row = client.post("/api/v1/deployments", json={
+        "name": "mutable-model", "artifact_id": artifact["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    runtime.patch_timeout_after_apply = True
+    failed = client.patch("/api/v1/deployments/" + row["id"] + "/scale", json={
+        "replicas": 3, "expected_generation": 1,
+    }, headers=headers())
+    assert failed.status_code == 502
+    unknown = client.get("/api/v1/deployments/" + row["id"], headers=headers()).json()
+    assert unknown["generation"] == 2 and unknown["replicas"] == 3
+    assert unknown["intent"] == "runtime_unknown"
+    assert unknown["runtime_verified"] is False
+    assert runtime.deployment_patch_calls == 1
+    again = client.patch("/api/v1/deployments/" + row["id"] + "/scale", json={
+        "replicas": 8, "expected_generation": 1,
+    }, headers=headers())
+    assert again.status_code == 409
+    restored = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert restored["recovered"] == 1 and restored["still_unknown"] == 0
+    assert runtime.deployment_patch_calls == 1  # No duplicate patch.
+    final = client.get("/api/v1/deployments/" + row["id"], headers=headers()).json()
+    assert final["intent"] == "requested"
+    assert final["generation"] == 2
+    assert final["replicas"] == 3
+
+
+def test_promotion_crash_recovery_and_rollback_to_previous_stable(api):
+    client, runtime = api
+    stable, dataset = register(client)
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    row = client.post("/api/v1/deployments", json={
+        "name": "stable-prod", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    runtime.patch_timeout_after_apply = True
+    change = client.post("/api/v1/deployments/" + row["id"] + "/promote", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "expected_generation": 1,
+    }, headers=headers())
+    assert change.status_code == 502
+    unknown = client.get("/api/v1/deployments/" + row["id"], headers=headers()).json()
+    assert unknown["artifact_id"] == candidate["id"]
+    assert unknown["intent"] == "runtime_unknown"
+    assert unknown["generation"] == 2
+    recovered = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                            headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert runtime.deployment_patch_calls == 1
+    rolled_back = client.post("/api/v1/deployments/" + row["id"] + "/rollback",
+                              json={"replicas": 1, "expected_generation": 2},
+                              headers=headers())
+    assert rolled_back.status_code == 200, rolled_back.text
+    assert rolled_back.json()["artifact_id"] == stable["id"]
+    assert rolled_back.json()["generation"] == 3
+    history = client.get("/api/v1/deployments/" + row["id"] + "/revisions",
+                         headers=headers()).json()
+    assert [r["operation"] for r in history] == ["rollback", "promote", "create"]
+
+
+def test_unpromoted_canary_cannot_become_rollback_target(api):
+    client, _ = api
+    stable, dataset = register(client)
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    row = client.post("/api/v1/deployments", json={
+        "name": "canary-only", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    canary = client.post("/api/v1/deployments/" + row["id"] + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 10, "expected_generation": 1,
+    }, headers=headers())
+    assert canary.status_code == 200, canary.text
+    attempted = client.post("/api/v1/deployments/" + row["id"] + "/rollback",
+                            json={"replicas": 1, "expected_generation": 2},
+                            headers=headers())
+    assert attempted.status_code == 409
+    assert "stable" in attempted.json()["detail"]
+
+
+def test_recovery_rejects_foreign_argo_without_crashing_worker(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    model, dataset = register(client)
+    runtime.timeout_after_create = True
+    result = client.post("/api/v1/train-jobs", json={
+        "name": "foreign-argo", "artifact_id": model["id"],
+        "dataset_id": dataset["id"], "output_name": "adapter-test",
+    }, headers=headers())
+    assert result.status_code == 502
+    runtime.jobs["foreign-argo-ft"]["metadata"]["labels"]["modelops.io/tenant"] = "attacker"
+    summary = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert summary["examined"] == 1
+    assert summary["still_unknown"] == 1
+    assert summary["recovered"] == 0
