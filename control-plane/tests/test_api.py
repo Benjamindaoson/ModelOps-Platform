@@ -995,8 +995,11 @@ def test_canary_schema_migration_on_existing_metadata(tmp_path, monkeypatch):
     cfg = Config(str(base_dir / "alembic.ini"))
     monkeypatch.setenv("MODELOPS_DATABASE_URL", url)
     engine = create_engine(url)
-    # Simulates installations where the SQL tables precede the Alembic version.
-    Base.metadata.create_all(engine)
+    # Fresh databases replay 0001 then 0002 before upgrading to 0003.
+    # The original DDL must be a fixed historical snapshot, not current ORM.
+    command.upgrade(cfg, "0002_train_job_lifecycle")
+    old_names = {c["name"] for c in inspect(engine).get_columns("deployments")}
+    assert "canary_artifact_id" not in old_names
     command.upgrade(cfg, "head")
     names = {c["name"] for c in inspect(engine).get_columns("deployments")}
     assert {"canary_artifact_id", "canary_weight"} <= names
@@ -1133,3 +1136,30 @@ def test_deletion_state_never_claims_completion_before_finalizer_done(api):
     assert verified["intent"] == "deleted"
     assert verified["observed_phase"] == "Deleted"
     assert verified["runtime_verified"] is False
+
+
+def test_generated_kubernetes_resource_names_cannot_exceed_dns_limit(api):
+    client, runtime = api
+    artifact, dataset = register(client)
+    base = {"artifact_id": artifact["id"], "engine": "vllm"}
+    legal = client.post("/api/v1/deployments", json={
+        **base, "name": "a" * 50,
+    }, headers=headers())
+    assert legal.status_code == 201, legal.text
+    too_long = client.post("/api/v1/deployments", json={
+        **base, "name": "a" * 51,
+    }, headers=headers())
+    assert too_long.status_code == 422
+    assert ("alpha", "a" * 51) not in runtime.deployments
+    assert len(client.get("/api/v1/deployments", headers=headers()).json()) == 1
+
+    run = {"artifact_id": artifact["id"], "dataset_id": dataset["id"],
+           "output_name": "adapter", "name": "b" * 60}
+    legal_job = client.post("/api/v1/train-jobs", json=run, headers=headers())
+    assert legal_job.status_code == 201, legal_job.text
+    assert len(legal_job.json()["workflow_name"]) == 63
+    illegal_job = client.post("/api/v1/train-jobs", json={
+        **run, "name": "b" * 61,
+    }, headers=headers())
+    assert illegal_job.status_code == 422
+    assert len(runtime.jobs) == 1

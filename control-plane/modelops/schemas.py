@@ -45,7 +45,8 @@ class DatasetIn(BaseModel):
 
 
 class DeploymentIn(BaseModel):
-    name: str = Field(pattern=NAME, max_length=63)
+    # Longest child suffix is -canary-cache (13); Kubernetes names max 63.
+    name: str = Field(pattern=NAME, max_length=50)
     artifact_id: str
     engine: Literal["vllm", "sglang", "tei", "llamacpp"]
     replicas: int = Field(default=1, ge=0, le=32)
@@ -75,7 +76,8 @@ class ReleaseIn(BaseModel):
 
 
 class FineTuneIn(BaseModel):
-    name: str = Field(pattern=NAME)
+    # Argo Workflow names add -ft; do not exceed Kubernetes DNS length 63.
+    name: str = Field(pattern=NAME, max_length=60)
     artifact_id: str
     dataset_id: str
     method: Literal["lora", "qlora", "full"] = "lora"
