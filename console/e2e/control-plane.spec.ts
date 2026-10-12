@@ -72,3 +72,27 @@ test("mobile navigation works without mock data", async ({ page, isMobile }) => 
   await page.getByRole("link", { name: "Environment" }).click();
   await expect(page.getByRole("heading", { name: "Environment" })).toBeVisible();
 });
+
+
+test("rejects cross-origin mutations and oversized bodies before reaching the API", async ({ page }) => {
+  const token = process.env.MODELOPS_E2E_TOKEN;
+  expect(token).toBeTruthy();
+  await page.goto("/dashboard");
+  await page.context().addCookies([
+    { name: "modelops_session", value: token!, domain: "localhost", path: "/" },
+  ]);
+  const url = "http://localhost:3000/api/control/models";
+  const forbidden = await page.request.post(url, {
+    headers: { Origin: "https://attacker.example.invalid", "Content-Type": "application/json" },
+    data: "{}",
+  });
+  expect(forbidden.status()).toBe(403);
+
+  const huge = await page.request.post(url, {
+    headers: { Origin: "http://localhost:3000", "Content-Type": "application/json" },
+    data: JSON.stringify({ arbitrary: "x".repeat(550 * 1024) }),
+  });
+  expect(huge.status()).toBe(413);
+  const allModels = await page.request.get(url);
+  expect(allModels.status()).toBe(200); // test is not a destructive write
+});
