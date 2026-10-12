@@ -152,3 +152,43 @@ func TestMissingDeploymentIDFailsClosed(t *testing.T){
   t.Fatal("gateway must not guess delete ID from public name")
  }
 }
+
+
+func TestManagedAliasCannotDeleteForeignIdentityWithFakeOwnershipLabel(t *testing.T) {
+ store:=newFakeLiteLLM()
+ store.routes["wrong-owner-id"]=modelRecord{
+  ModelName:"tenant--qwen",
+  LiteLLMParams:LiteLLMParams{Model:"openai/another",APIBase:"http://another:8000"},
+  ModelInfo:ModelInfo{ID:"wrong-owner-id",Metadata:map[string]string{
+   "owner":"modelops","namespace":"tenant","resource":"another","slot":"stable",
+  }},
+ }
+ server:=httptest.NewServer(http.HandlerFunc(store.handler))
+ defer server.Close()
+ c:=NewHTTPClient(server.URL,"modelops-test-key")
+ if err:=c.DeleteModelGroup(context.Background(),"tenant--qwen");err==nil {
+  t.Fatal("Finalizer must not delete a route whose owner namespace/resource differ from the group")
+ }
+ if store.deletes!=0 {
+  t.Fatalf("Deleted a foreign route: %d",store.deletes)
+ }
+ wanted:=BuildOwnedRoute("tenant--qwen","tenant","qwen","stable","openai/qwen","http://qwen:8000",100)
+ if err:=c.ReconcileModelGroup(context.Background(),"tenant--qwen",[]GatewayModel{wanted});err==nil {
+  t.Fatal("Reconcile must reject a falsely labeled LiteLLM backend")
+ }
+ if store.creates!=0 || store.updates!=0 {
+  t.Fatal("Unexpected mutation of an unowned LiteLLM group")
+ }
+}
+
+func TestManagedRouteCannotClaimArbitraryAlias(t *testing.T) {
+ store:=newFakeLiteLLM()
+ server:=httptest.NewServer(http.HandlerFunc(store.handler))
+ defer server.Close()
+ c:=NewHTTPClient(server.URL,"modelops-test-key")
+ bogus:=BuildOwnedRoute("victim--model","attacker","model","stable","openai/model","http://model",100)
+ if err:=c.ReconcileModelGroup(context.Background(),"victim--model",[]GatewayModel{bogus});err==nil {
+  t.Fatal("API must require group==namespace--resource to prevent cross-tenant aliasing")
+ }
+ if store.creates!=0 {t.Fatal("Bogus route was created")}
+}
