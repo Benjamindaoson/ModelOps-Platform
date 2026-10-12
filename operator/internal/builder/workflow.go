@@ -44,7 +44,7 @@ func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructu
 	templateName := releaseName + "-finetune"
 	if IsDynamicFineTuneRun(ftr) {
 		templateName = "modelops-finetune-dynamic"
-		parameters = buildDynamicWorkflowParameters(ftr)
+		parameters = DynamicWorkflowParameters(ftr)
 	}
 
 	wf := &unstructured.Unstructured{
@@ -87,7 +87,7 @@ func BuildArgoWorkflow(ftr *v1alpha1.FineTuneRun, releaseName string) *unstructu
 // buildDynamicWorkflowParameters follows the single Argo contract
 // shared with control-plane/modelops/runtime.py (underscored parameter names).
 // Validation is performed in the controller BEFORE this helper is called.
-func buildDynamicWorkflowParameters(ftr *v1alpha1.FineTuneRun) []map[string]string {
+func DynamicWorkflowParameters(ftr *v1alpha1.FineTuneRun) []map[string]string {
 	t := ftr.Spec.Training
 	method := ftr.Spec.Method
 	if method == "" { method = "lora" }
