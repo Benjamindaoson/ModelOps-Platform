@@ -1033,3 +1033,103 @@ def test_promote_releases_canary_and_restored_version_has_no_old_traffic(api):
     assert restored.status_code == 200, restored.text
     assert restored.json()["artifact_id"] == stable["id"]
     assert restored.json()["canary_spec"] is None
+
+
+def test_live_serving_evidence_requires_matching_artifact_and_canary(api):
+    """The gateway cannot certify weights not matching the registered model."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    client, runtime = api
+    stable, dataset = register(client)
+    row = client.post("/api/v1/deployments", json={
+        "name": "model-provenance", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    path = "/api/v1/deployments/" + row["id"]
+    assert client.get(path, headers=headers()).json()["runtime_verified"] is True
+
+    current = runtime.deployments[("alpha", "model-provenance")]
+    before = deepcopy(current)
+    modifications = [
+        ("metadata", "annotations", "modelops.io/artifact-id", "foreign-id"),
+        ("metadata", "annotations", "modelops.io/artifact-revision", "stale-version"),
+        ("metadata", "annotations", "modelops.io/artifact-sha256", "f" * 64),
+        ("spec", "source", None, "Unknown/UntrustedModel"),
+    ]
+    for parent, field, sub, invalid in modifications:
+        target = current[parent][field]
+        if sub is None:
+            previous = target
+            current[parent][field] = invalid
+        else:
+            previous = target[sub]
+            target[sub] = invalid
+        result = client.get(path, headers=headers())
+        assert result.status_code == 200, result.text
+        assert result.json()["observed_phase"] == "ConfigurationDrift"
+        assert result.json()["runtime_verified"] is False
+        if sub is None:
+            current[parent][field] = previous
+        else:
+            target[sub] = previous
+
+    assert client.get(path, headers=headers()).json()["runtime_verified"] is True
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    started = client.post(path + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 20, "expected_generation": 1,
+    }, headers=headers())
+    assert started.status_code == 200, started.text
+    # Stable traffic is available, but the *weighted release* isn't verified
+    # while the candidate has no ready endpoints.
+    assert started.json()["runtime_verified"] is False
+    fake = runtime.canaries[("alpha", "model-provenance")]
+    old_digest = fake["digest"]
+    fake["digest"] = "e" * 64
+    mismatch = client.get(path, headers=headers()).json()
+    assert mismatch["observed_phase"] == "ConfigurationDrift"
+    assert mismatch["runtime_verified"] is False
+    fake["digest"] = old_digest
+    stopped = client.post(path + "/canary/stop",
+                          json={"expected_generation": 2}, headers=headers())
+    assert stopped.status_code == 200
+    assert stopped.json()["runtime_verified"] is True
+
+
+def test_deletion_state_never_claims_completion_before_finalizer_done(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    artifact, _ = register(client)
+    row = client.post("/api/v1/deployments", json={
+        "name": "finalizer-pending", "artifact_id": artifact["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    key = ("alpha", "finalizer-pending")
+    path = "/api/v1/deployments/" + row["id"]
+    delete_calls = []
+    def acknowledge_but_do_not_delete(item):
+        delete_calls.append(item.name)
+        runtime.deployments[key]["metadata"]["deletionTimestamp"] = "2026-10-12T00:00:00Z"
+    runtime.delete_deployment = acknowledge_but_do_not_delete
+
+    requested = client.delete(path, headers=headers())
+    assert requested.status_code == 200
+    assert requested.json()["status"] == "deletion_requested"
+    pending = client.get(path, headers=headers()).json()
+    assert pending["intent"] == "deleting"
+    assert pending["observed_phase"] == "Deleting"
+    assert pending["runtime_verified"] is False
+    # A second DELETE cannot bypass the Kubernetes finalizer or issue a
+    # second DELETE: only its eventual disappearance certifies completion.
+    assert client.delete(path, headers=headers()).status_code == 200
+    assert delete_calls == ["finalizer-pending"]
+    not_done = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert not_done["pending_deletions"] == 1
+    assert not_done["recovered"] == 0
+    assert client.get(path, headers=headers()).json()["intent"] == "deleting"
+    runtime.deployments.pop(key)
+    completed = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert completed["recovered"] == 1
+    verified = client.get(path, headers=headers()).json()
+    assert verified["intent"] == "deleted"
+    assert verified["observed_phase"] == "Deleted"
+    assert verified["runtime_verified"] is False
