@@ -46,7 +46,7 @@ class BenchContractTests(unittest.TestCase):
     def test_rejects_nonfinite_load_rate(self):
         for value in ("nan", "inf", "-inf"):
             with self.assertRaises(ValueError):
-                validate(self.args("--request-rate", value))
+                validate(self.args("--request-rate=" + value))
 
     def test_rejects_inconsistent_raw_request_counts(self):
         raw = {"completed": 40, "failed": 1, "duration": 10.0,
