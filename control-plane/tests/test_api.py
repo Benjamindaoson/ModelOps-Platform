@@ -582,3 +582,62 @@ def test_recovery_does_not_adopt_foreign_kubernetes_resource(api):
     assert restored.status_code == 502
     assert runtime.deployment_create_calls == 1
     assert client.get("/api/v1/deployments", headers=headers()).json()[0]["intent"] == "runtime_unknown"
+
+
+
+def test_scheduled_recovery_converges_pending_deployments_and_training(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    artifact, dataset = register(client)
+    runtime.fail_next = True
+    d = client.post("/api/v1/deployments", json={
+        "name": "pending-deploy", "artifact_id": artifact["id"], "engine": "vllm",
+    }, headers=headers())
+    assert d.status_code == 502
+    runtime.timeout_after_create = True
+    t = client.post("/api/v1/train-jobs", json={
+        "name": "pending-train", "artifact_id": artifact["id"],
+        "dataset_id": dataset["id"], "output_name": "pending-train-output",
+    }, headers=headers())
+    assert t.status_code == 502
+    assert runtime.deployment_create_calls == 0
+    assert runtime.training_create_calls == 1
+
+    summary = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert summary["recovered"] == 2
+    assert summary["still_unknown"] == 0
+    assert runtime.deployment_create_calls == 1
+    assert runtime.training_create_calls == 1  # Existing Workflow was adopted.
+    assert all(r["intent"] == "requested" for r in
+               client.get("/api/v1/deployments", headers=headers()).json())
+    assert all(r["intent"] == "requested" for r in
+               client.get("/api/v1/train-jobs", headers=headers()).json())
+    again = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert again["examined"] == 0 and again["recovered"] == 0
+    assert runtime.deployment_create_calls == 1
+
+
+def test_recovery_worker_stays_in_requested_tenant_and_denies_foreign_adoption(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    model, _ = register(client)
+    runtime.timeout_after_create = True
+    response = client.post("/api/v1/deployments", json={
+        "name": "ownership-mismatch", "artifact_id": model["id"], "engine": "vllm",
+    }, headers=headers())
+    assert response.status_code == 502
+    runtime.deployments[("alpha", "ownership-mismatch")]["metadata"]["annotations"][
+        "modelops.io/tenant"] = "attacker"
+    empty = recover_once(client.app.state.sessions, runtime, "beta")
+    assert empty["examined"] == 0
+    stuck = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert stuck["examined"] == 1 and stuck["still_unknown"] == 1
+    assert runtime.deployment_create_calls == 1
+    assert client.get("/api/v1/deployments", headers=headers()).json()[0]["intent"] == "runtime_unknown"
+
+
+def test_recovery_worker_rejects_unvalidated_tenant(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    with pytest.raises(ValueError):
+        recover_once(client.app.state.sessions, runtime, "../kube-system")

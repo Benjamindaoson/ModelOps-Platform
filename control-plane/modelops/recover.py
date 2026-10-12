@@ -17,7 +17,7 @@ from .runtime import KubernetesRuntime, RuntimeFailure
 
 
 def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
-    if not re.fullmatch(r"[a-z][a-z0-9-]{0,38}[a-z0-9]", tenant):
+    if not re.fullmatch(r"[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?", tenant):
         raise ValueError("Recovery tenant must be a validated lower-case namespace slug")
     if max_items < 1 or max_items > 500:
         raise ValueError("Recovery batch limit must be in 1..500")
