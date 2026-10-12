@@ -31,25 +31,33 @@ class RecordingRuntime:
         self.canaries = {}
         self.last_workflow = None
         self.fail_next = False
+        self.timeout_after_create = False
+        self.deployment_create_calls = 0
+        self.training_create_calls = 0
 
     def create_deployment(self, row, artifact):
         if self.fail_next:
             self.fail_next = False
             from modelops.runtime import RuntimeFailure
             raise RuntimeFailure("Injected Kubernetes outage")
+        self.deployment_create_calls += 1
         self.deployments[(row.tenant, row.name)] = deployment_body(row, artifact)
+        if self.timeout_after_create:
+            self.timeout_after_create = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Lost response after Kubernetes created the Deployment")
 
     def get_deployment(self, row):
-        if (row.tenant, row.name) not in self.deployments:
-            raise AssertionError("test runtime not populated")
-        candidate = self.canaries.get((row.tenant,row.name))
-        return {
-            "status": {
-                "phase": "Ready", "readyReplicas": row.replicas,
-                "canary": {"phase": "Pending", "readyReplicas": 0} if candidate else None,
-            },
-            "spec": {"canary": candidate},
-        }
+        key = (row.tenant, row.name)
+        if key not in self.deployments:
+            from modelops.runtime import RuntimeNotFound
+            raise RuntimeNotFound("Deployment not yet present in fake K8s")
+        candidate = self.canaries.get(key)
+        body = self.deployments[key]
+        return {**body, "status": {
+            "phase": "Ready", "readyReplicas": row.replicas,
+            "canary": {"phase": "Pending", "readyReplicas": 0} if candidate else None,
+        }, "spec": {**body["spec"], "canary": candidate}}
 
     def patch_deployment(self, row, artifact):
         self.deployments[(row.tenant, row.name)] = deployment_body(row, artifact)
@@ -77,14 +85,22 @@ class RecordingRuntime:
             self.fail_next = False
             from modelops.runtime import RuntimeFailure
             raise RuntimeFailure("Injected Argo submission failure")
+        self.training_create_calls += 1
         body = fine_tune_workflow_body(row, artifact, dataset, parameters)
         body["metadata"]["resourceVersion"] = "1"
         body["metadata"]["uid"] = "uid-" + row.id
         body["status"] = {"phase": "Pending", "progress": "0/7"}
         self.last_workflow = body
         self.jobs[row.workflow_name] = body
+        if self.timeout_after_create:
+            self.timeout_after_create = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Lost response after Argo created the Workflow")
 
     def get_finetune(self, row):
+        if row.workflow_name not in self.jobs:
+            from modelops.runtime import RuntimeNotFound
+            raise RuntimeNotFound("Argo Workflow absent in fake K8s")
         return self.jobs[row.workflow_name]
 
     def cancel_finetune(self, row, resource_version):
@@ -206,7 +222,18 @@ def test_runtime_failure_does_not_register_fake_deployment(api):
     response = c.post("/api/v1/deployments", json={"name": "broken", "artifact_id": m["id"],
         "engine": "vllm"}, headers=headers())
     assert response.status_code == 502
-    assert c.get("/api/v1/deployments", headers=headers()).json() == []
+    rows = c.get("/api/v1/deployments", headers=headers()).json()
+    assert len(rows) == 1
+    assert rows[0]["intent"] == "runtime_unknown"
+    assert rows[0]["observed_phase"] == "RuntimeMissing"
+    assert runtime.deployment_create_calls == 0
+    # Recovery uses the reserved original ID and does not create a new DB row.
+    recovered = c.post("/api/v1/deployments/" + rows[0]["id"] + "/recover", headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "requested"
+    assert runtime.deployment_create_calls == 1
+    assert c.post("/api/v1/deployments/" + rows[0]["id"] + "/recover",
+                  headers=headers()).status_code == 409
 
 
 def test_production_offline_writes_are_denied(tmp_path):
@@ -477,3 +504,140 @@ def test_retry_name_is_dns_safe():
     name = retry_workflow_name("a" * 63, "12345678")
     assert len(name + "-ft") <= 63
     assert name.endswith("-r-12345678")
+
+
+
+def test_lost_kubernetes_response_adopts_same_deployment_without_duplication(api):
+    client, runtime = api
+    model, _ = register(client)
+    runtime.timeout_after_create = True
+    response = client.post("/api/v1/deployments", json={
+        "name": "lost-response", "artifact_id": model["id"], "engine": "vllm",
+    }, headers=headers())
+    assert response.status_code == 502
+    rows = client.get("/api/v1/deployments", headers=headers()).json()
+    assert rows[0]["intent"] == "runtime_unknown"
+    assert runtime.deployment_create_calls == 1
+    recovered = client.post("/api/v1/deployments/" + rows[0]["id"] + "/recover",
+                            headers=headers())
+    assert recovered.status_code == 200
+    assert recovered.json()["intent"] == "requested"
+    assert runtime.deployment_create_calls == 1
+    assert len(runtime.deployments) == 1
+
+
+def test_lost_argo_response_adopts_original_workflow_and_parameters(api):
+    client, runtime = api
+    model, dataset = register(client)
+    runtime.timeout_after_create = True
+    submit = client.post("/api/v1/train-jobs", json={
+        "name": "timeout-job", "artifact_id": model["id"], "dataset_id": dataset["id"],
+        "method": "qlora", "epochs": 2, "lr": 0.0001, "output_name": "timeout-output",
+    }, headers=headers())
+    assert submit.status_code == 502
+    pending = client.get("/api/v1/train-jobs", headers=headers()).json()
+    assert len(pending) == 1 and pending[0]["intent"] == "runtime_unknown"
+    assert runtime.training_create_calls == 1
+    recovered = client.post("/api/v1/train-jobs/" + pending[0]["id"] + "/recover",
+                            headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "requested"
+    assert recovered.json()["runtime_verified"] is True
+    assert recovered.json()["parameters"]["epochs"] == 2
+    assert runtime.training_create_calls == 1
+    assert len(runtime.jobs) == 1
+
+
+def test_argo_transport_failure_leaves_durable_recoverable_intent(api):
+    client, runtime = api
+    model, dataset = register(client)
+    runtime.fail_next = True
+    submit = client.post("/api/v1/train-jobs", json={
+        "name": "retry-submission", "artifact_id": model["id"],
+        "dataset_id": dataset["id"], "output_name": "adapter",
+    }, headers=headers())
+    assert submit.status_code == 502
+    row = client.get("/api/v1/train-jobs", headers=headers()).json()[0]
+    assert row["intent"] == "runtime_unknown"
+    assert row["observed_phase"] == "RuntimeMissing"
+    retried = client.post("/api/v1/train-jobs/" + row["id"] + "/recover", headers=headers())
+    assert retried.status_code == 200
+    assert retried.json()["intent"] == "requested"
+    assert runtime.training_create_calls == 1
+
+
+def test_recovery_does_not_adopt_foreign_kubernetes_resource(api):
+    client, runtime = api
+    model, _ = register(client)
+    runtime.timeout_after_create = True
+    failed = client.post("/api/v1/deployments", json={
+        "name": "foreign-annotation", "artifact_id": model["id"], "engine": "vllm",
+    }, headers=headers())
+    assert failed.status_code == 502
+    row = client.get("/api/v1/deployments", headers=headers()).json()[0]
+    runtime.deployments[("alpha", "foreign-annotation")]["metadata"]["annotations"][
+        "modelops.io/tenant"] = "foreign"
+    restored = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                           headers=headers())
+    assert restored.status_code == 502
+    assert runtime.deployment_create_calls == 1
+    assert client.get("/api/v1/deployments", headers=headers()).json()[0]["intent"] == "runtime_unknown"
+
+
+
+def test_scheduled_recovery_converges_pending_deployments_and_training(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    artifact, dataset = register(client)
+    runtime.fail_next = True
+    d = client.post("/api/v1/deployments", json={
+        "name": "pending-deploy", "artifact_id": artifact["id"], "engine": "vllm",
+    }, headers=headers())
+    assert d.status_code == 502
+    runtime.timeout_after_create = True
+    t = client.post("/api/v1/train-jobs", json={
+        "name": "pending-train", "artifact_id": artifact["id"],
+        "dataset_id": dataset["id"], "output_name": "pending-train-output",
+    }, headers=headers())
+    assert t.status_code == 502
+    assert runtime.deployment_create_calls == 0
+    assert runtime.training_create_calls == 1
+
+    summary = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert summary["recovered"] == 2
+    assert summary["still_unknown"] == 0
+    assert runtime.deployment_create_calls == 1
+    assert runtime.training_create_calls == 1  # Existing Workflow was adopted.
+    assert all(r["intent"] == "requested" for r in
+               client.get("/api/v1/deployments", headers=headers()).json())
+    assert all(r["intent"] == "requested" for r in
+               client.get("/api/v1/train-jobs", headers=headers()).json())
+    again = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert again["examined"] == 0 and again["recovered"] == 0
+    assert runtime.deployment_create_calls == 1
+
+
+def test_recovery_worker_stays_in_requested_tenant_and_denies_foreign_adoption(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    model, _ = register(client)
+    runtime.timeout_after_create = True
+    response = client.post("/api/v1/deployments", json={
+        "name": "ownership-mismatch", "artifact_id": model["id"], "engine": "vllm",
+    }, headers=headers())
+    assert response.status_code == 502
+    runtime.deployments[("alpha", "ownership-mismatch")]["metadata"]["annotations"][
+        "modelops.io/tenant"] = "attacker"
+    empty = recover_once(client.app.state.sessions, runtime, "beta")
+    assert empty["examined"] == 0
+    stuck = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert stuck["examined"] == 1 and stuck["still_unknown"] == 1
+    assert runtime.deployment_create_calls == 1
+    assert client.get("/api/v1/deployments", headers=headers()).json()[0]["intent"] == "runtime_unknown"
+
+
+def test_recovery_worker_rejects_unvalidated_tenant(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    with pytest.raises(ValueError):
+        recover_once(client.app.state.sessions, runtime, "../kube-system")

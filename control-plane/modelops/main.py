@@ -21,8 +21,9 @@ from .db import (Base, TenantRecord, ModelArtifact, DatasetVersion, Deployment,
                  AuditEvent, make_session_factory)
 from .evidence import EvidenceError, digest_report, verify_report
 from .job_lifecycle import check_job_identity, observed_job, retry_workflow_name, terminal_job_phase
+from .reconciliation import ensure_deployment, ensure_training
 from .runtime import (DisabledRuntime, KubernetesRuntime, RuntimeFailure,
-                      RuntimeUnavailable, namespace_for)
+                      RuntimeNotFound, RuntimeUnavailable, namespace_for)
 from .schemas import (ApprovalIn, ArtifactIn, DatasetIn, DeploymentIn,
                       EvaluationIn, FineTuneIn, ReleaseIn, ScaleIn,
                       CanaryReleaseIn, CanaryStopIn)
@@ -117,6 +118,9 @@ def with_runtime_state(runtime, dep: Deployment, data: dict):
                 "canary_status": status.get("canary"),
                 "canary_spec": observed.get("spec", {}).get("canary"),
                 "runtime_verified": actual_generation is None or phase == "Ready"}
+    except RuntimeNotFound:
+        return {**data, "observed_phase": "RuntimeMissing",
+                "ready_replicas": None, "runtime_verified": False}
     except RuntimeFailure:
         return {**data, "observed_phase": "RuntimeUnreachable",
                 "ready_replicas": None, "runtime_verified": False}
@@ -232,17 +236,53 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         if artifact.family == "embedding" and req.engine != "tei":
             raise HTTPException(422, detail="Embedding model requires TEI engine in this release")
         if not app.state.runtime.connected:
-            raise RuntimeUnavailable("Kubernetes disconnected; model deployment was not created")
+            raise RuntimeUnavailable("Kubernetes disconnected; deployment cannot be submitted")
+
+        # Persist the desired identity BEFORE contacting Kubernetes. If a
+        # network timeout follows a successful create, an identical CRD can be
+        # adopted from this durable record by the recovery worker/API.
         row = Deployment(tenant=p.tenant, name=req.name, artifact_id=artifact.id,
                          engine=req.engine, replicas=req.replicas, gpu=req.gpu,
-                         created_by=p.subject)
+                         intent="submitting", created_by=p.subject)
         db.add(row)
         flush_record(db)
-        app.state.runtime.create_deployment(row, artifact)
         db.add(DeploymentRevision(deployment_id=row.id, generation=1, artifact_id=artifact.id,
                                   operation="create", requested_by=p.subject))
-        audit(db, p, "deployment.create", "deployment", row.id,
+        audit(db, p, "deployment.request", "deployment", row.id,
               {"engine": row.engine, "generation": row.generation})
+        commit(db)
+        try:
+            ensure_deployment(app.state.runtime, row, artifact)
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            audit(db, p, "deployment.submit_unknown", "deployment", row.id,
+                  {"reason": "Kubernetes create/adopt result could not be verified"})
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "deployment.submit_confirmed", "deployment", row.id)
+        commit(db)
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+
+    @app.post("/api/v1/deployments/{key}/recover")
+    def recover_deployment(key: str, p: Principal = Depends(require_principal),
+                           db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, Deployment, p.tenant, key)
+        if row.intent not in ("submitting", "runtime_unknown"):
+            raise HTTPException(409, detail="Only unknown deployment submissions can be recovered")
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; recovery could not be performed")
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        try:
+            disposition = ensure_deployment(app.state.runtime, row, artifact)
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "deployment.recovered", "deployment", row.id,
+              {"outcome": disposition})
         commit(db)
         return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
 
@@ -473,6 +513,9 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             actual = app.state.runtime.get_finetune(row)
             check_job_identity(actual, row)
             return {**data, **observed_job(actual)}
+        except RuntimeNotFound:
+            return {**data, "observed_phase": "RuntimeMissing",
+                    "runtime_verified": False, "message": "Argo Workflow does not exist yet"}
         except RuntimeFailure:
             return {**data, "observed_phase": "RuntimeUnreachable",
                     "runtime_verified": False, "message": "Unable to query real Argo state"}
@@ -501,15 +544,48 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row = FineTuneJob(tenant=p.tenant, name=req.name,
                          artifact_id=artifact.id, dataset_id=dataset.id, method=req.method,
                          parameters_json=req.model_dump_json(), workflow_name=req.name + "-ft",
-                         parent_job_id=None, attempt=1, created_by=p.subject)
+                         parent_job_id=None, attempt=1, intent="submitting", created_by=p.subject)
         db.add(row)
         flush_record(db)
-        app.state.runtime.submit_finetune(row, artifact, dataset, req.model_dump())
-        audit(db, p, "training.submit", "train_job", row.id,
+        audit(db, p, "training.request", "train_job", row.id,
               {"method": req.method, "dataset_id": dataset.id, "attempt": 1})
+        commit(db)
+        try:
+            ensure_training(app.state.runtime, row, artifact, dataset)
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            audit(db, p, "training.submit_unknown", "train_job", row.id,
+                  {"reason": "Argo job result could not be confirmed"})
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "training.submit_confirmed", "train_job", row.id)
         commit(db)
         return {**render(row, *RUN_FIELDS), "parameters": req.model_dump(),
                 "observed_phase": "Pending", "runtime_verified": False}
+
+    @app.post("/api/v1/train-jobs/{key}/recover")
+    def recover_training(key: str, p: Principal = Depends(require_principal),
+                         db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, FineTuneJob, p.tenant, key)
+        if row.intent not in ("submitting", "runtime_unknown"):
+            raise HTTPException(409, detail="Only unknown Argo submissions can be recovered")
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; no recovery was performed")
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        dataset = fetch_owned(db, DatasetVersion, p.tenant, row.dataset_id)
+        try:
+            disposition = ensure_training(app.state.runtime, row, artifact, dataset)
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "training.recovered", "train_job", row.id,
+              {"outcome": disposition, "workflow": row.workflow_name})
+        commit(db)
+        return summarize_train_job(row)
 
     @app.post("/api/v1/train-jobs/{key}/cancel")
     def cancel_train_job(key: str, p: Principal = Depends(require_principal),
@@ -562,15 +638,24 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row = FineTuneJob(tenant=p.tenant, name=name, artifact_id=artifact.id,
                          dataset_id=dataset.id, method=prior.method,
                          parameters_json=json.dumps(params, sort_keys=True),
-                         workflow_name=name + "-ft",
+                         workflow_name=name + "-ft", intent="submitting",
                          parent_job_id=prior.id, attempt=prior.attempt + 1,
                          created_by=p.subject)
         db.add(row)
         flush_record(db)
-        app.state.runtime.submit_finetune(row, artifact, dataset, params)
-        audit(db, p, "training.retry", "train_job", row.id,
+        audit(db, p, "training.retry.request", "train_job", row.id,
               {"parent_job_id": prior.id, "attempt": row.attempt,
                "previous_phase": phase, "workflow": row.workflow_name})
+        commit(db)
+        try:
+            ensure_training(app.state.runtime, row, artifact, dataset)
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "training.retry", "train_job", row.id,
+              {"parent_job_id": prior.id, "attempt": row.attempt})
         commit(db)
         return {**render(row, *RUN_FIELDS), "parameters": params,
                 "observed_phase": "Pending", "runtime_verified": False}

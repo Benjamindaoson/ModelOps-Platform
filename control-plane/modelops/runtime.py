@@ -16,6 +16,11 @@ class RuntimeFailure(RuntimeError):
     pass
 
 
+class RuntimeNotFound(RuntimeFailure):
+    """A specifically missing Kubernetes object, not a generic outage."""
+    pass
+
+
 def namespace_for(tenant: str) -> str:
     return "modelops-" + tenant
 
@@ -111,6 +116,8 @@ class KubernetesRuntime:
         try:
             return fn(*args, **kwargs)
         except Exception as exc:
+            if getattr(exc, "status", None) == 404:
+                raise RuntimeNotFound("Requested Kubernetes object is absent") from exc
             raise RuntimeFailure("Kubernetes API request failed; inspect cluster events") from exc
 
     def create_deployment(self, dep, artifact):

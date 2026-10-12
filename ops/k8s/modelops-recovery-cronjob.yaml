@@ -1,0 +1,78 @@
+# Replace image and Secret names with your verified environment values.
+# Install separately inside each modelops-<tenant> namespace.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: modelops-runtime-recovery
+  namespace: modelops-tenant1
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 240
+      template:
+        spec:
+          serviceAccountName: modelops-runtime-recovery
+          restartPolicy: Never
+          automountServiceAccountToken: true
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: recover
+              image: ghcr.io/benjamindaoson/modelops-control-plane:v0.1.0
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "modelops.recover"]
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: MODELOPS_RUNTIME
+                  value: kubernetes
+                - name: MODELOPS_RECOVERY_TENANT
+                  value: tenant1
+                - name: MODELOPS_DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: modelops-runtime-db
+                      key: database-url
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: modelops-runtime-recovery
+  namespace: modelops-tenant1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: modelops-runtime-recovery
+  namespace: modelops-tenant1
+rules:
+  - apiGroups: ["llmops.kubellmops.io"]
+    resources: ["modeldeployments"]
+    verbs: ["get", "create"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: modelops-runtime-recovery
+  namespace: modelops-tenant1
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: modelops-runtime-recovery
+subjects:
+  - kind: ServiceAccount
+    name: modelops-runtime-recovery
+    namespace: modelops-tenant1

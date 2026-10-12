@@ -65,9 +65,21 @@ function Field({ label, name, placeholder, required = true, type = "text", defau
 function SelectField({ label, name, choices, defaultValue }: {
   label: string; name: string; choices: { value: string; text: string }[]; defaultValue?: string;
 }) {
-  return <label className="field">{label}<select name={name} required defaultValue={defaultValue || choices[0]?.value || ""}>
-    {choices.map(c => <option key={c.value} value={c.value}>{c.text}</option>)}
-  </select></label>;
+  const [value, setValue] = useState(defaultValue || choices[0]?.value || "");
+  // Async Model/Dataset options arrive after navigation. An uncontrolled
+  // select can retain its original empty value and block native form
+  // submission without any visible error.
+  useEffect(() => {
+    if (!choices.some(choice => choice.value === value)) {
+      setValue((defaultValue && choices.some(choice => choice.value === defaultValue))
+        ? defaultValue : (choices[0]?.value || ""));
+    }
+  }, [choices, defaultValue, value]);
+  return <label className="field">{label}
+    <select name={name} required value={value} onChange={event => setValue(event.target.value)}>
+      {choices.map(c => <option key={c.value} value={c.value}>{c.text}</option>)}
+    </select>
+  </label>;
 }
 
 function Models({ rows }: { rows: Artifact[] }) {
@@ -120,6 +132,12 @@ function Deployments({ rows, act, busy, artifacts, approvals }: {
           {r.observed_phase || "Pending"}</Status><span className="sub-line">{r.intent}</span></td>
         <td>{r.replicas} replicas<span className="sub-line">{r.gpu} GPU each</span></td>
         <td><div className="row-actions">
+          {(r.intent === "runtime_unknown" || r.intent === "submitting") &&
+            <button disabled={busy} className="table-button"
+              title="Reconcile the original Kubernetes resource without creating duplicates"
+              onClick={() => void act("deployments/" + r.id + "/recover", {}).catch(() => {})}>
+              Recover
+            </button>}
           <button disabled={busy || r.intent === "deleted"} className="table-button" onClick={() => void manage(r)}>Release</button>
           <button disabled={busy || r.intent === "deleted"} className="table-button"
             onClick={() => void act("deployments/" + r.id + "/scale",
@@ -248,6 +266,12 @@ function Jobs({ rows, act, busy }: {
         {j.finished_at && <span className="sub-line">Finished {fmtDate(j.finished_at)}</span>}
       </td>
       <td><div className="row-actions">
+        {(j.intent === "runtime_unknown" || j.intent === "submitting") &&
+          <button className="table-button" disabled={busy}
+            title="Verify the previously submitted Argo Workflow before resubmitting"
+            onClick={() => void act("train-jobs/" + j.id + "/recover", {}).catch(() => {})}>
+            Recover
+          </button>}
         <button className="table-button danger" disabled={busy || !canCancel}
           title="Request termination; does not immediately mark job stopped"
           onClick={() => {
@@ -363,13 +387,19 @@ function NewRecord({ section, artifacts, datasets, evaluations, close, execute, 
     setBusyForm(true);
     try { await execute(resource, payload); close(); } finally { setBusyForm(false); }
   }
-  const disabled = busy || busyForm;
+  const missingChoices = (section === "training" &&
+    (!artifacts.some(a => a.family === "llm") || datasets.length === 0)) ||
+    (section === "deployments" && artifacts.length === 0);
+  const disabled = busy || busyForm || missingChoices;
   return <FormFields title={
     section === "models" ? "Register a model version" :
     section === "datasets" ? "Register a dataset version" :
     section === "approvals" ? "Review release evaluation" :
     section === "training" ? "Submit Argo training job" : "Create Kubernetes deployment"}
     submit={submit} onCancel={close} busy={disabled}>
+    {missingChoices && <p className="form-hint" role="status">
+      A registered model and dataset must finish loading before this job can be submitted.
+    </p>}
     {section === "models" && <>
       <div className="form-grid"><Field label="Model name" name="name" placeholder="qwen-coder"/>
         <Field label="Version" name="version" type="number" min={1} defaultValue={1}/>
