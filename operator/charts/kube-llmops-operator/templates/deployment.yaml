@@ -19,21 +19,39 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: operator
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --health-probe-bind-address=:8081
           env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MODELOPS_ENV
+              value: {{ .Values.environment | default "production" | quote }}
+            - name: MODELOPS_ENABLE_HELM_BOOTSTRAP
+              value: "0"
             {{- if .Values.gateway.url }}
             - name: GATEWAY_URL
               value: {{ .Values.gateway.url | quote }}
             {{- end }}
-            {{- if .Values.gateway.masterKey }}
             - name: GATEWAY_MASTER_KEY
-              value: {{ .Values.gateway.masterKey | quote }}
-            {{- end }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.existingSecret | quote }}
+                  key: master-key
           ports:
             - name: health
               containerPort: 8081

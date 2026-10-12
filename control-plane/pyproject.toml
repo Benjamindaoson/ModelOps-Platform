@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modelops-control-plane"
+version = "0.1.0"
+description = "Audited, tenant-scoped ModelOps control API backed by Kubernetes CRDs"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  "SQLAlchemy>=2.0,<3",
+  "alembic>=1.13,<2",
+  "pydantic>=2.7,<3",
+  "PyJWT[crypto]>=2.8,<3",
+  "kubernetes>=30,<35",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1,<4"]
+dev = ["httpx>=0.27,<1", "pytest>=8,<10", "ruff>=0.8,<1"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["modelops*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

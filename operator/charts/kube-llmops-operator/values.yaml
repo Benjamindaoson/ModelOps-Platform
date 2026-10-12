@@ -2,8 +2,8 @@ replicaCount: 1
 
 image:
   repository: localhost:5000/kube-llmops/operator
-  tag: latest
-  pullPolicy: Always
+  tag: v0.1.0
+  pullPolicy: IfNotPresent
 
 serviceAccount:
   create: true
@@ -17,10 +17,13 @@ resources:
     cpu: 500m
     memory: 256Mi
 
+# Bootstrap CRDs/Helm components with an external cluster-admin only.
+# Runtime Operator itself is per-namespace and least privileged.
+environment: production
 chartPath: /charts/kube-llmops-stack
 
 gateway:
   # LiteLLM gateway URL. Set to enable model registration via /model/new API.
   url: "http://kube-llmops-litellm:4000"
   # Master key for LiteLLM API authentication.
-  masterKey: "sk-kube-llmops-default"
+  existingSecret: kube-llmops-litellm-secret

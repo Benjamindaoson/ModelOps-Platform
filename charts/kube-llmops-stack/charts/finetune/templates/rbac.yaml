@@ -1,17 +1,21 @@
+# FineTune service accounts require permissions ONLY in their release namespace.
+# Argo CRDs and tenant namespaces are installed separately by cluster bootstrap.
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Release.Name }}-finetune
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finetune
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/part-of: kube-llmops
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: {{ .Release.Name }}-finetune
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finetune
     app.kubernetes.io/instance: {{ .Release.Name }}
@@ -31,16 +35,17 @@ rules:
     verbs: ["create", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: {{ .Release.Name }}-finetune
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finetune
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/part-of: kube-llmops
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: {{ .Release.Name }}-finetune
 subjects:
   - kind: ServiceAccount
