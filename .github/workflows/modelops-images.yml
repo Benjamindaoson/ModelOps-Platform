@@ -35,7 +35,10 @@ jobs:
           trap 'docker logs modelops-control-api-smoke || true; docker rm -f modelops-control-api-smoke || true' EXIT
           for i in $(seq 1 40); do
             if curl --max-time 2 -fsS http://127.0.0.1:18080/readyz | grep -q '"metadata_database":"ready"'; then
-              echo "API container started, SQLite metadata ready (NOT a GPU/platform HA validation)."
+              test "$(docker exec modelops-control-api-smoke id -u)" = "10001"
+              docker exec modelops-control-api-smoke test -w /srv/modelops/data
+              docker exec modelops-control-api-smoke test -s /srv/modelops/data/modelops.db
+              echo "Non-root API container started; persistent metadata directory and SQLite file verified."
               exit 0
             fi
             sleep 2
