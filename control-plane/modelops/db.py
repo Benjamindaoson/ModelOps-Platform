@@ -68,6 +68,9 @@ class Deployment(Base):
     replicas: Mapped[int] = mapped_column(Integer)
     gpu: Mapped[int] = mapped_column(Integer)
     generation: Mapped[int] = mapped_column(Integer, default=1)
+    canary_artifact_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("model_artifacts.id"), nullable=True)
+    canary_weight: Mapped[int | None] = mapped_column(Integer, nullable=True)
     intent: Mapped[str] = mapped_column(String(25), default="requested")
     created_by: Mapped[str] = mapped_column(String(150))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

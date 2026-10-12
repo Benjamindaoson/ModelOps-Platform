@@ -12,7 +12,7 @@ import sys
 from sqlalchemy import select
 
 from .db import AuditEvent, Deployment, DeploymentRevision, FineTuneJob, ModelArtifact, DatasetVersion, make_session_factory
-from .reconciliation import ensure_deployment, ensure_training, ensure_updated_deployment
+from .reconciliation import ensure_training, reconcile_deployment_revision
 from .runtime import KubernetesRuntime, RuntimeFailure
 
 
@@ -52,11 +52,21 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
                     latest = db.scalar(select(DeploymentRevision).where(
                         DeploymentRevision.deployment_id == record.id
                     ).order_by(DeploymentRevision.generation.desc()).limit(1))
-                    if latest and latest.operation in ("scale", "promote", "rollback"):
-                        outcome = ensure_updated_deployment(runtime, record, artifact)
-                    else:
-                        outcome = ensure_deployment(runtime, record, artifact)
-                record.intent = "requested"
+                    candidate = None
+                    if latest and latest.operation == "canary":
+                        candidate = db.get(ModelArtifact, record.canary_artifact_id)
+                        if candidate is None or candidate.tenant != tenant:
+                            raise RuntimeFailure("Durable canary references missing/foreign model")
+                    outcome = reconcile_deployment_revision(
+                        runtime, record, artifact,
+                        latest.operation if latest else "create",
+                        candidate=candidate,
+                    )
+                record.intent = (
+                    "deleted" if kind == "deployment" and latest and latest.operation == "delete"
+                    else "canary" if kind == "deployment" and latest and latest.operation == "canary"
+                    else "requested"
+                )
                 db.add(AuditEvent(
                     tenant=tenant, actor="system:recovery-worker",
                     action=kind + ".recovered", object_kind=kind,

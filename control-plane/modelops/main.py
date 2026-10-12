@@ -21,7 +21,8 @@ from .db import (Base, TenantRecord, ModelArtifact, DatasetVersion, Deployment,
                  AuditEvent, make_session_factory)
 from .evidence import EvidenceError, digest_report, verify_report
 from .job_lifecycle import check_job_identity, observed_job, retry_workflow_name, terminal_job_phase
-from .reconciliation import ensure_deployment, ensure_training, ensure_updated_deployment
+from .reconciliation import (ensure_deployment, ensure_training,
+                             ensure_updated_deployment, reconcile_deployment_revision)
 from .runtime import (DisabledRuntime, KubernetesRuntime, RuntimeFailure,
                       RuntimeNotFound, RuntimeUnavailable, namespace_for)
 from .schemas import (ApprovalIn, ArtifactIn, DatasetIn, DeploymentIn,
@@ -42,7 +43,8 @@ MODEL_FIELDS = ("id", "name", "version", "family", "source", "revision", "digest
 DATASET_FIELDS = ("id", "name", "version", "uri", "digest", "train_count",
                   "heldout_count", "created_by", "created_at")
 DEPLOY_FIELDS = ("id", "name", "artifact_id", "engine", "replicas", "gpu",
-                 "generation", "intent", "created_by", "created_at")
+                 "generation", "intent", "canary_artifact_id", "canary_weight",
+                 "created_by", "created_at")
 RUN_FIELDS = ("id", "name", "artifact_id", "dataset_id", "method",
               "workflow_name", "intent", "parent_job_id", "attempt", "created_by", "created_at")
 
@@ -358,16 +360,24 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         latest = db.scalar(select(DeploymentRevision)
                            .where(DeploymentRevision.deployment_id == row.id)
                            .order_by(DeploymentRevision.generation.desc()).limit(1))
+        candidate = None
+        if latest and latest.operation == "canary":
+            if not row.canary_artifact_id or row.canary_weight is None:
+                raise RuntimeFailure("Durable canary intent is incomplete")
+            candidate = fetch_owned(db, ModelArtifact, p.tenant, row.canary_artifact_id)
         try:
-            if latest and latest.operation in ("scale", "promote", "rollback"):
-                disposition = ensure_updated_deployment(app.state.runtime, row, artifact)
-            else:
-                disposition = ensure_deployment(app.state.runtime, row, artifact)
+            disposition = reconcile_deployment_revision(
+                app.state.runtime, row, artifact,
+                latest.operation if latest else "create",
+                candidate=candidate,
+            )
         except RuntimeFailure:
             row.intent = "runtime_unknown"
             commit(db)
             raise
-        row.intent = "requested"
+        row.intent = ("deleted" if latest and latest.operation == "delete"
+                      else "canary" if latest and latest.operation == "canary"
+                      else "requested")
         audit(db, p, "deployment.recovered", "deployment", row.id,
               {"outcome": disposition})
         commit(db)
@@ -487,16 +497,23 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(422, detail="Canary engine is not supported for this model family")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; canary was not started")
-        app.state.runtime.patch_canary(row, artifact, req.weight)
-        row.generation += 1
+        stage_deployment_revision(db, row, p, req.expected_generation, "canary",
+                                  artifact.id,
+                                  changes={"canary_artifact_id": artifact.id,
+                                           "canary_weight": req.weight},
+                                  detail={"candidate": artifact.id, "approval_id": approval.id,
+                                          "weight": req.weight})
+        try:
+            outcome = reconcile_deployment_revision(
+                app.state.runtime, row, stable, "canary", candidate=artifact,
+            )
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
         row.intent = "canary"
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=artifact.id, operation="canary",
-                                  requested_by=p.subject))
-        audit(db, p, "deployment.canary", "deployment", row.id, {
-            "candidate": artifact.id, "approval_id": approval.id,
-            "weight": req.weight, "generation": row.generation,
-        })
+        audit(db, p, "deployment.canary.confirmed", "deployment", row.id,
+              {"outcome": outcome, "generation": row.generation})
         commit(db)
         return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
 
@@ -510,14 +527,22 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(409, detail="Stale generation/deleted deployment")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; canary was not removed")
-        app.state.runtime.patch_canary(row, None, 0)
-        row.generation += 1
-        row.intent = "canary_stopping"
-        audit(db, p, "deployment.canary.stop", "deployment", row.id,
-              {"generation": row.generation})
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=row.artifact_id, operation="canary_stop",
-                                  requested_by=p.subject))
+        stable = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        stage_deployment_revision(db, row, p, req.expected_generation, "canary_stop",
+                                  stable.id,
+                                  changes={"canary_artifact_id": None, "canary_weight": None},
+                                  detail={})
+        try:
+            outcome = reconcile_deployment_revision(
+                app.state.runtime, row, stable, "canary_stop",
+            )
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "deployment.canary_stop.confirmed", "deployment", row.id,
+              {"outcome": outcome, "generation": row.generation})
         commit(db)
         return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
 
@@ -572,12 +597,25 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                           db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.intent != "deleted":
-            app.state.runtime.delete_deployment(row)
-            row.intent = "deleted"
-            row.generation += 1
-            audit(db, p, "deployment.delete", "deployment", row.id)
+        if row.intent == "deleted":
+            return {"status": "deletion_requested", "id": row.id}
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; deletion could not be verified")
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        stage_deployment_revision(db, row, p, row.generation, "delete",
+                                  artifact.id, changes={}, detail={})
+        try:
+            outcome = reconcile_deployment_revision(
+                app.state.runtime, row, artifact, "delete",
+            )
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
             commit(db)
+            raise
+        row.intent = "deleted"
+        audit(db, p, "deployment.delete.confirmed", "deployment", row.id,
+              {"outcome": outcome, "generation": row.generation})
+        commit(db)
         return {"status": "deletion_requested", "id": row.id}
 
     def summarize_train_job(row: FineTuneJob):

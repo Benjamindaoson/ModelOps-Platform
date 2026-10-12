@@ -120,3 +120,90 @@ def ensure_updated_deployment(runtime, record, artifact) -> str:
     if not matches(observed):
         raise RuntimeFailure("Kubernetes update did not converge to durable desired revision")
     return "patched"
+
+
+def ensure_canary_revision(runtime, record, candidate) -> str:
+    """Idempotently apply an exactly specified canary or canary removal."""
+    if candidate is None and (record.canary_artifact_id is not None
+                               or record.canary_weight is not None):
+        raise RuntimeFailure("Canary-stop intent still references a candidate")
+    if candidate is not None and (
+        record.canary_artifact_id != candidate.id
+        or record.canary_weight is None
+        or not 0 <= record.canary_weight <= 100
+    ):
+        raise RuntimeFailure("Durable canary intent does not match candidate")
+    try:
+        existing = runtime.get_deployment(record)
+    except RuntimeNotFound as exc:
+        raise RuntimeFailure("Cannot change canary on missing ModelDeployment") from exc
+    def owned(body):
+        metadata = body.get("metadata") or {}
+        return (metadata.get("namespace") == namespace_for(record.tenant)
+                and metadata.get("name") == record.name
+                and (metadata.get("annotations") or {}).get("modelops.io/tenant")
+                    == record.tenant)
+    if not owned(existing):
+        raise RuntimeFailure("Canary operation refuses a foreign ModelDeployment")
+    expected = None if candidate is None else {
+        "source": candidate.source,
+        "revision": candidate.revision,
+        "digest": candidate.digest,
+        "weight": record.canary_weight,
+    }
+    def matches(body):
+        spec = (body.get("spec") or {}).get("canary")
+        return owned(body) and (
+            spec is None if expected is None else
+            isinstance(spec, dict) and all(spec.get(k) == v for k, v in expected.items())
+        )
+    if matches(existing):
+        return "adopted"
+    runtime.patch_canary(record, candidate, record.canary_weight or 0)
+    try:
+        observed = runtime.get_deployment(record)
+    except RuntimeNotFound as exc:
+        raise RuntimeFailure("ModelDeployment vanished during canary change") from exc
+    if not matches(observed):
+        raise RuntimeFailure("Canary routing intent did not converge")
+    return "patched"
+
+
+def ensure_deleted_deployment(runtime, record, artifact) -> str:
+    """Issue deletion only to the owned model CRD; handle lost DELETE replies."""
+    try:
+        existing = runtime.get_deployment(record)
+    except RuntimeNotFound:
+        return "already_deleted"
+    metadata = existing.get("metadata") or {}
+    annotations = metadata.get("annotations") or {}
+    if (metadata.get("namespace") != namespace_for(record.tenant)
+        or metadata.get("name") != record.name
+        or annotations.get("modelops.io/tenant") != record.tenant
+        or annotations.get("modelops.io/artifact-id") != artifact.id):
+        raise RuntimeFailure("Refusing to delete foreign or drifted ModelDeployment")
+    if metadata.get("deletionTimestamp"):
+        return "already_deleting"
+    try:
+        runtime.delete_deployment(record)
+    except RuntimeNotFound:
+        return "already_deleted"
+    return "delete_requested"
+
+
+def reconcile_deployment_revision(runtime, record, artifact, operation: str,
+                                  *, candidate=None) -> str:
+    """Single shared operation dispatcher for HTTP recovery and CronJob worker."""
+    if operation in ("scale", "promote", "rollback"):
+        return ensure_updated_deployment(runtime, record, artifact)
+    if operation == "canary":
+        if candidate is None:
+            raise RuntimeFailure("Missing canary artifact; refusing to guess")
+        return ensure_canary_revision(runtime, record, candidate)
+    if operation == "canary_stop":
+        return ensure_canary_revision(runtime, record, None)
+    if operation == "delete":
+        return ensure_deleted_deployment(runtime, record, artifact)
+    if operation == "create":
+        return ensure_deployment(runtime, record, artifact)
+    raise RuntimeFailure("Unknown deployment revision operation; refusing recovery")
