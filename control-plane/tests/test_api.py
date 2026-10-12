@@ -982,7 +982,7 @@ def test_canary_and_delete_recovery_reject_foreign_crds(api):
                  headers=headers()).json()["intent"] == "runtime_unknown"
 
 
-def test_canary_schema_migration_on_existing_metadata(tmp_path):
+def test_canary_schema_migration_on_existing_metadata(tmp_path, monkeypatch):
     from alembic import command
     from alembic.config import Config
     from pathlib import Path
@@ -991,7 +991,7 @@ def test_canary_schema_migration_on_existing_metadata(tmp_path):
     base_dir = Path(__file__).resolve().parents[1]
     url = "sqlite:///" + str(tmp_path / "migration.sqlite")
     cfg = Config(str(base_dir / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", url)
+    monkeypatch.setenv("MODELOPS_DATABASE_URL", url)
     engine = create_engine(url)
     # Simulates installations where the SQL tables precede the Alembic version.
     Base.metadata.create_all(engine)

@@ -122,7 +122,7 @@ def ensure_updated_deployment(runtime, record, artifact) -> str:
     return "patched"
 
 
-def ensure_canary_revision(runtime, record, candidate) -> str:
+def ensure_canary_revision(runtime, record, stable, candidate) -> str:
     """Idempotently apply an exactly specified canary or canary removal."""
     if candidate is None and (record.canary_artifact_id is not None
                                or record.canary_weight is not None):
@@ -143,8 +143,15 @@ def ensure_canary_revision(runtime, record, candidate) -> str:
                 and metadata.get("name") == record.name
                 and (metadata.get("annotations") or {}).get("modelops.io/tenant")
                     == record.tenant)
-    if not owned(existing):
-        raise RuntimeFailure("Canary operation refuses a foreign ModelDeployment")
+    annotations = (existing.get("metadata") or {}).get("annotations") or {}
+    current = existing.get("spec") or {}
+    if (not owned(existing)
+        or annotations.get("modelops.io/artifact-id") != stable.id
+        or annotations.get("modelops.io/artifact-revision") != stable.revision
+        or annotations.get("modelops.io/artifact-sha256") != stable.digest
+        or current.get("source") != stable.source
+        or current.get("engine") != record.engine):
+        raise RuntimeFailure("Canary operation refuses foreign or drifted stable ModelDeployment")
     expected = None if candidate is None else {
         "source": candidate.source,
         "revision": candidate.revision,
@@ -199,9 +206,9 @@ def reconcile_deployment_revision(runtime, record, artifact, operation: str,
     if operation == "canary":
         if candidate is None:
             raise RuntimeFailure("Missing canary artifact; refusing to guess")
-        return ensure_canary_revision(runtime, record, candidate)
+        return ensure_canary_revision(runtime, record, artifact, candidate)
     if operation == "canary_stop":
-        return ensure_canary_revision(runtime, record, None)
+        return ensure_canary_revision(runtime, record, artifact, None)
     if operation == "delete":
         return ensure_deleted_deployment(runtime, record, artifact)
     if operation == "create":
