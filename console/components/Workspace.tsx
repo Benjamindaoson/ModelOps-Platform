@@ -132,6 +132,12 @@ function Deployments({ rows, act, busy, artifacts, approvals }: {
           {r.observed_phase || "Pending"}</Status><span className="sub-line">{r.intent}</span></td>
         <td>{r.replicas} replicas<span className="sub-line">{r.gpu} GPU each</span></td>
         <td><div className="row-actions">
+          {(r.intent === "runtime_unknown" || r.intent === "submitting") &&
+            <button disabled={busy} className="table-button"
+              title="Reconcile the original Kubernetes resource without creating duplicates"
+              onClick={() => void act("deployments/" + r.id + "/recover", {}).catch(() => {})}>
+              Recover
+            </button>}
           <button disabled={busy || r.intent === "deleted"} className="table-button" onClick={() => void manage(r)}>Release</button>
           <button disabled={busy || r.intent === "deleted"} className="table-button"
             onClick={() => void act("deployments/" + r.id + "/scale",
@@ -260,6 +266,12 @@ function Jobs({ rows, act, busy }: {
         {j.finished_at && <span className="sub-line">Finished {fmtDate(j.finished_at)}</span>}
       </td>
       <td><div className="row-actions">
+        {(j.intent === "runtime_unknown" || j.intent === "submitting") &&
+          <button className="table-button" disabled={busy}
+            title="Verify the previously submitted Argo Workflow before resubmitting"
+            onClick={() => void act("train-jobs/" + j.id + "/recover", {}).catch(() => {})}>
+            Recover
+          </button>}
         <button className="table-button danger" disabled={busy || !canCancel}
           title="Request termination; does not immediately mark job stopped"
           onClick={() => {
