@@ -98,6 +98,9 @@ func(c *HTTPClient) ReconcileModelGroup(ctx context.Context,group string,desired
    return fmt.Errorf("positive route weight required")
   }
   key:=route.ModelInfo.Metadata["namespace"]+"/"+route.ModelInfo.Metadata["resource"]
+  if route.ModelInfo.Metadata["namespace"]+"--"+route.ModelInfo.Metadata["resource"]!=group {
+   return fmt.Errorf("model alias does not match tenant/resource identity")
+  }
   if identity!="" && identity!=key {return fmt.Errorf("mixed owner identities in same group")}
   identity=key
   total+=*route.LiteLLMParams.Weight
@@ -112,6 +115,12 @@ func(c *HTTPClient) ReconcileModelGroup(ctx context.Context,group string,desired
    return fmt.Errorf("refusing to change unmanaged LiteLLM group %s",group)
   }
   key:=meta["namespace"]+"/"+meta["resource"]
+  // A ModelOps-looking owner marker is insufficient for deletion. The
+  // namespace/resource must match the public alias even when desired=[].
+  // Otherwise a forged/foreign same-name route could be deleted at finalizer.
+  if meta["namespace"]+"--"+meta["resource"]!=group {
+   return fmt.Errorf("gateway route provenance does not match public model alias")
+  }
   if identity!="" && key!=identity {return fmt.Errorf("gateway owner mismatch")}
   slot:=meta["slot"]
   if slot!="stable" && slot!="canary" {return fmt.Errorf("unexpected managed role")}

@@ -44,6 +44,11 @@ jobs:
           helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci-finetune.yaml > /tmp/modelops-finetune.yaml
           test -s /tmp/modelops-ci.yaml
           test -s /tmp/modelops-finetune.yaml
+          # Separately installable first-party Control API/Console chart:
+          helm lint charts/modelops-control -f charts/modelops-control/values-ci.yaml
+          helm template modelops charts/modelops-control \
+            -n modelops-system -f charts/modelops-control/values-ci.yaml > /tmp/modelops-control.yaml
+          test -s /tmp/modelops-control.yaml
 
   operator-contracts:
     runs-on: ubuntu-latest

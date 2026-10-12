@@ -1,0 +1,27 @@
+# TEMPLATE CONTRACT ONLY: dummy digest and dummy names, NEVER deploy to production.
+api:
+  image:
+    repository: ghcr.io/example/modelops-api
+    digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  egressCidrs: ["10.0.0.0/8"]
+console:
+  image:
+    repository: ghcr.io/example/modelops-console
+    digest: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  egressCidrs: ["10.0.0.0/8"]
+oidc:
+  issuer: https://idp.example.invalid/realms/modelops
+  jwksUrl: https://idp.example.invalid/realms/modelops/protocol/openid-connect/certs
+  audience: modelops
+  clientId: modelops-web
+  publicOrigin: https://modelops.example.invalid
+secrets:
+  database:
+    name: modelops-external-postgres
+  evaluationVerify:
+    name: modelops-eval-worker-public-key
+ingress:
+  host: modelops.example.invalid
+  tlsSecret: modelops-tls
+  controllerNamespace: ingress-nginx
+tenants: [ci]

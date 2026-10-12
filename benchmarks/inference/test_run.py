@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from run import build_command, parse_args, validate
+from run import build_command, parse_args, validate, evaluate_raw_result
 
 
 class BenchContractTests(unittest.TestCase):
@@ -42,6 +42,32 @@ class BenchContractTests(unittest.TestCase):
     def test_rejects_path_traversal_run_id(self):
         with self.assertRaises(ValueError):
             validate(self.args("--run-id", "../../bad"))
+
+    def test_rejects_nonfinite_load_rate(self):
+        for value in ("nan", "inf", "-inf"):
+            with self.assertRaises(ValueError):
+                validate(self.args("--request-rate=" + value))
+
+    def test_rejects_inconsistent_raw_request_counts(self):
+        raw = {"completed": 40, "failed": 1, "duration": 10.0,
+               "request_throughput": 4.0, "output_throughput": 32.0}
+        for name in ("ttft", "tpot", "e2el"):
+            for p in ("p50", "p95", "p99"):
+                raw[f"{p}_{name}_ms"] = 25.0
+        assessment = evaluate_raw_result(
+            raw, planned=40, backend="openai-chat", minimum_success_rate=0.99
+        )
+        self.assertFalse(assessment["measurements_valid"])
+        self.assertFalse(assessment["passed_slo"])
+        raw["failed"] = 0
+        self.assertTrue(evaluate_raw_result(
+            raw, planned=40, backend="openai-chat", minimum_success_rate=0.99
+        )["passed_slo"])
+        for invalid in (True, float("nan"), float("inf")):
+            raw["p95_ttft_ms"] = invalid
+            self.assertFalse(evaluate_raw_result(
+                raw, planned=40, backend="openai-chat", minimum_success_rate=0.99
+            )["measurements_valid"])
 
     def test_rejects_negative_concurrency(self):
         with self.assertRaises(ValueError):

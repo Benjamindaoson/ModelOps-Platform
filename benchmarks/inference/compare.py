@@ -37,11 +37,20 @@ def load_run(folder: Path) -> tuple[dict, dict]:
         raise ComparisonError("invalid evidence schema")
     if status.get("status") != "PASS":
         raise ComparisonError("benchmark must pass real request and SLO checks")
+    if (status.get("measurements_valid") is not True
+        or status.get("tool_exit_code") != 0
+        or status.get("benchmark_timed_out") is not False
+        or status.get("raw_results_exist") is not True):
+        raise ComparisonError("benchmark status lacks verified process and measurement evidence")
     wanted=manifest.get("prompts")
     if not isinstance(wanted,int) or wanted<1 or raw.get("completed")!=wanted:
         raise ComparisonError("incomplete requests: all scheduled prompts must succeed for comparison")
     if raw.get("failed",0) != 0:
         raise ComparisonError("benchmark reported failed requests")
+    if (status.get("successful_requests") != wanted
+        or status.get("failed_requests") != 0
+        or status.get("observed_success_rate") != 1.0):
+        raise ComparisonError("status and raw requests disagree")
     _number(raw.get("duration"),"duration",positive=True)
     _number(raw.get("request_throughput"),"request_throughput",positive=True)
     _number(raw.get("output_throughput"),"output_throughput",positive=True)

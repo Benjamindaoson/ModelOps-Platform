@@ -1,6 +1,8 @@
 """Secure-by-default application configuration."""
 from __future__ import annotations
 
+import base64
+import binascii
 import os
 from dataclasses import dataclass
 
@@ -17,6 +19,7 @@ class Settings:
     oidc_jwks_url: str = ""
     k8s_context: str = ""
     cors_origin: str = ""
+    evidence_verify_key: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -31,6 +34,7 @@ class Settings:
             oidc_jwks_url=os.getenv("MODELOPS_OIDC_JWKS_URL", ""),
             k8s_context=os.getenv("MODELOPS_K8S_CONTEXT", ""),
             cors_origin=os.getenv("MODELOPS_CORS_ORIGIN", ""),
+            evidence_verify_key=os.getenv("MODELOPS_EVIDENCE_VERIFY_KEY", ""),
         )
 
     def validate(self) -> None:
@@ -51,5 +55,13 @@ class Settings:
         if self.environment == "production":
             if self.runtime != "kubernetes":
                 raise ValueError("Production requires real Kubernetes runtime")
-            if self.database_url.startswith("sqlite"):
-                raise ValueError("Production requires durable PostgreSQL")
+            if not self.database_url.startswith("postgresql+psycopg://"):
+                raise ValueError("Production requires PostgreSQL with psycopg")
+            if not self.oidc_issuer.startswith("https://"):
+                raise ValueError("Production requires an HTTPS OIDC issuer")
+            try:
+                public = base64.b64decode(self.evidence_verify_key, validate=True)
+            except (ValueError, binascii.Error) as exc:
+                raise ValueError("Production requires base64 Ed25519 public key") from exc
+            if len(public) != 32:
+                raise ValueError("Production requires 32-byte Ed25519 verifier public key")

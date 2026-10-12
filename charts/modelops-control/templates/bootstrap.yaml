@@ -1,0 +1,119 @@
+{{- include "modelops.validate" . }}
+# This chart is installed with a PRIVILEGED bootstrap identity. Runtime pods
+# receive only specific cross-namespace RoleBindings, never cluster-admin.
+{{- $root := . }}
+{{- range $tenant := .Values.tenants }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: modelops-control-api
+  namespace: modelops-{{ $tenant }}
+rules:
+  - apiGroups: ["llmops.kubellmops.io"]
+    resources: ["modeldeployments"]
+    verbs: ["get", "list", "watch", "create", "patch", "delete"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "list", "watch", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: modelops-control-api
+  namespace: modelops-{{ $tenant }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: modelops-control-api
+subjects:
+  - kind: ServiceAccount
+    name: modelops-control-api
+    namespace: {{ $root.Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: modelops-{{ $tenant }}-recovery
+  namespace: {{ $root.Release.Namespace }}
+spec:
+  schedule: {{ $root.Values.recovery.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 240
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: modelops-control-api
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: reconcile
+              image: "{{ $root.Values.api.image.repository }}@{{ $root.Values.api.image.digest }}"
+              imagePullPolicy: IfNotPresent
+              command: ["python", "-m", "modelops.recover"]
+              env:
+                - {name: MODELOPS_ENV, value: production}
+                - {name: MODELOPS_RUNTIME, value: kubernetes}
+                - {name: MODELOPS_RECOVERY_TENANT, value: {{ $tenant | quote }}}
+                - name: MODELOPS_DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $root.Values.secrets.database.name }}
+                      key: {{ $root.Values.secrets.database.key }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+              resources:
+                requests: {cpu: 100m, memory: 128Mi}
+                limits: {cpu: "1", memory: 512Mi}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: modelops-control-migrate-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: migrate
+          image: "{{ .Values.api.image.repository }}@{{ .Values.api.image.digest }}"
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: MODELOPS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.database.name }}
+                  key: {{ .Values.secrets.database.key }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}

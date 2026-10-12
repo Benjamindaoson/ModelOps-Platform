@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Callable
 
 import jwt
@@ -43,7 +44,7 @@ class Verifier:
                 not isinstance(tenant, str) or not tenant.strip() or
                 role not in ROLE_LEVEL):
                 raise ValueError("Missing tenant/role/sub")
-            if not tenant.replace("-", "").isalnum() or len(tenant) > 40 or tenant.lower() != tenant:
+            if re.fullmatch(r"[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?", tenant) is None:
                 raise ValueError("Invalid tenant claim")
             return Principal(subject=subject, tenant=tenant, role=role)
         except (jwt.PyJWTError, ValueError, KeyError) as exc:

@@ -1,0 +1,54 @@
+{{- include "modelops.validate" . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: modelops-control-api
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: modelops-control-api}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/name: modelops-control-console}
+      ports: [{port: 8080, protocol: TCP}]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]
+    - to:
+        {{- range .Values.api.egressCidrs }}
+        - ipBlock: {cidr: {{ . | quote }}}
+        {{- end }}
+      ports: [{port: 443, protocol: TCP}, {port: 5432, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: modelops-control-console
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: modelops-control-console}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: {{ .Values.ingress.controllerNamespace | quote }}}
+      ports: [{port: 3000, protocol: TCP}]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/name: modelops-control-api}
+      ports: [{port: 8080, protocol: TCP}]
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]
+    - to:
+        {{- range .Values.console.egressCidrs }}
+        - ipBlock: {cidr: {{ . | quote }}}
+        {{- end }}
+      ports: [{port: 443, protocol: TCP}]

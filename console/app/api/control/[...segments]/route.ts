@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 
 type Context = { params: Promise<{ segments: string[] }> };
+const MAX_MUTATION_BYTES = 512 * 1024;
+
+class PayloadTooLarge extends Error {}
+
+/** Stream and bound tenant-provided JSON before buffering it in the Node proxy. */
+async function boundedBody(req: NextRequest): Promise<string | undefined> {
+  if (req.method === "GET" || req.method === "HEAD" || !req.body) return undefined;
+  const supplied = req.headers.get("content-length");
+  if (supplied) {
+    const size = Number(supplied);
+    if (!Number.isSafeInteger(size) || size < 0 || size > MAX_MUTATION_BYTES) {
+      throw new PayloadTooLarge();
+    }
+  }
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  const reader = req.body.getReader();
+  let total = 0;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_MUTATION_BYTES) {
+      await reader.cancel();
+      throw new PayloadTooLarge();
+    }
+    chunks.push(decoder.decode(value, { stream: true }));
+  }
+  chunks.push(decoder.decode());
+  return chunks.join("");
+}
 
 async function forward(req: NextRequest, context: Context) {
   const api = process.env.MODELOPS_API_URL;
@@ -23,7 +54,7 @@ async function forward(req: NextRequest, context: Context) {
   try {
     const endpoint = new URL("/api/v1/" + segments.join("/") + req.nextUrl.search, api);
     const headers: Record<string, string> = { Authorization: "Bearer " + token };
-    const requestBody = req.method !== "GET" && req.method !== "HEAD" ? await req.text() : undefined;
+    const requestBody = await boundedBody(req);
     if (requestBody !== undefined) headers["Content-Type"] = "application/json";
     const upstream = await fetch(endpoint, {
       method: req.method,
@@ -38,7 +69,10 @@ async function forward(req: NextRequest, context: Context) {
       status: upstream.status,
       headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof PayloadTooLarge) {
+      return NextResponse.json({ detail: "JSON request exceeds 512 KiB" }, { status: 413 });
+    }
     return NextResponse.json({ detail: "ModelOps API unreachable" }, { status: 502 });
   }
 }

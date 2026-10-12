@@ -34,6 +34,12 @@ class RecordingRuntime:
         self.timeout_after_create = False
         self.deployment_create_calls = 0
         self.training_create_calls = 0
+        self.deployment_patch_calls = 0
+        self.patch_timeout_after_apply = False
+        self.canary_patch_timeout_after_apply = False
+        self.delete_timeout_after_apply = False
+        self.deployment_delete_calls = 0
+        self.canary_patch_calls = 0
 
     def create_deployment(self, row, artifact):
         if self.fail_next:
@@ -54,13 +60,31 @@ class RecordingRuntime:
             raise RuntimeNotFound("Deployment not yet present in fake K8s")
         candidate = self.canaries.get(key)
         body = self.deployments[key]
-        return {**body, "status": {
+        return {**body, "metadata": {**body["metadata"], "generation": row.generation},
+                "status": {
             "phase": "Ready", "readyReplicas": row.replicas,
+            "conditions": [
+                {"type": "Ready", "status": "True",
+                 "observedGeneration": row.generation},
+                {"type": "GatewayReady", "status": "True",
+                 "observedGeneration": row.generation},
+            ],
             "canary": {"phase": "Pending", "readyReplicas": 0} if candidate else None,
         }, "spec": {**body["spec"], "canary": candidate}}
 
     def patch_deployment(self, row, artifact):
+        if self.fail_next:
+            self.fail_next = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Injected Kubernetes patch outage")
+        self.deployment_patch_calls += 1
         self.deployments[(row.tenant, row.name)] = deployment_body(row, artifact)
+        if row.canary_artifact_id is None:
+            self.canaries.pop((row.tenant, row.name), None)
+        if self.patch_timeout_after_apply:
+            self.patch_timeout_after_apply = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Lost response after Kubernetes patched the Deployment")
 
     def patch_canary(self, row, candidate, weight):
         if self.fail_next:
@@ -69,6 +93,7 @@ class RecordingRuntime:
             raise RuntimeFailure("Simulated Kubernetes canary patch failure")
         if (row.tenant,row.name) not in self.deployments:
             raise AssertionError("Cannot patch a missing Kubernetes model")
+        self.canary_patch_calls += 1
         if candidate is None:
             self.canaries.pop((row.tenant,row.name),None)
         else:
@@ -76,9 +101,18 @@ class RecordingRuntime:
                 "source":candidate.source,"revision":candidate.revision,
                 "digest":candidate.digest,"weight":weight,
             }
+        if self.canary_patch_timeout_after_apply:
+            self.canary_patch_timeout_after_apply = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Lost response after canary was modified")
 
     def delete_deployment(self, row):
+        self.deployment_delete_calls += 1
         self.deployments.pop((row.tenant, row.name), None)
+        if self.delete_timeout_after_apply:
+            self.delete_timeout_after_apply = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Lost response after Kubernetes deleted the CRD")
 
     def submit_finetune(self, row, artifact, dataset, parameters):
         if self.fail_next:
@@ -398,7 +432,13 @@ def test_canary_cluster_error_must_not_report_success(api):
     assert runtime.canaries=={}
     records=client.get("/api/v1/deployments/"+deployment["id"]+"/revisions",
                        headers=headers()).json()
-    assert len(records)==1
+    assert len(records)==2 and records[0]["operation"] == "canary"
+    unknown=client.get("/api/v1/deployments/"+deployment["id"], headers=headers()).json()
+    assert unknown["intent"] == "runtime_unknown"
+    assert unknown["runtime_verified"] is False
+    recovered=client.post("/api/v1/deployments/"+deployment["id"]+"/recover", headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "canary"
 
 
 
@@ -641,3 +681,455 @@ def test_recovery_worker_rejects_unvalidated_tenant(api):
     client, runtime = api
     with pytest.raises(ValueError):
         recover_once(client.app.state.sessions, runtime, "../kube-system")
+
+
+def test_runtime_ready_requires_fresh_operator_and_gateway_evidence(api):
+    """Old Ready phases, missing generation and foreign CRDs are never verified."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    client, runtime = api
+    model, _ = register(client)
+    res = client.post("/api/v1/deployments", json={
+        "name": "verified-runtime", "artifact_id": model["id"], "engine": "vllm",
+    }, headers=headers())
+    assert res.status_code == 201, res.text
+    assert res.json()["runtime_verified"] is True
+    row = res.json()
+    original = runtime.get_deployment
+    current = original(SimpleNamespace(tenant="alpha", name="verified-runtime",
+                                       generation=1, replicas=1))
+
+    cases = []
+    missing_generation = deepcopy(current)
+    missing_generation["metadata"].pop("generation")
+    cases.append((missing_generation, "Reconciling"))
+    stale = deepcopy(current)
+    stale["status"]["conditions"][0]["observedGeneration"] = 0
+    cases.append((stale, "Reconciling"))
+    missing_gateway = deepcopy(current)
+    missing_gateway["status"]["conditions"] = missing_gateway["status"]["conditions"][:1]
+    cases.append((missing_gateway, "Reconciling"))
+    bad_gateway = deepcopy(current)
+    bad_gateway["status"]["conditions"][1]["status"] = "False"
+    cases.append((bad_gateway, "Reconciling"))
+    missing_replicas = deepcopy(current)
+    missing_replicas["status"]["readyReplicas"] = 0
+    cases.append((missing_replicas, "Reconciling"))
+    foreign = deepcopy(current)
+    foreign["metadata"]["namespace"] = "modelops-beta"
+    cases.append((foreign, "ConfigurationDrift"))
+    modified = deepcopy(current)
+    modified["spec"]["replicas"] = 9
+    cases.append((modified, "ConfigurationDrift"))
+    for body, expected_phase in cases:
+        runtime.get_deployment = lambda _, b=body: b
+        check = client.get("/api/v1/deployments/" + row["id"], headers=headers())
+        assert check.status_code == 200, check.text
+        assert check.json()["runtime_verified"] is False
+        assert check.json()["observed_phase"] == expected_phase
+    runtime.get_deployment = original
+    assert client.get("/api/v1/deployments/" + row["id"],
+                      headers=headers()).json()["runtime_verified"] is True
+
+
+def test_recovery_rejects_deployment_replica_and_gpu_drift(api):
+    client, runtime = api
+    model, _ = register(client)
+    runtime.timeout_after_create = True
+    res = client.post("/api/v1/deployments", json={
+        "name": "drifted-deployment", "artifact_id": model["id"], "engine": "vllm",
+        "replicas": 2, "gpu": 1,
+    }, headers=headers())
+    assert res.status_code == 502
+    row = client.get("/api/v1/deployments", headers=headers()).json()[0]
+    spec = runtime.deployments[("alpha", "drifted-deployment")]["spec"]
+    for field, value in (("replicas", 8), ("resources", {"gpu": 12, "cpu": "4", "memory": "16Gi"})):
+        before = spec[field]
+        spec[field] = value
+        reject = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                             headers=headers())
+        assert reject.status_code == 502
+        assert runtime.deployment_create_calls == 1
+        spec[field] = before
+    recovered = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                            headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "requested"
+
+
+def test_recovery_rejects_changed_or_duplicated_training_arguments(api):
+    client, runtime = api
+    model, dataset = register(client)
+    runtime.timeout_after_create = True
+    res = client.post("/api/v1/train-jobs", json={
+        "name": "drifted-training", "artifact_id": model["id"],
+        "dataset_id": dataset["id"], "epochs": 2,
+        "lr": 0.0001, "lora_rank": 8, "output_name": "adapters",
+    }, headers=headers())
+    assert res.status_code == 502
+    row = client.get("/api/v1/train-jobs", headers=headers()).json()[0]
+    params = runtime.last_workflow["spec"]["arguments"]["parameters"]
+    path = "/api/v1/train-jobs/" + row["id"] + "/recover"
+    for arg, wrong_value in (("epochs", "10"), ("learning_rate", "0.9"),
+                             ("lora_rank", "64"), ("gpu", "15"),
+                             ("min_token_f1", "0.0"), ("output_name", "other")):
+        item = next(p for p in params if p["name"] == arg)
+        saved = item["value"]
+        item["value"] = wrong_value
+        assert client.post(path, headers=headers()).status_code == 502
+        assert runtime.training_create_calls == 1
+        item["value"] = saved
+    params.append(dict(params[0]))
+    assert client.post(path, headers=headers()).status_code == 502
+    params.pop()
+    removed = params.pop()
+    assert client.post(path, headers=headers()).status_code == 502
+    params.append(removed)
+    recovered = client.post(path, headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "requested"
+    assert runtime.training_create_calls == 1
+
+
+def test_tenant_claim_must_be_ascii_kubernetes_namespace_slug(api):
+    client, _ = api
+    for invalid in ("α", "testα", "A", "a.b", "../default", "a" * 41):
+        response = client.get("/api/v1/me", headers=headers(tenant=invalid))
+        assert response.status_code == 401, invalid
+    assert client.get("/api/v1/me", headers=headers(tenant="team-01")).status_code == 200
+
+
+def test_scale_patch_after_lost_response_is_recoverable_and_idempotent(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    artifact, _ = register(client)
+    row = client.post("/api/v1/deployments", json={
+        "name": "mutable-model", "artifact_id": artifact["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    runtime.patch_timeout_after_apply = True
+    failed = client.patch("/api/v1/deployments/" + row["id"] + "/scale", json={
+        "replicas": 3, "expected_generation": 1,
+    }, headers=headers())
+    assert failed.status_code == 502
+    unknown = client.get("/api/v1/deployments/" + row["id"], headers=headers()).json()
+    assert unknown["generation"] == 2 and unknown["replicas"] == 3
+    assert unknown["intent"] == "runtime_unknown"
+    assert unknown["runtime_verified"] is False
+    assert runtime.deployment_patch_calls == 1
+    again = client.patch("/api/v1/deployments/" + row["id"] + "/scale", json={
+        "replicas": 8, "expected_generation": 1,
+    }, headers=headers())
+    assert again.status_code == 409
+    restored = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert restored["recovered"] == 1 and restored["still_unknown"] == 0
+    assert runtime.deployment_patch_calls == 1  # No duplicate patch.
+    final = client.get("/api/v1/deployments/" + row["id"], headers=headers()).json()
+    assert final["intent"] == "requested"
+    assert final["generation"] == 2
+    assert final["replicas"] == 3
+
+
+def test_promotion_crash_recovery_and_rollback_to_previous_stable(api):
+    client, runtime = api
+    stable, dataset = register(client)
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    row = client.post("/api/v1/deployments", json={
+        "name": "stable-prod", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    runtime.patch_timeout_after_apply = True
+    change = client.post("/api/v1/deployments/" + row["id"] + "/promote", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "expected_generation": 1,
+    }, headers=headers())
+    assert change.status_code == 502
+    unknown = client.get("/api/v1/deployments/" + row["id"], headers=headers()).json()
+    assert unknown["artifact_id"] == candidate["id"]
+    assert unknown["intent"] == "runtime_unknown"
+    assert unknown["generation"] == 2
+    recovered = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                            headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert runtime.deployment_patch_calls == 1
+    rolled_back = client.post("/api/v1/deployments/" + row["id"] + "/rollback",
+                              json={"replicas": 1, "expected_generation": 2},
+                              headers=headers())
+    assert rolled_back.status_code == 200, rolled_back.text
+    assert rolled_back.json()["artifact_id"] == stable["id"]
+    assert rolled_back.json()["generation"] == 3
+    history = client.get("/api/v1/deployments/" + row["id"] + "/revisions",
+                         headers=headers()).json()
+    assert [r["operation"] for r in history] == ["rollback", "promote", "create"]
+
+
+def test_unpromoted_canary_cannot_become_rollback_target(api):
+    client, _ = api
+    stable, dataset = register(client)
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    row = client.post("/api/v1/deployments", json={
+        "name": "canary-only", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    canary = client.post("/api/v1/deployments/" + row["id"] + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 10, "expected_generation": 1,
+    }, headers=headers())
+    assert canary.status_code == 200, canary.text
+    attempted = client.post("/api/v1/deployments/" + row["id"] + "/rollback",
+                            json={"replicas": 1, "expected_generation": 2},
+                            headers=headers())
+    assert attempted.status_code == 409
+    assert "stable" in attempted.json()["detail"]
+
+
+def test_recovery_rejects_foreign_argo_without_crashing_worker(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    model, dataset = register(client)
+    runtime.timeout_after_create = True
+    result = client.post("/api/v1/train-jobs", json={
+        "name": "foreign-argo", "artifact_id": model["id"],
+        "dataset_id": dataset["id"], "output_name": "adapter-test",
+    }, headers=headers())
+    assert result.status_code == 502
+    runtime.jobs["foreign-argo-ft"]["metadata"]["labels"]["modelops.io/tenant"] = "attacker"
+    summary = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert summary["examined"] == 1
+    assert summary["still_unknown"] == 1
+    assert summary["recovered"] == 0
+
+
+def test_lost_canary_start_stop_and_delete_are_idempotently_recoverable(api):
+    from modelops.recover import recover_once
+    c, runtime = api
+    stable, dataset = register(c)
+    candidate, approval = _issue_approved_candidate(c, dataset)
+    row = c.post("/api/v1/deployments", json={
+        "name": "replay-canary", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    path = "/api/v1/deployments/" + row["id"]
+    runtime.canary_patch_timeout_after_apply = True
+    response = c.post(path + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 25, "expected_generation": 1,
+    }, headers=headers())
+    assert response.status_code == 502
+    unknown = c.get(path, headers=headers()).json()
+    assert unknown["canary_artifact_id"] == candidate["id"]
+    assert unknown["canary_weight"] == 25
+    assert unknown["intent"] == "runtime_unknown"
+    assert runtime.canary_patch_calls == 1
+    summary = recover_once(c.app.state.sessions, runtime, "alpha")
+    assert summary["recovered"] == 1
+    assert runtime.canary_patch_calls == 1
+    live = c.get(path, headers=headers()).json()
+    assert live["intent"] == "canary"
+    assert live["canary_spec"]["weight"] == 25
+    runtime.canary_patch_timeout_after_apply = True
+    stopped = c.post(path + "/canary/stop",
+                     json={"expected_generation": 2}, headers=headers())
+    assert stopped.status_code == 502
+    assert runtime.canary_patch_calls == 2
+    stopped_row = c.get(path, headers=headers()).json()
+    assert stopped_row["canary_artifact_id"] is None
+    assert stopped_row["canary_weight"] is None
+    assert stopped_row["intent"] == "runtime_unknown"
+    healed = c.post(path + "/recover", headers=headers())
+    assert healed.status_code == 200, healed.text
+    assert healed.json()["intent"] == "requested"
+    assert healed.json()["canary_spec"] is None
+    assert runtime.canary_patch_calls == 2
+
+    runtime.delete_timeout_after_apply = True
+    deleted = c.delete(path, headers=headers())
+    assert deleted.status_code == 502
+    unknown = c.get(path, headers=headers()).json()
+    assert unknown["intent"] == "runtime_unknown"
+    assert unknown["generation"] == 4
+    assert runtime.deployment_delete_calls == 1
+    summary = recover_once(c.app.state.sessions, runtime, "alpha")
+    assert summary["recovered"] == 1
+    assert runtime.deployment_delete_calls == 1
+    assert c.get(path, headers=headers()).json()["intent"] == "deleted"
+    assert c.delete(path, headers=headers()).status_code == 200
+    assert runtime.deployment_delete_calls == 1
+
+
+def test_canary_and_delete_recovery_reject_foreign_crds(api):
+    c, runtime = api
+    stable, dataset = register(c)
+    candidate, approval = _issue_approved_candidate(c, dataset)
+    row = c.post("/api/v1/deployments", json={
+        "name": "unowned-candidate", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    runtime.canary_patch_timeout_after_apply = True
+    failed = c.post("/api/v1/deployments/" + row["id"] + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 10, "expected_generation": 1,
+    }, headers=headers())
+    assert failed.status_code == 502
+    runtime.deployments[("alpha", "unowned-candidate")]["metadata"]["annotations"][
+        "modelops.io/tenant"] = "attacker"
+    assert c.post("/api/v1/deployments/" + row["id"] + "/recover",
+                  headers=headers()).status_code == 502
+    assert runtime.canary_patch_calls == 1
+    another = c.post("/api/v1/deployments", json={
+        "name": "foreign-delete", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    runtime.deployments[("alpha", "foreign-delete")]["metadata"]["annotations"][
+        "modelops.io/tenant"] = "attacker"
+    assert c.delete("/api/v1/deployments/" + another["id"],
+                    headers=headers()).status_code == 502
+    assert runtime.deployment_delete_calls == 0
+    assert c.get("/api/v1/deployments/" + another["id"],
+                 headers=headers()).json()["intent"] == "runtime_unknown"
+
+
+def test_canary_schema_migration_on_existing_metadata(tmp_path, monkeypatch):
+    from alembic import command
+    from alembic.config import Config
+    from pathlib import Path
+    from sqlalchemy import create_engine, inspect
+    from modelops.db import Base
+    base_dir = Path(__file__).resolve().parents[1]
+    url = "sqlite:///" + str(tmp_path / "migration.sqlite")
+    cfg = Config(str(base_dir / "alembic.ini"))
+    monkeypatch.setenv("MODELOPS_DATABASE_URL", url)
+    engine = create_engine(url)
+    # Simulates installations where the SQL tables precede the Alembic version.
+    Base.metadata.create_all(engine)
+    command.upgrade(cfg, "head")
+    names = {c["name"] for c in inspect(engine).get_columns("deployments")}
+    assert {"canary_artifact_id", "canary_weight"} <= names
+    engine.dispose()
+
+
+def test_promote_releases_canary_and_restored_version_has_no_old_traffic(api):
+    client, runtime = api
+    stable, dataset = register(client)
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    row = client.post("/api/v1/deployments", json={
+        "name": "canary-to-promote", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    path = "/api/v1/deployments/" + row["id"]
+    start = client.post(path + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 25, "expected_generation": 1,
+    }, headers=headers())
+    assert start.status_code == 200, start.text
+    assert runtime.canaries[("alpha", "canary-to-promote")]["weight"] == 25
+    promoted = client.post(path + "/promote", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "expected_generation": 2,
+    }, headers=headers())
+    assert promoted.status_code == 200, promoted.text
+    assert promoted.json()["artifact_id"] == candidate["id"]
+    assert promoted.json()["canary_artifact_id"] is None
+    assert promoted.json()["canary_weight"] is None
+    assert promoted.json()["canary_spec"] is None
+    assert ("alpha", "canary-to-promote") not in runtime.canaries
+    restored = client.post(path + "/rollback", json={
+        "replicas": 1, "expected_generation": 3,
+    }, headers=headers())
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["artifact_id"] == stable["id"]
+    assert restored.json()["canary_spec"] is None
+
+
+def test_live_serving_evidence_requires_matching_artifact_and_canary(api):
+    """The gateway cannot certify weights not matching the registered model."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    client, runtime = api
+    stable, dataset = register(client)
+    row = client.post("/api/v1/deployments", json={
+        "name": "model-provenance", "artifact_id": stable["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    path = "/api/v1/deployments/" + row["id"]
+    assert client.get(path, headers=headers()).json()["runtime_verified"] is True
+
+    current = runtime.deployments[("alpha", "model-provenance")]
+    before = deepcopy(current)
+    modifications = [
+        ("metadata", "annotations", "modelops.io/artifact-id", "foreign-id"),
+        ("metadata", "annotations", "modelops.io/artifact-revision", "stale-version"),
+        ("metadata", "annotations", "modelops.io/artifact-sha256", "f" * 64),
+        ("spec", "source", None, "Unknown/UntrustedModel"),
+    ]
+    for parent, field, sub, invalid in modifications:
+        target = current[parent][field]
+        if sub is None:
+            previous = target
+            current[parent][field] = invalid
+        else:
+            previous = target[sub]
+            target[sub] = invalid
+        result = client.get(path, headers=headers())
+        assert result.status_code == 200, result.text
+        assert result.json()["observed_phase"] == "ConfigurationDrift"
+        assert result.json()["runtime_verified"] is False
+        if sub is None:
+            current[parent][field] = previous
+        else:
+            target[sub] = previous
+
+    assert client.get(path, headers=headers()).json()["runtime_verified"] is True
+    candidate, approval = _issue_approved_candidate(client, dataset)
+    started = client.post(path + "/canary", json={
+        "artifact_id": candidate["id"], "approval_id": approval["id"],
+        "weight": 20, "expected_generation": 1,
+    }, headers=headers())
+    assert started.status_code == 200, started.text
+    # Stable traffic is available, but the *weighted release* isn't verified
+    # while the candidate has no ready endpoints.
+    assert started.json()["runtime_verified"] is False
+    fake = runtime.canaries[("alpha", "model-provenance")]
+    old_digest = fake["digest"]
+    fake["digest"] = "e" * 64
+    mismatch = client.get(path, headers=headers()).json()
+    assert mismatch["observed_phase"] == "ConfigurationDrift"
+    assert mismatch["runtime_verified"] is False
+    fake["digest"] = old_digest
+    stopped = client.post(path + "/canary/stop",
+                          json={"expected_generation": 2}, headers=headers())
+    assert stopped.status_code == 200
+    assert stopped.json()["runtime_verified"] is True
+
+
+def test_deletion_state_never_claims_completion_before_finalizer_done(api):
+    from modelops.recover import recover_once
+    client, runtime = api
+    artifact, _ = register(client)
+    row = client.post("/api/v1/deployments", json={
+        "name": "finalizer-pending", "artifact_id": artifact["id"], "engine": "vllm",
+    }, headers=headers()).json()
+    key = ("alpha", "finalizer-pending")
+    path = "/api/v1/deployments/" + row["id"]
+    delete_calls = []
+    def acknowledge_but_do_not_delete(item):
+        delete_calls.append(item.name)
+        runtime.deployments[key]["metadata"]["deletionTimestamp"] = "2026-10-12T00:00:00Z"
+    runtime.delete_deployment = acknowledge_but_do_not_delete
+
+    requested = client.delete(path, headers=headers())
+    assert requested.status_code == 200
+    assert requested.json()["status"] == "deletion_requested"
+    pending = client.get(path, headers=headers()).json()
+    assert pending["intent"] == "deleting"
+    assert pending["observed_phase"] == "Deleting"
+    assert pending["runtime_verified"] is False
+    # A second DELETE cannot bypass the Kubernetes finalizer or issue a
+    # second DELETE: only its eventual disappearance certifies completion.
+    assert client.delete(path, headers=headers()).status_code == 200
+    assert delete_calls == ["finalizer-pending"]
+    not_done = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert not_done["pending_deletions"] == 1
+    assert not_done["recovered"] == 0
+    assert client.get(path, headers=headers()).json()["intent"] == "deleting"
+    runtime.deployments.pop(key)
+    completed = recover_once(client.app.state.sessions, runtime, "alpha")
+    assert completed["recovered"] == 1
+    verified = client.get(path, headers=headers()).json()
+    assert verified["intent"] == "deleted"
+    assert verified["observed_phase"] == "Deleted"
+    assert verified["runtime_verified"] is False

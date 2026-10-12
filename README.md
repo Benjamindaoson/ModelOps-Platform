@@ -1,86 +1,82 @@
 # ModelOps Platform
 
-**Enterprise model hosting, inference optimization, and fine-tuning platform**
+**Enterprise AI Model Training, Hosting & Inference Optimization Platform**
 
-A Kubernetes-native engineering project for the complete **model lifecycle**: register, deploy, benchmark, fine-tune, evaluate, release, observe, and roll back AI models.
+A Kubernetes-native, open-source engineering platform for managing the lifecycle of enterprise models: **register → train → evaluate → deploy → benchmark → observe → release/roll back**. ModelOps serves model-owning teams, not end-user chat applications. It supports a hybrid architecture in which self-hosted engines and external providers can be governed through a common gateway.
 
-> **Engineering Preview — NOT a completed enterprise platform.** The upstream foundation is imported; static CI and CPU Kubernetes/LiteLLM health checks passed. SGLang Operator support, fine-tune validation, inference measurement tools and P0 correctness fixes are merged. **Independent platform audit estimates about 40% non-GPU platform completeness** (heuristic rubric, not an automated metric). The product UI, unified model registry/API, per-job fine-tuning parameters, least-privilege RBAC and complete Operator/Canary E2E are still missing. **GPU serving, GPU training and multi-node HA are unverified.** Derived from [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops) (Apache-2.0).
+> **Engineering preview, not independently certified production infrastructure.** The repository contains a real FastAPI control plane, Next.js operator console, Kubernetes Operator, Argo training orchestration, gateway and monitoring integrations, and automation tests. A passing CPU test **does not prove** GPU-serving performance, model quality, multizone high availability or deployment into an enterprise production environment. See [evidence and gaps](#validation-and-evidence).
 
-## Architecture at a glance
+## Five platform capabilities
 
-```text
-ModelOps Control Plane        Registry / revisions / rollout policies / quotas
-        |
-Inference Plane              vLLM | SGLang | llama.cpp | TEI
-                             (Helm configs; live models not yet validated)
-                             ASR / TTS first-class adapters (planned)
-        |
-Training Plane               FineTuneRun -> Argo -> LLaMA-Factory -> MLflow
-        |                    (upstream pipeline; real GPU E2E validation pending)
-        |
-Observability                 Prometheus | Grafana | Langfuse | logs
-        |
-Kubernetes Operator + Helm   Reconcile | deploy (partial)
-                             Canary/rollback consistency (in progress)
-```
-
-## What exists today
-
-The imported baseline already contains:
-- **Operator + CLI:** Kubernetes `LLMPlatform`, `ModelDeployment` and `FineTuneRun` resource types with controllers and `kubectl-llmops` command implementation.
-- **Inference packaging:** vLLM, llama.cpp and TEI Helm components, LiteLLM gateway, Kubernetes resources and prebuilt dashboards.
-- **Training scaffolding:** Argo workflow + LLaMA-Factory + MLflow components. ModelOps changes use the real WorkflowTemplate, verify dataset separation, merge actual checkpoints and evaluate real weights with a fail-closed quality gate (GPU job not yet exercised).
-- **Observability:** Prometheus/Grafana/Langfuse components, example dashboards and alerting.
-- **Management UI:** Headlamp integration via an upstream plugin.
-
-**Evidence boundary:** upstream CI's scheduled fine-tuning E2E checks Helm templates and script syntax; it does *not* execute an actual GPU training run. Hardware-specific claims, multi-node high availability and inference optimizations are not proven until our own run artifacts are committed.
-
-## Development priorities
-
-| Gate | Outcome | Evidence |
+| Capability | Current implementation | Remaining validation |
 |---|---|---|
-| M0 | License-preserved upstream import | 473/473 source Git blobs verified, source SHA documented |
-| M1 | Trustworthy installation and CI | Go/Helm/Python tests, Argo DAG render, real CPU-kind LiteLLM health check: verified |
-| M2 | Serving lifecycle | Versioned model deployment, gateway routing, health/rollback |
-| M3 | Optimization bench | TTFT, TPOT, p95/p99 latency, tokens/s, VRAM, KV, concurrency A/B |
-| M4 | Real fine-tune → serving | Dataset, LoRA/QLoRA, held-out eval, MLflow artifacts, release gate |
-| M5 | Reliability and security | Failure injection, fault recovery, runbooks, SLOs, tenant isolation |
-| M6 | AI-assisted operations | Audited diagnosis and human-approved changes |
+| **Manage models** | Tenant-scoped Model Registry, immutable versions, datasets, Control API, approval/audit records and RBAC checks | Real OIDC issuer, cross-tenant penetration tests and production artifact attestation |
+| **Train models** | Parameterized FineTuneRuns, Argo/LLaMA-Factory, LoRA/QLoRA workflow contracts, held-out evaluation, checkpoint integrity gates | Full real GPU training → independent evaluation → deployed checkpoint |
+| **Deploy models** | ModelDeployment CRD/Operator, vLLM/SGLang/TEI/llama.cpp packaging, version control, canary/revision and rollback APIs | Real GPU serving, gateway traffic split, model release and fault-injection E2E |
+| **Optimize inference** | Benchmark runner, GPU telemetry sampling, A/B integrity checks, engine, cache, batching and quantization configuration | Controlled hardware-matched TTFT/TPOT/throughput/VRAM/quality experiments |
+| **Operate models** | Prometheus/Grafana foundations, least-privilege namespace Operator, API/Console images, audit and reconciliation worker, integrity-checked backup tooling | Full SLO monitoring, production OIDC, real restore/RPO/RTO, multi-node HA |
 
-See the [full platform audit and weighted completion rubric](docs/PLATFORM_AUDIT_2026-10-11.md), [implementation plan](docs/IMPLEMENTATION_PLAN.md), and [prioritized platform milestones](https://github.com/Benjamindaoson/ModelOps-Platform/issues).
-
-## Quick static check (no GPU required)
-
-```bash
-# Prerequisites: Helm 3 and Internet for chart dependencies
-helm dependency update charts/kube-llmops-stack
-helm lint charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml
-helm template modelops charts/kube-llmops-stack -f charts/kube-llmops-stack/values-ci.yaml > /dev/null
-
-# Operator/unit tests (Go 1.25+)
-cd operator && go test ./api/v1alpha1 ./internal/engine ./internal/builder ./internal/gateway ./internal/helmbridge ./internal/cli/...
-# Full controller envtest requires a separate Kubernetes API/etcd test environment.
-```
-
-These are static / CPU-oriented checks and do not constitute a working production deployment.
+**Architectural separation:** PostgreSQL stores tenant/business metadata and durable user intents; Kubernetes CRDs and Argo own actual deployment/training state; S3-compatible stores and MLflow own versioned artifacts; the Console talks to the Control API rather than directly exposing cluster credentials.
 
 ## Repository layout
 
-- [`operator/`](operator/) — CRDs, reconciler controllers, CLI and deployment builders.
-- [`charts/`](charts/) — Helm charts for model engines, gateway, fine-tuning, and monitoring.
-- [`images/`](images/) — model resolver/loader and supporting Docker images.
-- [`plugins/`](plugins/) — Headlamp plugin UI.
-- [`tests/`](tests/) — existing integration and Helm template tests.
-- [`docs/UPSTREAM_PROVENANCE.md`](docs/UPSTREAM_PROVENANCE.md) — pinned upstream source and license attribution.
-- [`docs/PLATFORM_AUDIT_2026-10-11.md`](docs/PLATFORM_AUDIT_2026-10-11.md) — precise feature audit, JD fit, major blockers and acceptance roadmap.
-- [`docs/DELIVERY_STATUS_2026-10-11.md`](docs/DELIVERY_STATUS_2026-10-11.md) — completed changes, real evidence and outstanding hardware/security requirements.
-- [`benchmarks/inference/`](benchmarks/inference/) — live-load benchmarking and A/B evidence checks.
-- [`pipelines/`](pipelines/) — real adapter merge, heldout dataset verification and fail-closed promotion.
-- [`ops/`](ops/) — HTTP smoke probes and production preflight.
-- [`docs/upstream/README.md`](docs/upstream/README.md) — unchanged original upstream README.
+- `control-plane/` — Python/FastAPI management API, SQL models, migrations, tenant roles and reconciliation.
+- `console/` — Next.js management UI with browser tests against the real API.
+- `operator/` — Go Kubernetes controllers and deployment contracts.
+- `charts/` — Helm stack, gateway, engines, training and observability.
+- `pipelines/` — adapter/checkpoint processing, independent evaluation and evidence gates.
+- `benchmarks/inference/` — real endpoint measurement harness and strict A/B reporting.
+- `ops/` — preflight, recovery, safety scripts and real CPU Kubernetes checks.
+- `docs/` — architecture, operation guides, provenance, audit and acceptance roadmaps.
 
-## Licensing & attribution
+## Run the local Control API + Console (no GPU)
 
-The initial codebase is derived from **GaeaRuiW/kube-llmops**, commit `74f8db47fa2690a4e71ae31532f36b35a587d266`, under **Apache License 2.0**. The upstream `LICENSE`, file headers and attribution are retained. Future changes are traceable in this repository's Git history. Dependencies may carry their own licenses; review them before redistribution or production deployment.
+Install Docker and Compose, then:
 
-**Engineering policy:** do not present imported upstream features as independently built. Quantitative performance claims must include runnable configuration, raw measurements, hardware/environment provenance and a baseline.
+```bash
+cp .env.compose.example .env
+# Set strong unique MODELOPS_PG_PASSWORD and MODELOPS_JWT_SECRET in .env.
+docker compose up --build -d postgres
+docker compose run --rm --no-deps api alembic upgrade head
+docker compose up --build -d api console
+```
+
+The local Console is at `http://localhost:3000`; API at `http://127.0.0.1:8080`. In development, an explicitly enabled dev token may be issued with `python -m modelops.devtoken`. **Local metadata mode rejects deployment/training creation without an actual Kubernetes runtime**; a working UI does not imply a running model. See [setup guide](docs/LOCAL_AND_PRODUCTION_SETUP.md).
+
+### Test without GPU
+
+```bash
+cd control-plane
+python -m pip install -e ".[dev]"
+python -m pytest -q
+cd ..
+python -m unittest discover -s benchmarks/inference -p 'test_*.py' -v
+```
+
+GitHub Actions additionally exercise Operator/Helm contracts, browser API E2E, container builds and CPU-kind checks. The **Control API → actual Kubernetes CRD → Operator → scale/delete** integration test is in `control-plane/tests/test_kind_runtime_e2e.py` and runs only when a real tenant-scoped kind Operator is bootstrapped by CI. This is a **CPU software acceptance gate**, not a model-serving test.
+
+## Validation and evidence
+
+| Evidence tier | What it proves | What it does not prove |
+|---|---|---|
+| T0 — source/provenance | Auditable upstream attribution and committed implementation | Code correctness |
+| T1 — static/automated | Tests, Helm manifests and basic API/browser contract behavior | End-to-end production operation |
+| T2 — real CPU Kubernetes | Actual namespaced resources, controllers and service checks | GPU decoding/training or high availability |
+| T3 — GPU serving | Live TTFT, TPOT, p95/p99 latency, throughput, VRAM, controlled comparison | Improved business task quality |
+| T4 — GPU training | Real LoRA/QLoRA weights, independent heldout and serving promotion | Production scale/HA |
+| T5 — production-like cluster | Multi-node failover, tenant isolation, operational SLO and restore drills | Permanent availability guarantees |
+
+No unsupported production uptime, speedup, cost, model quality or GPU utilization statistics are claimed. For an up-to-date run-specific judgment, inspect [Actions](https://github.com/Benjamindaoson/ModelOps-Platform/actions) and the commit SHA. Earlier [October 11 audit](docs/PLATFORM_AUDIT_2026-10-11.md) is a dated snapshot and **understates later control-plane and console work**. Live hardware and deployment readiness remain separate acceptance requirements.
+
+## Next acceptance gates
+
+1. Real CI kind API/Operator/Gateway lifecycle, concurrency/reconciliation, role isolation and failure propagation.
+2. Parameterized Argo Run → actual checkpoint → heldout → signed quality gate → model release with rollback.
+3. **RTX 3090** controlled vLLM/SGLang comparisons with identical weights/workload and attached raw telemetry.
+4. Production OIDC, DB/S3 restore drill, immutable image digests and multi-node chaos testing.
+
+See [integration gates](docs/INTEGRATION_ROADMAP_2026-10-12.md), [training lifecycle](docs/TRAINING_JOB_LIFECYCLE.md), [verified backup design](docs/BACKUP_RECOVERY_V2.md), and [benchmark guide](benchmarks/inference/README.md).
+
+## Open-source foundation and licensing
+
+This project is derived from [GaeaRuiW/kube-llmops](https://github.com/GaeaRuiW/kube-llmops), pinned to commit `74f8db47fa2690a4e71ae31532f36b35a587d266`, under Apache-2.0. The inherited Operator/Helm/observability architecture is **credited, not misrepresented as original work**. The added Control API, Console and reconciliation/evidence work are separately visible in Git history. See [upstream provenance](docs/UPSTREAM_PROVENANCE.md), [original upstream README](docs/upstream/README.md), and [LICENSE](LICENSE). Audit dependency-specific licenses before commercial deployments.

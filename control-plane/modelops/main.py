@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,8 @@ from .db import (Base, TenantRecord, ModelArtifact, DatasetVersion, Deployment,
                  AuditEvent, make_session_factory)
 from .evidence import EvidenceError, digest_report, verify_report
 from .job_lifecycle import check_job_identity, observed_job, retry_workflow_name, terminal_job_phase
-from .reconciliation import ensure_deployment, ensure_training
+from .reconciliation import (ensure_deployment, ensure_training,
+                             ensure_updated_deployment, reconcile_deployment_revision)
 from .runtime import (DisabledRuntime, KubernetesRuntime, RuntimeFailure,
                       RuntimeNotFound, RuntimeUnavailable, namespace_for)
 from .schemas import (ApprovalIn, ArtifactIn, DatasetIn, DeploymentIn,
@@ -42,7 +43,8 @@ MODEL_FIELDS = ("id", "name", "version", "family", "source", "revision", "digest
 DATASET_FIELDS = ("id", "name", "version", "uri", "digest", "train_count",
                   "heldout_count", "created_by", "created_at")
 DEPLOY_FIELDS = ("id", "name", "artifact_id", "engine", "replicas", "gpu",
-                 "generation", "intent", "created_by", "created_at")
+                 "generation", "intent", "canary_artifact_id", "canary_weight",
+                 "created_by", "created_at")
 RUN_FIELDS = ("id", "name", "artifact_id", "dataset_id", "method",
               "workflow_name", "intent", "parent_job_id", "attempt", "created_by", "created_at")
 
@@ -95,35 +97,145 @@ def require_role(principal: Principal, role: str):
     return principal
 
 
-def with_runtime_state(runtime, dep: Deployment, data: dict):
+def with_runtime_state(runtime, dep: Deployment, data: dict, db: Session):
+    """Only current Operator+Gateway readiness is evidence of a usable service.
+
+    A CRD with a stale Ready phase or missing observed generation must never
+    satisfy a production release gate. These checks are read-only and do not
+    claim anything about quality, throughput or real GPU performance.
+    """
+    if dep.intent in ("deleting", "deleted"):
+        return {**data, "observed_phase": "Deleting" if dep.intent == "deleting" else "Deleted",
+                "ready_replicas": None, "runtime_verified": False}
     if not runtime.connected:
         return {**data, "observed_phase": "RuntimeDisconnected", "ready_replicas": None,
                 "runtime_verified": False}
     try:
         observed = runtime.get_deployment(dep)
+        metadata = observed.get("metadata", {})
+        spec = observed.get("spec", {})
         status = observed.get("status", {})
-        phase = status.get("phase", "Pending")
-        actual_generation = observed.get("metadata", {}).get("generation")
-        if actual_generation is not None:
-            conditions = status.get("conditions", [])
-            current_ready = any(c.get("type") == "ModelReady" and
-                                c.get("status") == "True" and
-                                c.get("observedGeneration", 0) >= actual_generation
-                                for c in conditions)
-            if phase == "Ready" and not current_ready:
-                # An old Ready state must never certify the new model version.
-                phase = "Reconciling"
+        phase = status.get("phase") or "Pending"
+        conditions = status.get("conditions") or []
+        generation = metadata.get("generation")
+        annotations = metadata.get("annotations") or {}
+        artifact = db.get(ModelArtifact, dep.artifact_id)
+        artifact_owned = artifact is not None and artifact.tenant == dep.tenant
+        candidate = (db.get(ModelArtifact, dep.canary_artifact_id)
+                     if dep.canary_artifact_id else None)
+        observed_canary = spec.get("canary")
+        if dep.canary_artifact_id is None:
+            canary_matches = observed_canary is None and dep.canary_weight is None
+        else:
+            canary_matches = bool(
+                candidate is not None and candidate.tenant == dep.tenant
+                and isinstance(observed_canary, dict)
+                and observed_canary.get("source") == candidate.source
+                and observed_canary.get("revision") == candidate.revision
+                and observed_canary.get("digest") == candidate.digest
+                and observed_canary.get("weight") == dep.canary_weight
+            )
+        identity_ok = (
+            artifact_owned
+            and metadata.get("namespace") == namespace_for(dep.tenant)
+            and metadata.get("name") == dep.name
+            and annotations.get("modelops.io/tenant") == dep.tenant
+            and annotations.get("modelops.io/artifact-id") == artifact.id
+            and annotations.get("modelops.io/artifact-revision") == artifact.revision
+            and annotations.get("modelops.io/artifact-sha256") == artifact.digest
+            and spec.get("source") == artifact.source
+            and spec.get("engine") == dep.engine
+            and spec.get("replicas") == dep.replicas
+            and (spec.get("resources") or {}).get("gpu") == dep.gpu
+            and canary_matches
+        )
+        def fresh(condition_type: str) -> bool:
+            return any(
+                isinstance(c, dict)
+                and c.get("type") == condition_type
+                and c.get("status") == "True"
+                and isinstance(c.get("observedGeneration"), int)
+                and c["observedGeneration"] >= generation
+                for c in conditions
+            )
+        verified = (
+            identity_ok
+            and isinstance(generation, int) and generation > 0
+            and dep.replicas > 0
+            and isinstance(status.get("readyReplicas"), int)
+            and status["readyReplicas"] >= dep.replicas
+            and phase == "Ready"
+            and fresh("Ready")
+            and fresh("GatewayReady")
+            and (not dep.canary_weight or (
+                isinstance(status.get("canary"), dict)
+                and status["canary"].get("phase") == "Ready"
+            ))
+            and dep.intent not in ("submitting", "updating", "rolling_back",
+                                   "runtime_unknown", "deleting", "deleted")
+        )
+        if not identity_ok:
+            phase = "ConfigurationDrift"
+        elif phase == "Ready" and not verified:
+            phase = "Reconciling"
         return {**data, "observed_phase": phase,
                 "ready_replicas": status.get("readyReplicas", 0),
                 "canary_status": status.get("canary"),
-                "canary_spec": observed.get("spec", {}).get("canary"),
-                "runtime_verified": actual_generation is None or phase == "Ready"}
+                "canary_spec": spec.get("canary"),
+                "runtime_verified": verified}
     except RuntimeNotFound:
         return {**data, "observed_phase": "RuntimeMissing",
                 "ready_replicas": None, "runtime_verified": False}
     except RuntimeFailure:
         return {**data, "observed_phase": "RuntimeUnreachable",
                 "ready_replicas": None, "runtime_verified": False}
+
+
+def stage_deployment_revision(db: Session, row: Deployment, p: Principal,
+                              expected_generation: int, operation: str,
+                              artifact_id: str, *, changes: dict, detail: dict):
+    """Atomic CAS: persist the desired operation BEFORE any Kubernetes PATCH.
+
+    A crashed/partitioned API may lose the response but not the SQL intent.
+    Only one mutation can be in flight for a tenant deployment at a time.
+    """
+    generation = expected_generation + 1
+    values = {**changes, "generation": generation, "intent": "updating"}
+    result = db.execute(
+        update(Deployment)
+        .where(Deployment.id == row.id, Deployment.tenant == p.tenant,
+               Deployment.generation == expected_generation,
+               Deployment.intent.in_(("requested", "canary", "canary_stopping")))
+        .values(**values)
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        raise HTTPException(409, detail="Conflicting deployment mutation; refresh and retry")
+    db.add(DeploymentRevision(
+        deployment_id=row.id, generation=generation, artifact_id=artifact_id,
+        operation=operation, requested_by=p.subject,
+    ))
+    audit(db, p, "deployment." + operation + ".requested", "deployment",
+          row.id, {**detail, "generation": generation})
+    commit(db)
+    db.refresh(row)
+
+
+def apply_staged_revision(db: Session, runtime, row: Deployment,
+                          artifact: ModelArtifact, p: Principal):
+    try:
+        result = ensure_updated_deployment(runtime, row, artifact)
+    except RuntimeFailure:
+        row.intent = "runtime_unknown"
+        audit(db, p, "deployment.update_unknown", "deployment", row.id,
+              {"generation": row.generation})
+        commit(db)
+        raise
+    row.intent = "requested"
+    audit(db, p, "deployment.update_confirmed", "deployment", row.id,
+          {"generation": row.generation, "outcome": result})
+    commit(db)
+    return with_runtime_state(runtime, row, render(row, *DEPLOY_FIELDS), db)
 
 
 def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
@@ -224,7 +336,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
     def deployments(p: Principal = Depends(require_principal), db: Session = Depends(get_db)):
         rows = db.scalars(select(Deployment).where(Deployment.tenant == p.tenant)
                           .order_by(Deployment.created_at.desc()).limit(100)).all()
-        return [with_runtime_state(app.state.runtime, d, render(d, *DEPLOY_FIELDS)) for d in rows]
+        return [with_runtime_state(app.state.runtime, d, render(d, *DEPLOY_FIELDS), db) for d in rows]
 
     @app.post("/api/v1/deployments", status_code=201)
     def create_deployment(req: DeploymentIn, p: Principal = Depends(require_principal),
@@ -262,35 +374,51 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row.intent = "requested"
         audit(db, p, "deployment.submit_confirmed", "deployment", row.id)
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.post("/api/v1/deployments/{key}/recover")
     def recover_deployment(key: str, p: Principal = Depends(require_principal),
                            db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.intent not in ("submitting", "runtime_unknown"):
-            raise HTTPException(409, detail="Only unknown deployment submissions can be recovered")
+        if row.intent not in ("submitting", "updating", "deleting", "runtime_unknown"):
+            raise HTTPException(409, detail="Only incomplete deployment mutations can be recovered")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; recovery could not be performed")
         artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        latest = db.scalar(select(DeploymentRevision)
+                           .where(DeploymentRevision.deployment_id == row.id)
+                           .order_by(DeploymentRevision.generation.desc()).limit(1))
+        candidate = None
+        if latest and latest.operation == "canary":
+            if not row.canary_artifact_id or row.canary_weight is None:
+                raise RuntimeFailure("Durable canary intent is incomplete")
+            candidate = fetch_owned(db, ModelArtifact, p.tenant, row.canary_artifact_id)
         try:
-            disposition = ensure_deployment(app.state.runtime, row, artifact)
+            disposition = reconcile_deployment_revision(
+                app.state.runtime, row, artifact,
+                latest.operation if latest else "create",
+                candidate=candidate,
+            )
         except RuntimeFailure:
             row.intent = "runtime_unknown"
             commit(db)
             raise
-        row.intent = "requested"
+        row.intent = ("deleted" if latest and latest.operation == "delete"
+                      and disposition == "already_deleted"
+                      else "deleting" if latest and latest.operation == "delete"
+                      else "canary" if latest and latest.operation == "canary"
+                      else "requested")
         audit(db, p, "deployment.recovered", "deployment", row.id,
               {"outcome": disposition})
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.get("/api/v1/deployments/{key}")
     def get_deployment(key: str, p: Principal = Depends(require_principal),
                        db: Session = Depends(get_db)):
         row = fetch_owned(db, Deployment, p.tenant, key)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.get("/api/v1/deployments/{key}/revisions")
     def deployment_revisions(key: str, p: Principal = Depends(require_principal),
@@ -302,26 +430,21 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         return [render(r, "id", "generation", "artifact_id", "operation",
                        "requested_by", "created_at") for r in revs]
 
+
     @app.patch("/api/v1/deployments/{key}/scale")
     def scale(key: str, req: ScaleIn, p: Principal = Depends(require_principal),
               db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.generation != req.expected_generation:
+        if row.generation != req.expected_generation or row.intent == "deleted":
             raise HTTPException(409, detail="Deployment generation changed; refresh first")
-        if row.intent == "deleted":
-            raise HTTPException(409, detail="Deployment deleted")
-        row.replicas = req.replicas
-        row.generation += 1
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; no scaling was submitted")
         artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
-        app.state.runtime.patch_deployment(row, artifact)
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=artifact.id, operation="scale",
-                                  requested_by=p.subject))
-        audit(db, p, "deployment.scale", "deployment", row.id,
-              {"replicas": row.replicas, "generation": row.generation})
-        commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        stage_deployment_revision(db, row, p, req.expected_generation, "scale",
+                                  artifact.id, changes={"replicas": req.replicas},
+                                  detail={"replicas": req.replicas})
+        return apply_staged_revision(db, app.state.runtime, row, artifact, p)
 
     @app.post("/api/v1/evaluations/attest", status_code=201)
     def attest(req: dict, request: Request, p: Principal = Depends(require_principal),
@@ -334,9 +457,14 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         if not isinstance(report, dict):
             raise HTTPException(422, detail="Report must be an object")
         try:
-            passed, metrics = verify_report(report,
-                request.headers.get("X-ModelOps-Attestation", ""),
-                os.getenv("MODELOPS_ATTESTATION_KEY", ""), artifact, dataset)
+            production = app.state.settings.environment == "production"
+            verifier_key = (app.state.settings.evidence_verify_key if production
+                            else os.getenv("MODELOPS_ATTESTATION_KEY", ""))
+            passed, metrics = verify_report(
+                report, request.headers.get("X-ModelOps-Attestation", ""),
+                verifier_key, artifact, dataset,
+                scheme="ed25519" if production else "hmac-dev",
+            )
         except (EvidenceError, ValueError) as exc:
             raise HTTPException(422, detail=str(exc)) from exc
         row = EvaluationRecord(tenant=p.tenant, artifact_id=artifact.id, dataset_id=dataset.id,
@@ -405,18 +533,25 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(422, detail="Canary engine is not supported for this model family")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; canary was not started")
-        app.state.runtime.patch_canary(row, artifact, req.weight)
-        row.generation += 1
+        stage_deployment_revision(db, row, p, req.expected_generation, "canary",
+                                  artifact.id,
+                                  changes={"canary_artifact_id": artifact.id,
+                                           "canary_weight": req.weight},
+                                  detail={"candidate": artifact.id, "approval_id": approval.id,
+                                          "weight": req.weight})
+        try:
+            outcome = reconcile_deployment_revision(
+                app.state.runtime, row, stable, "canary", candidate=artifact,
+            )
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
         row.intent = "canary"
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=artifact.id, operation="canary",
-                                  requested_by=p.subject))
-        audit(db, p, "deployment.canary", "deployment", row.id, {
-            "candidate": artifact.id, "approval_id": approval.id,
-            "weight": req.weight, "generation": row.generation,
-        })
+        audit(db, p, "deployment.canary.confirmed", "deployment", row.id,
+              {"outcome": outcome, "generation": row.generation})
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
 
     @app.post("/api/v1/deployments/{key}/canary/stop")
     def stop_canary(key: str, req: CanaryStopIn,
@@ -428,16 +563,25 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(409, detail="Stale generation/deleted deployment")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; canary was not removed")
-        app.state.runtime.patch_canary(row, None, 0)
-        row.generation += 1
-        row.intent = "canary_stopping"
-        audit(db, p, "deployment.canary.stop", "deployment", row.id,
-              {"generation": row.generation})
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=row.artifact_id, operation="canary_stop",
-                                  requested_by=p.subject))
+        stable = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        stage_deployment_revision(db, row, p, req.expected_generation, "canary_stop",
+                                  stable.id,
+                                  changes={"canary_artifact_id": None, "canary_weight": None},
+                                  detail={})
+        try:
+            outcome = reconcile_deployment_revision(
+                app.state.runtime, row, stable, "canary_stop",
+            )
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
+            commit(db)
+            raise
+        row.intent = "requested"
+        audit(db, p, "deployment.canary_stop.confirmed", "deployment", row.id,
+              {"outcome": outcome, "generation": row.generation})
         commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS), db)
+
 
     @app.post("/api/v1/deployments/{key}/promote")
     def promote(key: str, req: ReleaseIn, p: Principal = Depends(require_principal),
@@ -452,54 +596,72 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(409, detail="Stale generation/deleted deployment")
         if artifact.family in ("asr", "tts") or (artifact.family == "embedding") != (row.engine == "tei"):
             raise HTTPException(422, detail="Artifact and engine are incompatible")
-        row.artifact_id = artifact.id
-        row.generation += 1
-        row.intent = "updating"
-        app.state.runtime.patch_deployment(row, artifact)
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=artifact.id, operation="promote",
-                                  requested_by=p.subject))
-        audit(db, p, "deployment.promote", "deployment", row.id,
-              {"artifact_id": artifact.id, "approval_id": approval.id})
-        commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; cannot promote")
+        stage_deployment_revision(db, row, p, req.expected_generation, "promote",
+                                  artifact.id,
+                                  changes={"artifact_id": artifact.id,
+                                           "canary_artifact_id": None,
+                                           "canary_weight": None},
+                                  detail={"artifact_id": artifact.id,
+                                          "approval_id": approval.id})
+        return apply_staged_revision(db, app.state.runtime, row, artifact, p)
 
     @app.post("/api/v1/deployments/{key}/rollback")
     def rollback(key: str, req: ScaleIn, p: Principal = Depends(require_principal),
                  db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.generation != req.expected_generation:
-            raise HTTPException(409, detail="Stale generation")
-        history = db.scalars(select(DeploymentRevision)
+        if row.generation != req.expected_generation or row.intent == "deleted":
+            raise HTTPException(409, detail="Stale generation/deleted deployment")
+        # A canary that was never promoted is NOT a previously deployed
+        # stable version and must never become a rollback target.
+        previous = db.scalar(select(DeploymentRevision)
                              .where(DeploymentRevision.deployment_id == row.id,
-                                    DeploymentRevision.artifact_id != row.artifact_id)
-                             .order_by(DeploymentRevision.generation.desc()).limit(1)).all()
-        if not history:
-            raise HTTPException(409, detail="No previously deployed different model version")
-        artifact = fetch_owned(db, ModelArtifact, p.tenant, history[0].artifact_id)
-        row.artifact_id = artifact.id
-        row.generation += 1
-        row.intent = "rolling_back"
-        app.state.runtime.patch_deployment(row, artifact)
-        db.add(DeploymentRevision(deployment_id=row.id, generation=row.generation,
-                                  artifact_id=artifact.id, operation="rollback",
-                                  requested_by=p.subject))
-        audit(db, p, "deployment.rollback", "deployment", row.id, {"artifact_id": artifact.id})
-        commit(db)
-        return with_runtime_state(app.state.runtime, row, render(row, *DEPLOY_FIELDS))
+                                    DeploymentRevision.artifact_id != row.artifact_id,
+                                    DeploymentRevision.operation.in_(("create", "promote", "rollback")))
+                             .order_by(DeploymentRevision.generation.desc()).limit(1))
+        if previous is None:
+            raise HTTPException(409, detail="No previously deployed stable model version")
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, previous.artifact_id)
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; cannot roll back")
+        stage_deployment_revision(db, row, p, req.expected_generation, "rollback",
+                                  artifact.id,
+                                  changes={"artifact_id": artifact.id,
+                                           "canary_artifact_id": None,
+                                           "canary_weight": None},
+                                  detail={"artifact_id": artifact.id})
+        return apply_staged_revision(db, app.state.runtime, row, artifact, p)
 
     @app.delete("/api/v1/deployments/{key}")
     def delete_deployment(key: str, p: Principal = Depends(require_principal),
                           db: Session = Depends(get_db)):
         require_role(p, "editor")
         row = fetch_owned(db, Deployment, p.tenant, key)
-        if row.intent != "deleted":
-            app.state.runtime.delete_deployment(row)
-            row.intent = "deleted"
-            row.generation += 1
-            audit(db, p, "deployment.delete", "deployment", row.id)
+        if row.intent in ("deleted", "deleting"):
+            return {"status": "deleted" if row.intent == "deleted" else "deletion_requested",
+                    "id": row.id}
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Kubernetes disconnected; deletion could not be verified")
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, row.artifact_id)
+        stage_deployment_revision(db, row, p, row.generation, "delete",
+                                  artifact.id, changes={}, detail={})
+        try:
+            outcome = reconcile_deployment_revision(
+                app.state.runtime, row, artifact, "delete",
+            )
+        except RuntimeFailure:
+            row.intent = "runtime_unknown"
             commit(db)
+            raise
+        # A successful DELETE request is not proof that finalizers finished.
+        # Keep polling on a separately scheduled recovery worker until the
+        # Kubernetes API returns an authoritative NotFound.
+        row.intent = "deleted" if outcome == "already_deleted" else "deleting"
+        audit(db, p, "deployment.delete.acknowledged", "deployment", row.id,
+              {"outcome": outcome, "generation": row.generation})
+        commit(db)
         return {"status": "deletion_requested", "id": row.id}
 
     def summarize_train_job(row: FineTuneJob):
