@@ -8,7 +8,8 @@ from __future__ import annotations
 import json
 
 from .job_lifecycle import check_job_identity
-from .runtime import RuntimeFailure, RuntimeNotFound, namespace_for
+from .runtime import (RuntimeFailure, RuntimeNotFound, namespace_for,
+                      deployment_body, fine_tune_workflow_body)
 
 
 def ensure_deployment(runtime, record, artifact) -> str:
@@ -22,14 +23,18 @@ def ensure_deployment(runtime, record, artifact) -> str:
     meta = existing.get("metadata", {})
     annotations = meta.get("annotations", {})
     spec = existing.get("spec", {})
+    expected = deployment_body(record, artifact)["spec"]
+    resources = spec.get("resources") or {}
     if (meta.get("namespace") != namespace_for(record.tenant)
         or meta.get("name") != record.name
         or annotations.get("modelops.io/tenant") != record.tenant
         or annotations.get("modelops.io/artifact-id") != artifact.id
         or annotations.get("modelops.io/artifact-revision") != artifact.revision
         or annotations.get("modelops.io/artifact-sha256") != artifact.digest
-        or spec.get("source") != artifact.source
-        or spec.get("engine") != record.engine):
+        or spec.get("source") != expected["source"]
+        or spec.get("engine") != expected["engine"]
+        or spec.get("replicas") != expected["replicas"]
+        or resources.get("gpu") != expected["resources"]["gpu"]):
         raise RuntimeFailure("Kubernetes ModelDeployment identity/spec drift; refusing adoption")
     return "adopted"
 
@@ -46,13 +51,22 @@ def ensure_training(runtime, record, artifact, dataset) -> str:
     check_job_identity(existing, record)
     if existing.get("spec", {}).get("workflowTemplateRef", {}).get("name") != "modelops-finetune-dynamic":
         raise RuntimeFailure("Existing Argo Workflow uses an unexpected training template")
-    arguments = existing.get("spec", {}).get("arguments", {}).get("parameters", [])
-    actual = {x.get("name"): str(x.get("value")) for x in arguments if isinstance(x, dict)}
-    expected = {
-        "base_model": artifact.source, "base_revision": artifact.revision,
-        "base_sha256": artifact.digest, "dataset_uri": dataset.uri,
-        "dataset_sha256": dataset.digest, "method": record.method,
-    }
-    if any(actual.get(k) != v for k, v in expected.items()):
-        raise RuntimeFailure("Existing Workflow input version disagrees with durable training intent")
+    # Every immutable Argo argument matters, not just the source model and
+    # dataset. Reusing a Workflow with different LR, batch size, LoRA rank,
+    # quality gate or GPU request silently changes the experiment.
+    arguments = existing.get("spec", {}).get("arguments", {}).get("parameters")
+    expected_items = fine_tune_workflow_body(
+        record, artifact, dataset, json.loads(record.parameters_json)
+    )["spec"]["arguments"]["parameters"]
+    expected = {item["name"]: item["value"] for item in expected_items}
+    if (not isinstance(arguments, list)
+        or len(arguments) != len(expected)
+        or any(not isinstance(item, dict)
+               or not isinstance(item.get("name"), str)
+               or not isinstance(item.get("value"), str)
+               for item in arguments)):
+        raise RuntimeFailure("Existing Workflow arguments are incomplete or malformed")
+    actual = {item["name"]: item["value"] for item in arguments}
+    if len(actual) != len(arguments) or actual != expected:
+        raise RuntimeFailure("Existing Workflow arguments disagree with immutable training intent")
     return "adopted"

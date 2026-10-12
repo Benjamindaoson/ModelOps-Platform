@@ -96,28 +96,61 @@ def require_role(principal: Principal, role: str):
 
 
 def with_runtime_state(runtime, dep: Deployment, data: dict):
+    """Only current Operator+Gateway readiness is evidence of a usable service.
+
+    A CRD with a stale Ready phase or missing observed generation must never
+    satisfy a production release gate. These checks are read-only and do not
+    claim anything about quality, throughput or real GPU performance.
+    """
     if not runtime.connected:
         return {**data, "observed_phase": "RuntimeDisconnected", "ready_replicas": None,
                 "runtime_verified": False}
     try:
         observed = runtime.get_deployment(dep)
+        metadata = observed.get("metadata", {})
+        spec = observed.get("spec", {})
         status = observed.get("status", {})
-        phase = status.get("phase", "Pending")
-        actual_generation = observed.get("metadata", {}).get("generation")
-        if actual_generation is not None:
-            conditions = status.get("conditions", [])
-            current_ready = any(c.get("type") == "ModelReady" and
-                                c.get("status") == "True" and
-                                c.get("observedGeneration", 0) >= actual_generation
-                                for c in conditions)
-            if phase == "Ready" and not current_ready:
-                # An old Ready state must never certify the new model version.
-                phase = "Reconciling"
+        phase = status.get("phase") or "Pending"
+        conditions = status.get("conditions") or []
+        generation = metadata.get("generation")
+        annotations = metadata.get("annotations") or {}
+        identity_ok = (
+            metadata.get("namespace") == namespace_for(dep.tenant)
+            and metadata.get("name") == dep.name
+            and annotations.get("modelops.io/tenant") == dep.tenant
+            and spec.get("engine") == dep.engine
+            and spec.get("replicas") == dep.replicas
+            and (spec.get("resources") or {}).get("gpu") == dep.gpu
+        )
+        def fresh(condition_type: str) -> bool:
+            return any(
+                isinstance(c, dict)
+                and c.get("type") == condition_type
+                and c.get("status") == "True"
+                and isinstance(c.get("observedGeneration"), int)
+                and c["observedGeneration"] >= generation
+                for c in conditions
+            )
+        verified = (
+            identity_ok
+            and isinstance(generation, int) and generation > 0
+            and dep.replicas > 0
+            and isinstance(status.get("readyReplicas"), int)
+            and status["readyReplicas"] >= dep.replicas
+            and phase == "Ready"
+            and fresh("Ready")
+            and fresh("GatewayReady")
+            and dep.intent not in ("submitting", "runtime_unknown", "deleted")
+        )
+        if not identity_ok:
+            phase = "ConfigurationDrift"
+        elif phase == "Ready" and not verified:
+            phase = "Reconciling"
         return {**data, "observed_phase": phase,
                 "ready_replicas": status.get("readyReplicas", 0),
                 "canary_status": status.get("canary"),
-                "canary_spec": observed.get("spec", {}).get("canary"),
-                "runtime_verified": actual_generation is None or phase == "Ready"}
+                "canary_spec": spec.get("canary"),
+                "runtime_verified": verified}
     except RuntimeNotFound:
         return {**data, "observed_phase": "RuntimeMissing",
                 "ready_replicas": None, "runtime_verified": False}
