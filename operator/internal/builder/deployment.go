@@ -106,7 +106,7 @@ func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1al
 		mainContainer.Command = []string{"python3", "-m", "sglang.launch_server"}
 	}
 
-	// --- Init container (model-loader) ---
+	// --- Init container must download and checksum-verify actual model files.
 	initContainers := buildInitContainers(md, platform, slug)
 
 	// --- Tolerations ---
@@ -139,6 +139,7 @@ func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1al
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					SecurityContext: &corev1.PodSecurityContext{FSGroup: func() *int64 {group:=int64(10001);return &group}()},
 					InitContainers:                initContainers,
 					Containers:                    []corev1.Container{mainContainer},
 					Volumes:                       volumes,
@@ -283,55 +284,60 @@ func buildContainerResources(md *v1alpha1.ModelDeployment, gpuResourceName strin
 // buildInitContainers creates the model-loader init container using platform model store settings,
 // with optional per-model overrides.
 func buildInitContainers(md *v1alpha1.ModelDeployment, platform *v1alpha1.LLMPlatform, slug string) []corev1.Container {
-	if platform == nil || !platform.Spec.ModelStore.Enabled {
-		return nil
+	const loaderImage = "ghcr.io/benjamindaoson/modelops-model-loader:v0.1.0"
+	revision := md.Annotations["modelops.io/artifact-revision"]
+	digest := md.Annotations["modelops.io/artifact-sha256"]
+	envs := []corev1.EnvVar{
+		{Name:"MODEL_SOURCE",Value:md.Spec.Source},
+		{Name:"MODEL_SLUG",Value:slug},
+		{Name:"MODEL_REVISION",Value:revision},
+		{Name:"MODEL_ARTIFACT_SHA256",Value:digest},
 	}
-
-	ms := platform.Spec.ModelStore
-
-	// Apply per-model overrides.
-	endpoint := ms.Endpoint
-	bucket := ms.Bucket
-	if md.Spec.ModelStore != nil {
-		if md.Spec.ModelStore.Endpoint != "" {
-			endpoint = md.Spec.ModelStore.Endpoint
+	// Gated HF models use an optional namespace Secret, never an inline Pod
+	// environment variable copied from a CRD or Helm Values.
+	trueValue:=true
+	falseValue:=false
+	user:=int64(10001)
+	envs=append(envs,corev1.EnvVar{
+		Name:"HF_TOKEN",ValueFrom:&corev1.EnvVarSource{SecretKeyRef:&corev1.SecretKeySelector{
+			LocalObjectReference:corev1.LocalObjectReference{Name:"modelops-hf-token"},
+			Key:"token",Optional:&trueValue,
+		}},
+	})
+	if strings.HasPrefix(md.Spec.Source,"s3://") {
+		endpoint:=""
+		if platform!=nil {endpoint=platform.Spec.ModelStore.Endpoint}
+		if md.Spec.ModelStore!=nil && md.Spec.ModelStore.Endpoint!="" {
+			endpoint=md.Spec.ModelStore.Endpoint
 		}
-		if md.Spec.ModelStore.Bucket != "" {
-			bucket = md.Spec.ModelStore.Bucket
+		envs=append(envs,corev1.EnvVar{Name:"MODELOPS_S3_ENDPOINT",Value:endpoint})
+		for _,item:=range []struct{name,key string}{
+			{"MODELOPS_S3_ACCESS_KEY","accessKey"},{"MODELOPS_S3_SECRET_KEY","secretKey"},
+		}{
+			envs=append(envs,corev1.EnvVar{
+				Name:item.name,
+				ValueFrom:&corev1.EnvVarSource{SecretKeyRef:&corev1.SecretKeySelector{
+					LocalObjectReference:corev1.LocalObjectReference{Name:"modelops-objectstore"},
+					Key:item.key,
+				}},
+			})
 		}
 	}
-
-	concurrency := ms.HFTransferConcurrency
-	if concurrency == 0 {
-		concurrency = 4
-	}
-
-	envVars := []corev1.EnvVar{
-		{Name: "MODEL_SOURCE", Value: md.Spec.Source},
-		{Name: "MODEL_SLUG", Value: slug},
-		{Name: "MINIO_ENDPOINT", Value: endpoint},
-		{Name: "MINIO_BUCKET", Value: bucket},
-		{Name: "MINIO_ACCESS_KEY", Value: ms.AccessKey},
-		{Name: "MINIO_SECRET_KEY", Value: ms.SecretKey},
-		{Name: "HF_TRANSFER_CONCURRENCY", Value: fmt.Sprintf("%d", concurrency)},
-		{Name: "HF_HUB_ENABLE_HF_TRANSFER", Value: "1"},
-	}
-
-	// Pass HF token for gated models (Llama, Gemma, etc.)
-	if platform.Spec.HFToken != "" {
-		envVars = append(envVars, corev1.EnvVar{Name: "HF_TOKEN", Value: platform.Spec.HFToken})
-	}
-
-	return []corev1.Container{
-		{
-			Name:         "model-loader",
-			Image:        ms.Image,
-			Env:          envVars,
-			VolumeMounts: []corev1.VolumeMount{
-				{Name: "model-cache", MountPath: "/models"},
+	return []corev1.Container{{
+		Name:"model-loader",Image:loaderImage,
+		ImagePullPolicy:corev1.PullIfNotPresent,
+		Env:envs,
+		VolumeMounts:[]corev1.VolumeMount{{Name:"model-cache",MountPath:"/models"}},
+		SecurityContext:&corev1.SecurityContext{
+			RunAsUser:&user,RunAsNonRoot:&trueValue,AllowPrivilegeEscalation:&falseValue,
+		},
+		Resources:corev1.ResourceRequirements{
+			Requests:corev1.ResourceList{
+				corev1.ResourceCPU:resource.MustParse("500m"),
+				corev1.ResourceMemory:resource.MustParse("1Gi"),
 			},
 		},
-	}
+	}}
 }
 
 // buildTolerations creates GPU tolerations so pods can schedule on GPU nodes.

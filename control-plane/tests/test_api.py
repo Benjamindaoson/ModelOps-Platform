@@ -138,7 +138,8 @@ def test_deployment_produces_real_runtime_contract_in_test(api):
     assert data["observed_phase"] == "Ready"  # Explicit test-only FakeRuntime
     body = runtime.deployments[("alpha", "qwen-api")]
     assert body["metadata"]["namespace"] == "modelops-alpha"
-    assert body["spec"]["engineArgs"]["--revision"] == model["revision"]
+    assert body["spec"]["engineArgs"] == {}
+    assert body["metadata"]["annotations"]["modelops.io/artifact-revision"] == model["revision"]
     r = c.get("/api/v1/deployments/" + data["id"] + "/revisions", headers=headers())
     assert len(r.json()) == 1
     return data

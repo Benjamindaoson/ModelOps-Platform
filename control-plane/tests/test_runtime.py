@@ -15,7 +15,8 @@ def test_namespaced_deployment_with_immutable_revision():
                             revision="abc12345678", digest="a"*64)
     body = deployment_body(dep, model)
     assert body["metadata"]["namespace"] == "modelops-a"
-    assert body["spec"]["engineArgs"]["--revision"] == "abc12345678"
+    assert body["spec"]["engineArgs"] == {}
+    assert body["metadata"]["annotations"]["modelops.io/artifact-revision"] == "abc12345678"
     assert body["status"] if "status" in body else True  # No fabricated Ready state.
 
 

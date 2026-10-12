@@ -23,9 +23,10 @@ def namespace_for(tenant: str) -> str:
 def deployment_body(dep, artifact) -> dict:
     # Runtime identity is a tenant-scoped K8s namespace, never a user-supplied
     # arbitrary namespace. The namespace must already exist.
+    # A pinned revision is consumed by the model-loader init container.
+    # Backend CLIs receive only a verified local model path; --revision is
+    # not universally supported for local model files.
     args = {}
-    if dep.engine in ("vllm", "sglang", "tei"):
-        args["--revision"] = artifact.revision
     return {
         "apiVersion": GROUP + "/" + VERSION, "kind": "ModelDeployment",
         "metadata": {
@@ -124,7 +125,7 @@ class KubernetesRuntime:
                              "modelops.io/artifact-revision": artifact.revision,
                          }},
                           "spec": {"source": artifact.source, "replicas": dep.replicas,
-                                   "engineArgs": {"--revision": artifact.revision}}})
+                                   "engineArgs": None}})
 
     def get_deployment(self, dep):
         return self._run(self.objects.get_namespaced_custom_object, GROUP, VERSION,
