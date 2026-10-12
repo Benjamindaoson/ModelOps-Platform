@@ -31,9 +31,9 @@ secrets:
   database:
     name: ""
     key: database-url
-  attestation:
+  evaluationVerify:
     name: ""
-    key: attestation-key
+    key: public-key
   # Optional confidential OIDC client. Empty for public PKCE.
   oidcClient:
     name: ""

@@ -13,8 +13,11 @@ namespace-scoped serving Operators. Those are independent deployment prerequisit
 1. Provision an HA PostgreSQL cluster and a namespaced Kubernetes Secret with
    key \`database-url\`, containing a \`postgresql+psycopg://...\` URL. Set
    its permissions for the platform's namespace; use an external secrets manager.
-2. Provision a separately managed evaluation-worker signing Secret (key
-   \`attestation-key\`) with a strong random secret and release approval policy.
+2. Provision a separate evaluation-worker **Ed25519 private signing key**
+   that is NEVER mounted into API/Console Pods. In the API namespace provide
+   only the 32-byte PUBLIC key (base64 encoded), via external Secret with
+   key \`public-key\` (values field \`secrets.evaluationVerify\`). Require
+   independently signed heldout/checkpoint evidence and two-person approval.
 3. Deploy and validate HTTPS OIDC, obtain issuer, JWKS, client ID/audience.
    Client credentials stay in a Secret (optional for public PKCE clients).
 4. Build API and Console images from reviewed commits, scan them and publish

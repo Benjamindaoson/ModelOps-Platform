@@ -5,11 +5,16 @@ clients from self-declaring a model as passing without a privileged report.
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import hmac
 import json
 import math
 from typing import Any
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 
 class EvidenceError(ValueError):
@@ -21,12 +26,27 @@ def digest_report(data: dict) -> str:
                              allow_nan=False).encode()).hexdigest()
 
 
-def verify_report(data: dict, signature: str, secret: str, artifact, dataset) -> tuple[bool, dict]:
-    if len(secret) < 32:
-        raise EvidenceError("Server evidence signing key not configured")
-    expected = hmac.new(secret.encode(), digest_report(data).encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected, signature):
-        raise EvidenceError("Invalid independent worker signature")
+def verify_report(data: dict, signature: str, secret: str, artifact, dataset,
+                  *, scheme: str = "ed25519") -> tuple[bool, dict]:
+    """Ed25519 public-key verification in production; HMAC only in dev/tests."""
+    message = digest_report(data).encode("ascii")
+    if scheme == "ed25519":
+        try:
+            public = base64.b64decode(secret, validate=True)
+            signed = base64.b64decode(signature, validate=True)
+            if len(public) != 32 or len(signed) != 64:
+                raise EvidenceError("Malformed Ed25519 attestation or public key")
+            Ed25519PublicKey.from_public_bytes(public).verify(signed, message)
+        except (ValueError, binascii.Error, InvalidSignature) as exc:
+            raise EvidenceError("Invalid independent worker Ed25519 signature") from exc
+    elif scheme == "hmac-dev":
+        if len(secret) < 32:
+            raise EvidenceError("Development evidence signing key not configured")
+        expected = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            raise EvidenceError("Invalid development worker signature")
+    else:
+        raise EvidenceError("Unsupported evaluation signature scheme")
     if data.get("schema") != "modelops.heldout.v1" or data.get("proof_type") != "real_checkpoint_holdout":
         raise EvidenceError("Wrong evidence schema")
     if not isinstance(data.get("num_samples"), int) or data["num_samples"] < 20:

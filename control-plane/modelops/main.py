@@ -457,9 +457,14 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         if not isinstance(report, dict):
             raise HTTPException(422, detail="Report must be an object")
         try:
-            passed, metrics = verify_report(report,
-                request.headers.get("X-ModelOps-Attestation", ""),
-                os.getenv("MODELOPS_ATTESTATION_KEY", ""), artifact, dataset)
+            production = app.state.settings.environment == "production"
+            verifier_key = (app.state.settings.evidence_verify_key if production
+                            else os.getenv("MODELOPS_ATTESTATION_KEY", ""))
+            passed, metrics = verify_report(
+                report, request.headers.get("X-ModelOps-Attestation", ""),
+                verifier_key, artifact, dataset,
+                scheme="ed25519" if production else "hmac-dev",
+            )
         except (EvidenceError, ValueError) as exc:
             raise HTTPException(422, detail=str(exc)) from exc
         row = EvaluationRecord(tenant=p.tenant, artifact_id=artifact.id, dataset_id=dataset.id,

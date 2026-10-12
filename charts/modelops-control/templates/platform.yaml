@@ -55,11 +55,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.database.name }}
                   key: {{ .Values.secrets.database.key }}
-            - name: MODELOPS_ATTESTATION_KEY
+            - name: MODELOPS_EVIDENCE_VERIFY_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secrets.attestation.name }}
-                  key: {{ .Values.secrets.attestation.key }}
+                  name: {{ .Values.secrets.evaluationVerify.name }}
+                  key: {{ .Values.secrets.evaluationVerify.key }}
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false

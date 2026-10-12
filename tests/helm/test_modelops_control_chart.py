@@ -90,7 +90,7 @@ def test_workloads_use_immutable_images_and_nonroot_readonly_fs(objects):
                and x["metadata"]["name"] == "modelops-control-console")
     api_env = {v["name"]: v for v in api["spec"]["template"]["spec"]["containers"][0]["env"]}
     web_env = {v["name"]: v for v in web["spec"]["template"]["spec"]["containers"][0]["env"]}
-    for secret_var in ("MODELOPS_DATABASE_URL", "MODELOPS_ATTESTATION_KEY"):
+    for secret_var in ("MODELOPS_DATABASE_URL", "MODELOPS_EVIDENCE_VERIFY_KEY"):
         assert "secretKeyRef" in api_env[secret_var]["valueFrom"]
     assert api_env["MODELOPS_AUTH_MODE"]["value"] == "oidc"
     assert api_env["MODELOPS_ENV"]["value"] == "production"

@@ -7,7 +7,7 @@
 {{- if or (not .Values.console.image.repository) (not (regexMatch "^sha256:[a-f0-9]{64}$" (.Values.console.image.digest | default ""))) -}}
 {{- fail "Console OCI repository and immutable sha256 digest are mandatory" -}}
 {{- end -}}
-{{- range $field := list "database" "attestation" -}}
+{{- range $field := list "database" "evaluationVerify" -}}
   {{- $entry := index $.Values.secrets $field -}}
   {{- if or (not $entry.name) (not $entry.key) -}}
     {{- fail (printf "Existing %s Secret name and key are required" $field) -}}

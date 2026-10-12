@@ -18,8 +18,8 @@ oidc:
 secrets:
   database:
     name: modelops-external-postgres
-  attestation:
-    name: modelops-eval-worker-key
+  evaluationVerify:
+    name: modelops-eval-worker-public-key
 ingress:
   host: modelops.example.invalid
   tlsSecret: modelops-tls
