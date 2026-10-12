@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import json
 
+from fastapi import HTTPException
+
 from .job_lifecycle import check_job_identity
 from .runtime import (RuntimeFailure, RuntimeNotFound, namespace_for,
                       deployment_body, fine_tune_workflow_body)
@@ -48,7 +50,12 @@ def ensure_training(runtime, record, artifact, dataset) -> str:
         runtime.submit_finetune(record, artifact, dataset, params)
         return "created"
 
-    check_job_identity(existing, record)
+    try:
+        check_job_identity(existing, record)
+    except HTTPException as exc:
+        # Scheduled recovery must report an unadoptable foreign Workflow,
+        # not abort the entire tenant batch before the next item is checked.
+        raise RuntimeFailure("Existing Argo Workflow ownership mismatch") from exc
     if existing.get("spec", {}).get("workflowTemplateRef", {}).get("name") != "modelops-finetune-dynamic":
         raise RuntimeFailure("Existing Argo Workflow uses an unexpected training template")
     # Every immutable Argo argument matters, not just the source model and

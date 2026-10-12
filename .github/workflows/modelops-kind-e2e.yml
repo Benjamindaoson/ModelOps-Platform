@@ -177,3 +177,39 @@ jobs:
           kubectl get pods,deploy,pvc,svc,pdb
           kubectl logs deployment/modelops-op-operator --tail=100
           exit 1
+
+      - name: Boot tenant-specific Operator for full Control API integration
+        run: |
+          kubectl create namespace modelops-ci
+          kubectl -n modelops-ci create secret generic kube-llmops-litellm-secret \
+            --from-literal=master-key=test-only-not-valid-for-production
+          helm install modelops-ci-op operator/charts/kube-llmops-operator \
+            --namespace modelops-ci \
+            --set image.repository=modelops/operator --set image.tag=e2e \
+            --set image.pullPolicy=IfNotPresent --set gateway.url=http://127.0.0.1:4000 \
+            --wait --timeout 8m
+          kubectl -n modelops-ci rollout status deployment/modelops-ci-op-operator --timeout=180s
+          SA=system:serviceaccount:modelops-ci:kube-llmops-operator
+          kubectl auth can-i create deployments --as="$SA" -n modelops-ci --quiet
+          if kubectl auth can-i create deployments --as="$SA" -n default --quiet; then
+            echo "Cross-tenant Operator permission detected" >&2
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run actual FastAPI to Kubernetes ModelDeployment lifecycle E2E
+        env:
+          MODELOPS_KIND_E2E: "1"
+          MODELOPS_RUNTIME: kubernetes
+          MODELOPS_ENV: test
+          MODELOPS_AUTH_MODE: dev
+          MODELOPS_JWT_SECRET: only-for-tests-32-chars-plus-000000000
+        run: |
+          python -m pip install -e "./control-plane[dev]"
+          python -m pytest -q control-plane/tests/test_kind_runtime_e2e.py
+      - name: Inspect API-integrated Kubernetes resources on failure
+        if: failure()
+        run: |
+          kubectl -n modelops-ci get modeldeployments,deployments,services,pvc,pods -o wide || true
+          kubectl -n modelops-ci logs deployment/modelops-ci-op-operator --tail=150 || true
