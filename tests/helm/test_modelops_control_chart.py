@@ -36,7 +36,9 @@ def test_production_chart_fails_closed_with_no_secrets_or_images():
 def objects():
     rendered = render()
     assert rendered.returncode == 0, rendered.stderr
-    docs = list(yaml.safe_load_all(rendered.stdout))
+    # Helm template may emit empty document delimiters between independently
+    # rendered template files; ignore YAML nulls, never ignore invalid objects.
+    docs = [doc for doc in yaml.safe_load_all(rendered.stdout) if doc is not None]
     assert docs and all(isinstance(doc, dict) for doc in docs)
     return docs
 
