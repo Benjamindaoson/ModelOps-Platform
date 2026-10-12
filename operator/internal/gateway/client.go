@@ -35,6 +35,8 @@ type LiteLLMParams struct {
 // ModelInfo holds additional model metadata for LiteLLM.
 type ModelInfo struct {
 	Mode string `json:"mode,omitempty"`
+	ID string `json:"id,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 // HTTPClient implements Client using HTTP.
