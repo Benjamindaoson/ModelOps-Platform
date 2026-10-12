@@ -198,16 +198,21 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// 13. Register with gateway
 	if md.Status.Phase == "Ready" {
-		if r.GatewayClient == nil {
-			return r.setGatewayDegraded(ctx, req, "GatewayNotConfigured")
+		if r.GatewayClient == nil { return r.setGatewayDegraded(ctx, req, "GatewayNotConfigured") }
+		if gatewayConditionUpToDate(md) {
+			if err := r.GatewayClient.HealthCheck(ctx); err != nil {
+				log.Error(err, "Gateway health check failed")
+				return r.setGatewayDegraded(ctx, req, "GatewayHealthFailed")
+			}
+		} else {
+			if err := r.registerWithGateway(ctx, md, resolvedEngine); err != nil {
+				log.Error(err, "serving replicas ready but Gateway registration failed")
+				return r.setGatewayDegraded(ctx, req, "GatewayRegistrationFailed")
+			}
+			if err := r.setGatewayReady(ctx, req); err != nil { return ctrl.Result{}, err }
 		}
-		if err := r.registerWithGateway(ctx, md, resolvedEngine); err != nil {
-			log.Error(err, "serving replicas ready but Gateway registration failed")
-			return r.setGatewayDegraded(ctx, req, "GatewayRegistrationFailed")
-		}
-		if err := r.setGatewayReady(ctx, req); err != nil { return ctrl.Result{}, err }
 	}
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 }
 
 // reconcileCanary handles canary deployment lifecycle.
@@ -484,9 +489,7 @@ func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.R
 
 	switch {
 	case dep.Status.ReadyReplicas >= desired && desired > 0:
-		if md.Status.Phase == "Downloading" || md.Status.Phase == "Deploying" || md.Status.Phase == "" {
-			md.Status.Phase = "Ready"
-		}
+		md.Status.Phase = "Ready"
 	case dep.Status.ReadyReplicas > 0:
 		md.Status.Phase = "Degraded"
 	case dep.Status.ReadyReplicas == 0 && desired > 0:
@@ -512,9 +515,11 @@ func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.R
 	setCondition(&md.Status.Conditions, readyCond)
 
 	status := md.Status
-	if err := r.Get(ctx, req.NamespacedName, md); err != nil { return err }
-	md.Status = status
-	return r.Status().Update(ctx, md)
+	latest := &v1alpha1.ModelDeployment{}
+	if err := r.Get(ctx, req.NamespacedName, latest); err != nil { return err }
+	if reflect.DeepEqual(latest.Status, status) { return nil }
+	latest.Status = status
+	return r.Status().Update(ctx, latest)
 }
 
 // PodStatus, not DeploymentStatus, owns per-init-container lifecycle states.
@@ -602,6 +607,16 @@ func (r *ModelDeploymentReconciler) setGatewayDegraded(ctx context.Context, req 
 	return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 }
 
+// gatewayConditionUpToDate requires that the current CR generation has already
+// been registered with the gateway; older successes cannot certify new weights.
+func gatewayConditionUpToDate(md *v1alpha1.ModelDeployment) bool {
+	for _,cond:=range md.Status.Conditions {
+		if cond.Type=="GatewayReady" && cond.Status==metav1.ConditionTrue &&
+			cond.ObservedGeneration>=md.Generation { return true }
+	}
+	return false
+}
+
 func (r *ModelDeploymentReconciler) setGatewayReady(ctx context.Context, req ctrl.Request) error {
 	latest := &v1alpha1.ModelDeployment{}
 	if err := r.Get(ctx, req.NamespacedName, latest); err != nil { return err }
@@ -626,8 +641,14 @@ func getCanaryPhase(dep *appsv1.Deployment) string {
 }
 
 func setCondition(conditions *[]metav1.Condition, cond metav1.Condition) {
-	for i, c := range *conditions {
-		if c.Type == cond.Type {
+	for i, current := range *conditions {
+		if current.Type == cond.Type {
+			// Conditions must not be churned on every reconcile. Preserve the
+			// transition time when the externally observable state is unchanged.
+			if current.Status == cond.Status && current.Reason == cond.Reason &&
+				current.Message == cond.Message {
+				cond.LastTransitionTime = current.LastTransitionTime
+			}
 			(*conditions)[i] = cond
 			return
 		}
