@@ -325,7 +325,7 @@ func (r *ModelDeploymentReconciler) reconcileHPA(ctx context.Context, md *v1alph
 	if as.ScaleTargetCPUUtilizationPercentage != nil {
 		hpa.Spec.Metrics = append(hpa.Spec.Metrics, autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
-			Resource: &autoscalingv2.ResourceMetricStatusSource{
+			Resource: &autoscalingv2.ResourceMetricSource{
 				Name: corev1.ResourceCPU,
 				Target: autoscalingv2.MetricTarget{
 					Type:               autoscalingv2.UtilizationMetricType,
@@ -337,7 +337,7 @@ func (r *ModelDeploymentReconciler) reconcileHPA(ctx context.Context, md *v1alph
 	if as.ScaleTargetMemoryUtilizationPercentage != nil {
 		hpa.Spec.Metrics = append(hpa.Spec.Metrics, autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
-			Resource: &autoscalingv2.ResourceMetricStatusSource{
+			Resource: &autoscalingv2.ResourceMetricSource{
 				Name: corev1.ResourceMemory,
 				Target: autoscalingv2.MetricTarget{
 					Type:               autoscalingv2.UtilizationMetricType,
