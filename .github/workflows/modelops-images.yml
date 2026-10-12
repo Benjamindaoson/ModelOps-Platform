@@ -47,14 +47,14 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           context: control-plane
           push: true
-          tags: ghcr.io/benjamindaoson/modelops-control-plane:\${{ github.ref_name }}
+          tags: ghcr.io/benjamindaoson/modelops-control-plane:${{ github.ref_name }}
           provenance: true
           sbom: true
 
@@ -90,13 +90,13 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           context: console
           push: true
-          tags: ghcr.io/benjamindaoson/modelops-console:\${{ github.ref_name }}
+          tags: ghcr.io/benjamindaoson/modelops-console:${{ github.ref_name }}
           provenance: true
           sbom: true
