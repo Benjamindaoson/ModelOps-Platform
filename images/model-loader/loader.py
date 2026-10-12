@@ -38,7 +38,12 @@ def sha256_checkpoint(path: Path) -> str:
     """
     if not path.is_dir() or path.is_symlink():
         raise ModelLoadError("missing model directory or forbidden symlink")
-    files = sorted(p for p in path.rglob("*") if p.is_file() and ".cache" not in p.relative_to(path).parts
+    # Check links before is_file(): pathlib.is_file() is False on dangling
+    # symlinks, which would otherwise silently bypass provenance checks.
+    entries = list(path.rglob("*"))
+    if any(p.is_symlink() for p in entries):
+        raise ModelLoadError("model directory contains a symlink")
+    files = sorted(p for p in entries if p.is_file() and ".cache" not in p.relative_to(path).parts
                    and p.name != ".modelops-provenance.json")
     if not files:
         raise ModelLoadError("download produced no model files")
