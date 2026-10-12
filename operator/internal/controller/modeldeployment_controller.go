@@ -442,9 +442,12 @@ func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.
 
 func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.Request, md *v1alpha1.ModelDeployment, eng string) error {
 	dep := &appsv1.Deployment{}
-	_ = r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, dep)
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, dep); err != nil {
+		return err
+	}
 
-	initStatus := r.getInitContainerStatus(dep)
+	initStatus, err := r.getInitContainerStatus(ctx, md)
+	if err != nil { return err }
 	port := builder.EnginePort(eng)
 	md.Status.Engine = eng
 	md.Status.ReadyReplicas = dep.Status.ReadyReplicas
@@ -495,35 +498,40 @@ func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.R
 	setCondition(&md.Status.Conditions, readyCond)
 
 	status := md.Status
-	_ = r.Get(ctx, req.NamespacedName, md)
+	if err := r.Get(ctx, req.NamespacedName, md); err != nil { return err }
 	md.Status = status
 	return r.Status().Update(ctx, md)
 }
 
-func (r *ModelDeploymentReconciler) getInitContainerStatus(dep *appsv1.Deployment) *v1alpha1.InitContainerStatus {
-	if dep.Status.InitContainerStatuses == nil || len(dep.Status.InitContainerStatuses) == 0 {
-		return nil
+// PodStatus, not DeploymentStatus, owns per-init-container lifecycle states.
+func (r *ModelDeploymentReconciler) getInitContainerStatus(ctx context.Context, md *v1alpha1.ModelDeployment) (*v1alpha1.InitContainerStatus, error) {
+	pods := &corev1.PodList{}
+	if err := r.List(ctx, pods, client.InNamespace(md.Namespace), client.MatchingLabels{"kube-llmops/model": md.Name}); err != nil {
+		return nil, err
 	}
-	for _, cs := range dep.Status.InitContainerStatuses {
-		if cs.Name == "model-loader" {
-			phase, msg := "Pending", ""
+	for _, pod := range pods.Items {
+		for _, cs := range pod.Status.InitContainerStatuses {
+			if cs.Name != "model-loader" { continue }
+			status := &v1alpha1.InitContainerStatus{}
 			switch {
 			case cs.State.Running != nil:
-				phase, msg = "Running", "Model download in progress"
+				status.Phase, status.Message = "Running", "Model download in progress"
 			case cs.State.Terminated != nil:
-				phase = "Terminated"
+				status.Phase = "Terminated"
 				if cs.State.Terminated.ExitCode == 0 {
-					msg = "Model download completed"
+					status.Message = "Model download completed"
 				} else {
-					msg = fmt.Sprintf("Model download failed: %s", cs.State.Terminated.Reason)
+					status.Message = fmt.Sprintf("Model download failed: %s", cs.State.Terminated.Reason)
 				}
 			case cs.State.Waiting != nil:
-				msg = cs.State.Waiting.Reason
+				status.Phase, status.Message = "Pending", cs.State.Waiting.Reason
+			default:
+				status.Phase = "Pending"
 			}
-			return &v1alpha1.InitContainerStatus{Phase: phase, Message: msg}
+			return status, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (r *ModelDeploymentReconciler) registerWithGateway(ctx context.Context, md *v1alpha1.ModelDeployment, eng string) error {
