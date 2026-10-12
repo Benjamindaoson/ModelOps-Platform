@@ -18,7 +18,7 @@ def retry_workflow_name(name: str, random_suffix: str) -> str:
     if len(random_suffix) != 8 or any(ch not in "0123456789abcdef" for ch in random_suffix):
         raise ValueError("Retry suffix must be eight random hex characters")
     # A trailing -ft suffix is added to Argo workflows; both must fit DNS-63.
-    prefix = name[:52].rstrip("-")
+    prefix = name[:49].rstrip("-")
     if not prefix:
         raise ValueError("Cannot retry a job without a valid name")
     return prefix + "-r-" + random_suffix
