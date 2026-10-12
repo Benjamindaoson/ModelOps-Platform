@@ -46,6 +46,7 @@ dynamicTemplate:
   prepareImage: python:3.12-slim
   workspaceSize: 60Gi
   objectStoreSecret: modelops-objectstore
+  mlflowTrackingURI: ""  # Existing external MLflow service (no inline credentials)
 
 evaluation:
   enabled: true

@@ -293,7 +293,7 @@ spec:
           - name: MODELOPS_OUTPUT_NAME
             value: {{ "{{workflow.parameters.output_name}}" | quote }}
           - name: MLFLOW_TRACKING_URI
-            value: {{ printf "http://%s-mlflow:5000" $.Release.Name | quote }}
+            value: {{ .Values.dynamicTemplate.mlflowTrackingURI | default (printf "http://%s-mlflow:5000" $.Release.Name) | quote }}
           - name: MODELOPS_S3_ENDPOINT
             valueFrom:
               secretKeyRef:
