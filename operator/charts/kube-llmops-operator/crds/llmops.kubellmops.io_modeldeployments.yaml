@@ -90,8 +90,15 @@ spec:
                         type: string
                     type: object
                   source:
-                    description: Source is the HuggingFace model ID for the canary
-                      model.
+                    description: Source is the HuggingFace model ID or S3 candidate path.
+                    type: string
+                  revision:
+                    description: Pinned candidate model revision.
+                    minLength: 7
+                    type: string
+                  digest:
+                    description: SHA-256 of the complete independently verified candidate artifact.
+                    pattern: ^[a-f0-9]{64}$
                     type: string
                   weight:
                     description: Weight is the percentage of traffic routed to the
@@ -102,6 +109,8 @@ spec:
                     type: integer
                 required:
                 - source
+                - revision
+                - digest
                 - weight
                 type: object
               engine:

@@ -220,6 +220,9 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1alpha1.ModelDeployment, eng string, platform *v1alpha1.LLMPlatform) error {
 	log := logf.FromContext(ctx)
 	canary := md.Spec.Canary
+	if canary == nil || len(canary.Revision)<7 || len(canary.Digest)!=64 {
+		return fmt.Errorf("candidate requires pinned revision and 64-character artifact digest")
+	}
 	canarySlug := builder.CanarySlug(canary.Source)
 
 	// Canary PVC
@@ -237,7 +240,13 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 
 	// Canary Deployment
 	canaryMD := &v1alpha1.ModelDeployment{
-		ObjectMeta: metav1.ObjectMeta{Name: md.Name + "-canary", Namespace: md.Namespace},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: md.Name + "-canary", Namespace: md.Namespace,
+			Annotations: map[string]string{
+				"modelops.io/artifact-revision": canary.Revision,
+				"modelops.io/artifact-sha256": canary.Digest,
+			},
+		},
 		Spec: v1alpha1.ModelDeploymentSpec{
 			Source: canary.Source, Engine: md.Spec.Engine,
 			Replicas: ptr.To(int32(1)), Resources: canary.Resources,

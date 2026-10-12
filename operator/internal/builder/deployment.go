@@ -400,6 +400,9 @@ func BuildCanaryDeployment(canaryMD *v1alpha1.ModelDeployment, engine string, pl
 	gpuResourceName := resolveGPUResource(canaryMD)
 	volumes, volumeMounts := buildCanaryVolumes(mainName)
 	containerResources := buildCanaryContainerResources(canaryMD, gpuResourceName)
+	// A canary without a real pinned checkpoint loader is only an empty Pod.
+	// Reuse the tested model-loader and its deterministic provenance metadata.
+	canaryInit := buildInitContainers(canaryMD, platform, canarySlug)
 
 	probe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -456,6 +459,8 @@ func BuildCanaryDeployment(canaryMD *v1alpha1.ModelDeployment, engine string, pl
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					InitContainers:                 canaryInit,
+					SecurityContext: &corev1.PodSecurityContext{FSGroup: func() *int64 { n:=int64(10001);return &n }()},
 					Containers:                    []corev1.Container{mainContainer},
 					Volumes:                      volumes,
 					Tolerations:                   tolerations,

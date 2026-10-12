@@ -115,6 +115,14 @@ type CanaryConfig struct {
 	// +kubebuilder:validation:Required
 	Source string `json:"source"`
 
+	// Revision identifies a pinned model snapshot. For HF this is the commit SHA.
+	// +kubebuilder:validation:MinLength=7
+	Revision string `json:"revision"`
+
+	// Digest is the verified SHA-256 of the candidate checkpoint tree.
+	// +kubebuilder:validation:Pattern=^[a-f0-9]{64}$
+	Digest string `json:"digest"`
+
 	// Weight is the percentage of traffic routed to the canary (0-100).
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
