@@ -54,8 +54,15 @@ class RecordingRuntime:
             raise RuntimeNotFound("Deployment not yet present in fake K8s")
         candidate = self.canaries.get(key)
         body = self.deployments[key]
-        return {**body, "status": {
+        return {**body, "metadata": {**body["metadata"], "generation": row.generation},
+                "status": {
             "phase": "Ready", "readyReplicas": row.replicas,
+            "conditions": [
+                {"type": "Ready", "status": "True",
+                 "observedGeneration": row.generation},
+                {"type": "GatewayReady", "status": "True",
+                 "observedGeneration": row.generation},
+            ],
             "canary": {"phase": "Pending", "readyReplicas": 0} if candidate else None,
         }, "spec": {**body["spec"], "canary": candidate}}
 
@@ -641,3 +648,120 @@ def test_recovery_worker_rejects_unvalidated_tenant(api):
     client, runtime = api
     with pytest.raises(ValueError):
         recover_once(client.app.state.sessions, runtime, "../kube-system")
+
+
+def test_runtime_ready_requires_fresh_operator_and_gateway_evidence(api):
+    """Old Ready phases, missing generation and foreign CRDs are never verified."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    client, runtime = api
+    model, _ = register(client)
+    res = client.post("/api/v1/deployments", json={
+        "name": "verified-runtime", "artifact_id": model["id"], "engine": "vllm",
+    }, headers=headers())
+    assert res.status_code == 201, res.text
+    assert res.json()["runtime_verified"] is True
+    row = res.json()
+    original = runtime.get_deployment
+    current = original(SimpleNamespace(tenant="alpha", name="verified-runtime",
+                                       generation=1, replicas=1))
+
+    cases = []
+    missing_generation = deepcopy(current)
+    missing_generation["metadata"].pop("generation")
+    cases.append((missing_generation, "Reconciling"))
+    stale = deepcopy(current)
+    stale["status"]["conditions"][0]["observedGeneration"] = 0
+    cases.append((stale, "Reconciling"))
+    missing_gateway = deepcopy(current)
+    missing_gateway["status"]["conditions"] = missing_gateway["status"]["conditions"][:1]
+    cases.append((missing_gateway, "Reconciling"))
+    bad_gateway = deepcopy(current)
+    bad_gateway["status"]["conditions"][1]["status"] = "False"
+    cases.append((bad_gateway, "Reconciling"))
+    missing_replicas = deepcopy(current)
+    missing_replicas["status"]["readyReplicas"] = 0
+    cases.append((missing_replicas, "Reconciling"))
+    foreign = deepcopy(current)
+    foreign["metadata"]["namespace"] = "modelops-beta"
+    cases.append((foreign, "ConfigurationDrift"))
+    modified = deepcopy(current)
+    modified["spec"]["replicas"] = 9
+    cases.append((modified, "ConfigurationDrift"))
+    for body, expected_phase in cases:
+        runtime.get_deployment = lambda _, b=body: b
+        check = client.get("/api/v1/deployments/" + row["id"], headers=headers())
+        assert check.status_code == 200, check.text
+        assert check.json()["runtime_verified"] is False
+        assert check.json()["observed_phase"] == expected_phase
+    runtime.get_deployment = original
+    assert client.get("/api/v1/deployments/" + row["id"],
+                      headers=headers()).json()["runtime_verified"] is True
+
+
+def test_recovery_rejects_deployment_replica_and_gpu_drift(api):
+    client, runtime = api
+    model, _ = register(client)
+    runtime.timeout_after_create = True
+    res = client.post("/api/v1/deployments", json={
+        "name": "drifted-deployment", "artifact_id": model["id"], "engine": "vllm",
+        "replicas": 2, "gpu": 1,
+    }, headers=headers())
+    assert res.status_code == 502
+    row = client.get("/api/v1/deployments", headers=headers()).json()[0]
+    spec = runtime.deployments[("alpha", "drifted-deployment")]["spec"]
+    for field, value in (("replicas", 8), ("resources", {"gpu": 12, "cpu": "4", "memory": "16Gi"})):
+        before = spec[field]
+        spec[field] = value
+        reject = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                             headers=headers())
+        assert reject.status_code == 502
+        assert runtime.deployment_create_calls == 1
+        spec[field] = before
+    recovered = client.post("/api/v1/deployments/" + row["id"] + "/recover",
+                            headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "requested"
+
+
+def test_recovery_rejects_changed_or_duplicated_training_arguments(api):
+    client, runtime = api
+    model, dataset = register(client)
+    runtime.timeout_after_create = True
+    res = client.post("/api/v1/train-jobs", json={
+        "name": "drifted-training", "artifact_id": model["id"],
+        "dataset_id": dataset["id"], "epochs": 2,
+        "lr": 0.0001, "lora_rank": 8, "output_name": "adapters",
+    }, headers=headers())
+    assert res.status_code == 502
+    row = client.get("/api/v1/train-jobs", headers=headers()).json()[0]
+    params = runtime.last_workflow["spec"]["arguments"]["parameters"]
+    path = "/api/v1/train-jobs/" + row["id"] + "/recover"
+    for arg, wrong_value in (("epochs", "10"), ("learning_rate", "0.9"),
+                             ("lora_rank", "64"), ("gpu", "15"),
+                             ("min_token_f1", "0.0"), ("output_name", "other")):
+        item = next(p for p in params if p["name"] == arg)
+        saved = item["value"]
+        item["value"] = wrong_value
+        assert client.post(path, headers=headers()).status_code == 502
+        assert runtime.training_create_calls == 1
+        item["value"] = saved
+    params.append(dict(params[0]))
+    assert client.post(path, headers=headers()).status_code == 502
+    params.pop()
+    params.pop()
+    assert client.post(path, headers=headers()).status_code == 502
+    params.insert(0, {"name": "base_model", "value": model["source"]})
+    recovered = client.post(path, headers=headers())
+    assert recovered.status_code == 200, recovered.text
+    assert recovered.json()["intent"] == "requested"
+    assert runtime.training_create_calls == 1
+
+
+def test_tenant_claim_must_be_ascii_kubernetes_namespace_slug(api):
+    client, _ = api
+    for invalid in ("α", "testα", "A", "a.b", "../default", "a" * 41):
+        response = client.get("/api/v1/me", headers=headers(tenant=invalid))
+        assert response.status_code == 401, invalid
+    assert client.get("/api/v1/me", headers=headers(tenant="team-01")).status_code == 200
