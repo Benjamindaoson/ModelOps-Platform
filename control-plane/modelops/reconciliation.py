@@ -77,3 +77,46 @@ def ensure_training(runtime, record, artifact, dataset) -> str:
     if len(actual) != len(arguments) or actual != expected:
         raise RuntimeFailure("Existing Workflow arguments disagree with immutable training intent")
     return "adopted"
+
+def ensure_updated_deployment(runtime, record, artifact) -> str:
+    """Reconcile an already-created model to a committed SQL desired revision.
+
+    Called after a durable DB commit and by the recovery worker after process
+    crashes or ambiguous Kubernetes timeouts. Never adopts a foreign CRD.
+    """
+    try:
+        existing = runtime.get_deployment(record)
+    except RuntimeNotFound as exc:
+        raise RuntimeFailure("Cannot update a missing ModelDeployment") from exc
+    metadata = existing.get("metadata") or {}
+    annotations = metadata.get("annotations") or {}
+    spec = existing.get("spec") or {}
+    if (metadata.get("namespace") != namespace_for(record.tenant)
+        or metadata.get("name") != record.name
+        or annotations.get("modelops.io/tenant") != record.tenant):
+        raise RuntimeFailure("Refusing to patch unowned ModelDeployment")
+    desired = deployment_body(record, artifact)
+    expected_annotations = desired["metadata"]["annotations"]
+    def matches(body: dict) -> bool:
+        meta = body.get("metadata") or {}
+        ann = meta.get("annotations") or {}
+        current = body.get("spec") or {}
+        return (
+            meta.get("namespace") == namespace_for(record.tenant)
+            and meta.get("name") == record.name
+            and all(ann.get(k) == value for k, value in expected_annotations.items())
+            and current.get("source") == artifact.source
+            and current.get("engine") == record.engine
+            and current.get("replicas") == record.replicas
+            and (current.get("resources") or {}).get("gpu") == record.gpu
+        )
+    if matches(existing):
+        return "adopted"
+    runtime.patch_deployment(record, artifact)
+    try:
+        observed = runtime.get_deployment(record)
+    except RuntimeNotFound as exc:
+        raise RuntimeFailure("ModelDeployment disappeared after update") from exc
+    if not matches(observed):
+        raise RuntimeFailure("Kubernetes update did not converge to durable desired revision")
+    return "patched"

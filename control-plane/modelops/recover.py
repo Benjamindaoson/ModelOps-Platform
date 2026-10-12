@@ -11,8 +11,8 @@ import sys
 
 from sqlalchemy import select
 
-from .db import AuditEvent, Deployment, FineTuneJob, ModelArtifact, DatasetVersion, make_session_factory
-from .reconciliation import ensure_deployment, ensure_training
+from .db import AuditEvent, Deployment, DeploymentRevision, FineTuneJob, ModelArtifact, DatasetVersion, make_session_factory
+from .reconciliation import ensure_deployment, ensure_training, ensure_updated_deployment
 from .runtime import KubernetesRuntime, RuntimeFailure
 
 
@@ -34,7 +34,7 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
         deployments = list(db.scalars(
             select(Deployment).where(
                 Deployment.tenant == tenant,
-                Deployment.intent.in_(("submitting", "runtime_unknown")))
+                Deployment.intent.in_(("submitting", "updating", "runtime_unknown")))
             .order_by(Deployment.created_at).limit(left)).all())
         for kind, record in ([("training", job) for job in jobs] +
                              [("deployment", item) for item in deployments]):
@@ -49,7 +49,13 @@ def recover_once(sessions, runtime, tenant: str, max_items: int = 100) -> dict:
                         raise RuntimeFailure("Durable intent references a missing/foreign dataset")
                     outcome = ensure_training(runtime, record, artifact, dataset)
                 else:
-                    outcome = ensure_deployment(runtime, record, artifact)
+                    latest = db.scalar(select(DeploymentRevision).where(
+                        DeploymentRevision.deployment_id == record.id
+                    ).order_by(DeploymentRevision.generation.desc()).limit(1))
+                    if latest and latest.operation in ("scale", "promote", "rollback"):
+                        outcome = ensure_updated_deployment(runtime, record, artifact)
+                    else:
+                        outcome = ensure_deployment(runtime, record, artifact)
                 record.intent = "requested"
                 db.add(AuditEvent(
                     tenant=tenant, actor="system:recovery-worker",
