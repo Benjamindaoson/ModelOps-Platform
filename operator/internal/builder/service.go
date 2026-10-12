@@ -8,16 +8,6 @@ import (
 	v1alpha1 "github.com/kube-llmops/operator/api/v1alpha1"
 )
 
-// getEnginePort returns the container port for a given inference engine.
-func getEnginePort(engine string) int32 {
-	switch engine {
-	case "tei", "llamacpp":
-		return 8080
-	default:
-		return 8000
-	}
-}
-
 // buildLabels returns the standard set of labels for builder resources.
 func buildLabels(name, engine string) map[string]string {
 	return map[string]string{
@@ -31,7 +21,7 @@ func buildLabels(name, engine string) map[string]string {
 
 // BuildService creates a ClusterIP Service for a ModelDeployment.
 func BuildService(md *v1alpha1.ModelDeployment, engine string) *corev1.Service {
-	port := getEnginePort(engine)
+	port := EnginePort(engine)
 	labels := buildLabels(md.Name, engine)
 
 	return &corev1.Service{
@@ -58,14 +48,9 @@ func BuildService(md *v1alpha1.ModelDeployment, engine string) *corev1.Service {
 	}
 }
 
-// EnginePort returns the HTTP port for a given inference engine.
-func EnginePort(engine string) int32 {
-	return getEnginePort(engine)
-}
-
 // BuildCanaryService creates a ClusterIP Service for a canary ModelDeployment.
 func BuildCanaryService(canaryMD *v1alpha1.ModelDeployment, engine string, mainName string) *corev1.Service {
-	port := getEnginePort(engine)
+	port := EnginePort(engine)
 	labels := buildLabels(mainName+"-canary", engine)
 
 	return &corev1.Service{
