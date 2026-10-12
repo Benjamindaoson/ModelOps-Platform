@@ -222,8 +222,8 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 		existing := &corev1.PersistentVolumeClaim{}
 		if err := r.Get(ctx, types.NamespacedName{Name: canaryPVC.Name, Namespace: canaryPVC.Namespace}, existing); err != nil {
 			if apierrors.IsNotFound(err) {
-				_ = controllerutil.SetControllerReference(md, canaryPVC, r.Scheme)
-				_ = r.Create(ctx, canaryPVC)
+				if err := controllerutil.SetControllerReference(md, canaryPVC, r.Scheme); err != nil { return err }
+				if err := r.Create(ctx, canaryPVC); err != nil { return err }
 				log.Info("created canary PVC", "name", canaryPVC.Name)
 			}
 		}
@@ -242,14 +242,16 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 	existingDep := &appsv1.Deployment{}
 	if err := r.Get(ctx, types.NamespacedName{Name: canaryDep.Name, Namespace: canaryDep.Namespace}, existingDep); err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = controllerutil.SetControllerReference(md, canaryDep, r.Scheme)
-			_ = r.Create(ctx, canaryDep)
+			if err := controllerutil.SetControllerReference(md, canaryDep, r.Scheme); err != nil { return err }
+			if err := r.Create(ctx, canaryDep); err != nil { return err }
 			log.Info("created canary Deployment", "name", canaryDep.Name)
 		}
 	} else {
 		canaryDep.Spec.Replicas = existingDep.Spec.Replicas
-		existingDep.Spec = canaryDep.Spec
-		_ = r.Update(ctx, existingDep)
+		if !reflect.DeepEqual(existingDep.Spec, canaryDep.Spec) {
+			existingDep.Spec = canaryDep.Spec
+			if err := r.Update(ctx, existingDep); err != nil { return err }
+		}
 	}
 
 	// Canary Service
@@ -257,18 +259,18 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 	existingSvc := &corev1.Service{}
 	if err := r.Get(ctx, types.NamespacedName{Name: canarySvc.Name, Namespace: canarySvc.Namespace}, existingSvc); err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = controllerutil.SetControllerReference(md, canarySvc, r.Scheme)
-			_ = r.Create(ctx, canarySvc)
+			if err := controllerutil.SetControllerReference(md, canarySvc, r.Scheme); err != nil { return err }
+			if err := r.Create(ctx, canarySvc); err != nil { return err }
 			log.Info("created canary Service", "name", canarySvc.Name)
 		}
 	}
 
 	// Canary PDB
-	_ = r.ensurePDB(ctx, md, md.Name+"-canary")
+	if err := r.ensurePDB(ctx, md, md.Name+"-canary"); err != nil { return err }
 
 	// Update canary status
 	canaryDep = &appsv1.Deployment{}
-	_ = r.Get(ctx, types.NamespacedName{Name: md.Name + "-canary", Namespace: md.Namespace}, canaryDep)
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name + "-canary", Namespace: md.Namespace}, canaryDep); err != nil { return err }
 	port := builder.EnginePort(eng)
 	md.Status.Canary = &v1alpha1.CanaryStatus{
 		Phase:         getCanaryPhase(canaryDep),
@@ -565,7 +567,7 @@ func (r *ModelDeploymentReconciler) registerWithGateway(ctx context.Context, md 
 		return fmt.Errorf("register model: %w", err)
 	}
 
-	if md.Spec.Canary != nil && md.Status.Canary != nil {
+	if md.Spec.Canary != nil && md.Status.Canary != nil && md.Status.Canary.Phase == "Ready" && md.Spec.Canary.Weight > 0 {
 		canaryModel := gateway.GatewayModel{
 			ModelName: md.Name + "-canary",
 			LiteLLMParams: gateway.LiteLLMParams{
@@ -574,7 +576,9 @@ func (r *ModelDeploymentReconciler) registerWithGateway(ctx context.Context, md 
 				Weight: ptr.To(int(md.Spec.Canary.Weight)),
 			},
 		}
-		_ = r.GatewayClient.RegisterModel(ctx, canaryModel)
+		if err := r.GatewayClient.RegisterModel(ctx, canaryModel); err != nil {
+			return fmt.Errorf("register canary: %w", err)
+		}
 	}
 	return nil
 }
@@ -610,7 +614,9 @@ func (r *ModelDeploymentReconciler) setGatewayReady(ctx context.Context, req ctr
 }
 
 func getCanaryPhase(dep *appsv1.Deployment) string {
-	if dep.Status.ReadyReplicas > 0 {
+	if dep.Spec.Replicas != nil && *dep.Spec.Replicas > 0 &&
+		dep.Status.ObservedGeneration >= dep.Generation &&
+		dep.Status.ReadyReplicas >= *dep.Spec.Replicas {
 		return "Ready"
 	}
 	if dep.Status.Replicas > 0 {
