@@ -33,6 +33,15 @@ test("authenticates and registers real metadata; refuses disconnected Kubernetes
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page.getByText("support-dataset")).toBeVisible();
 
+  await page.getByRole("link", { name: "Training jobs" }).click();
+  await page.getByRole("button", { name: "New training job" }).click();
+  await page.getByLabel("Job name").fill("offline-lora");
+  await page.getByLabel("Output model name").fill("offline-adapter");
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.locator(".message.error[role='alert']")).toContainText("Runtime not connected");
+  await page.getByRole("button", { name: "Close form" }).click();
+  await expect(page.getByText("No training jobs.")).toBeVisible();
+
   await page.getByRole("link", { name: "Deployments" }).click();
   await page.getByRole("button", { name: "New deployment" }).click();
   await page.getByLabel("Deployment name").fill("qwen-k8s-smoke");

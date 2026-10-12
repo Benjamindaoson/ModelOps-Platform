@@ -6,6 +6,7 @@ import os
 from dataclasses import asdict
 from datetime import datetime
 from typing import Generator
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -19,6 +20,7 @@ from .db import (Base, TenantRecord, ModelArtifact, DatasetVersion, Deployment,
                  DeploymentRevision, FineTuneJob, EvaluationRecord, ReleaseApproval,
                  AuditEvent, make_session_factory)
 from .evidence import EvidenceError, digest_report, verify_report
+from .job_lifecycle import check_job_identity, observed_job, retry_workflow_name, terminal_job_phase
 from .runtime import (DisabledRuntime, KubernetesRuntime, RuntimeFailure,
                       RuntimeUnavailable, namespace_for)
 from .schemas import (ApprovalIn, ArtifactIn, DatasetIn, DeploymentIn,
@@ -41,7 +43,7 @@ DATASET_FIELDS = ("id", "name", "version", "uri", "digest", "train_count",
 DEPLOY_FIELDS = ("id", "name", "artifact_id", "engine", "replicas", "gpu",
                  "generation", "intent", "created_by", "created_at")
 RUN_FIELDS = ("id", "name", "artifact_id", "dataset_id", "method",
-              "workflow_name", "intent", "created_by", "created_at")
+              "workflow_name", "intent", "parent_job_id", "attempt", "created_by", "created_at")
 
 
 def fetch_owned(db: Session, klass, tenant: str, key: str):
@@ -460,23 +462,31 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             commit(db)
         return {"status": "deletion_requested", "id": row.id}
 
+    def summarize_train_job(row: FineTuneJob):
+        data = render(row, *RUN_FIELDS)
+        data["parameters"] = json.loads(row.parameters_json)
+        if not app.state.runtime.connected:
+            return {**data, "observed_phase": "RuntimeDisconnected",
+                    "runtime_verified": False,
+                    "message": "Kubernetes is not connected; Argo status cannot be verified"}
+        try:
+            actual = app.state.runtime.get_finetune(row)
+            check_job_identity(actual, row)
+            return {**data, **observed_job(actual)}
+        except RuntimeFailure:
+            return {**data, "observed_phase": "RuntimeUnreachable",
+                    "runtime_verified": False, "message": "Unable to query real Argo state"}
+
     @app.get("/api/v1/train-jobs")
     def train_jobs(p: Principal = Depends(require_principal), db: Session = Depends(get_db)):
-        rows = db.scalars(select(FineTuneJob).where(FineTuneJob.tenant == p.tenant)
+        jobs = db.scalars(select(FineTuneJob).where(FineTuneJob.tenant == p.tenant)
                           .order_by(FineTuneJob.created_at.desc()).limit(100)).all()
-        result = []
-        for row in rows:
-            data = render(row, *RUN_FIELDS)
-            data["parameters"] = json.loads(row.parameters_json)
-            if app.state.runtime.connected:
-                try:
-                    data["observed_phase"] = app.state.runtime.get_finetune(row).get("status", {}).get("phase", "Pending")
-                except RuntimeFailure:
-                    data["observed_phase"] = "RuntimeUnreachable"
-            else:
-                data["observed_phase"] = "RuntimeDisconnected"
-            result.append(data)
-        return result
+        return [summarize_train_job(item) for item in jobs]
+
+    @app.get("/api/v1/train-jobs/{key}")
+    def get_train_job(key: str, p: Principal = Depends(require_principal),
+                      db: Session = Depends(get_db)):
+        return summarize_train_job(fetch_owned(db, FineTuneJob, p.tenant, key))
 
     @app.post("/api/v1/train-jobs", status_code=201)
     def submit_train_job(req: FineTuneIn, p: Principal = Depends(require_principal),
@@ -491,14 +501,78 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row = FineTuneJob(tenant=p.tenant, name=req.name,
                          artifact_id=artifact.id, dataset_id=dataset.id, method=req.method,
                          parameters_json=req.model_dump_json(), workflow_name=req.name + "-ft",
-                         created_by=p.subject)
+                         parent_job_id=None, attempt=1, created_by=p.subject)
         db.add(row)
         flush_record(db)
         app.state.runtime.submit_finetune(row, artifact, dataset, req.model_dump())
         audit(db, p, "training.submit", "train_job", row.id,
-              {"method": req.method, "dataset_id": dataset.id})
+              {"method": req.method, "dataset_id": dataset.id, "attempt": 1})
         commit(db)
         return {**render(row, *RUN_FIELDS), "parameters": req.model_dump(),
+                "observed_phase": "Pending", "runtime_verified": False}
+
+    @app.post("/api/v1/train-jobs/{key}/cancel")
+    def cancel_train_job(key: str, p: Principal = Depends(require_principal),
+                         db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, FineTuneJob, p.tenant, key)
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Argo disconnected; training termination was not requested")
+        actual = app.state.runtime.get_finetune(row)
+        check_job_identity(actual, row)
+        phase = actual.get("status", {}).get("phase") or "Pending"
+        if terminal_job_phase(phase):
+            raise HTTPException(409, detail="Cannot cancel a terminal Workflow")
+        if row.intent == "cancel_requested" or actual.get("spec", {}).get("shutdown") == "Terminate":
+            return {**summarize_train_job(row), "cancel_requested": True}
+        resource_version = actual.get("metadata", {}).get("resourceVersion", "")
+        app.state.runtime.cancel_finetune(row, resource_version)
+        row.intent = "cancel_requested"
+        audit(db, p, "training.cancel", "train_job", row.id,
+              {"workflow": row.workflow_name, "observed_phase": phase})
+        commit(db)
+        return {**summarize_train_job(row), "cancel_requested": True}
+
+    @app.post("/api/v1/train-jobs/{key}/retry", status_code=201)
+    def retry_train_job(key: str, p: Principal = Depends(require_principal),
+                        db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        prior = fetch_owned(db, FineTuneJob, p.tenant, key)
+        if not app.state.runtime.connected:
+            raise RuntimeUnavailable("Argo disconnected; no retry was created")
+        # One failed Workflow may have only one immutable child. This makes
+        # repeated POSTs safe even across UI reconnects; the DB unique index
+        # on parent_job_id enforces it across multiple API replicas.
+        child = db.scalar(select(FineTuneJob).where(
+            FineTuneJob.tenant == p.tenant, FineTuneJob.parent_job_id == prior.id))
+        if child is not None:
+            return summarize_train_job(child)
+        actual = app.state.runtime.get_finetune(prior)
+        check_job_identity(actual, prior)
+        phase = actual.get("status", {}).get("phase") or "Pending"
+        if phase not in ("Failed", "Error", "Terminated"):
+            raise HTTPException(409, detail="Only failed or terminated jobs can be retried")
+        if prior.attempt >= 5:
+            raise HTTPException(409, detail="Maximum five training attempts")
+        artifact = fetch_owned(db, ModelArtifact, p.tenant, prior.artifact_id)
+        dataset = fetch_owned(db, DatasetVersion, p.tenant, prior.dataset_id)
+        frozen = json.loads(prior.parameters_json)
+        name = retry_workflow_name(prior.name, uuid4().hex[:8])
+        params = {**frozen, "name": name}
+        row = FineTuneJob(tenant=p.tenant, name=name, artifact_id=artifact.id,
+                         dataset_id=dataset.id, method=prior.method,
+                         parameters_json=json.dumps(params, sort_keys=True),
+                         workflow_name=name + "-ft",
+                         parent_job_id=prior.id, attempt=prior.attempt + 1,
+                         created_by=p.subject)
+        db.add(row)
+        flush_record(db)
+        app.state.runtime.submit_finetune(row, artifact, dataset, params)
+        audit(db, p, "training.retry", "train_job", row.id,
+              {"parent_job_id": prior.id, "attempt": row.attempt,
+               "previous_phase": phase, "workflow": row.workflow_name})
+        commit(db)
+        return {**render(row, *RUN_FIELDS), "parameters": params,
                 "observed_phase": "Pending", "runtime_verified": False}
 
     @app.get("/api/v1/audit")

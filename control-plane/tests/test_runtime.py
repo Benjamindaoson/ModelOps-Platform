@@ -36,3 +36,28 @@ def test_workflow_parameters_isolate_jobs():
 def test_disabled_runtime_is_explicit():
     with pytest.raises(RuntimeUnavailable):
         DisabledRuntime().create_deployment(None,None)
+
+
+
+def test_cancel_request_requires_real_resource_version():
+    from types import SimpleNamespace
+    from modelops.runtime import KubernetesRuntime, RuntimeFailure
+    fake = SimpleNamespace(tenant="test", workflow_name="first-ft")
+    class Objects:
+        def __init__(self):
+            self.calls = []
+        def patch_namespaced_custom_object(self, *args):
+            self.calls.append(args)
+            return {"status": {"phase": "Running"}}
+    objects = Objects()
+    runtime = KubernetesRuntime.__new__(KubernetesRuntime)
+    runtime.objects = objects
+    with pytest.raises(RuntimeFailure):
+        runtime.cancel_finetune(fake, "")
+    assert objects.calls == []
+    result = runtime.cancel_finetune(fake, "11")
+    assert result["status"]["phase"] == "Running"
+    call = objects.calls[0]
+    assert call[:5] == ("argoproj.io", "v1alpha1", "modelops-test", "workflows", "first-ft")
+    assert call[5]["metadata"]["resourceVersion"] == "11"
+    assert call[5]["spec"]["shutdown"] == "Terminate"

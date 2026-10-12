@@ -10,7 +10,11 @@ export type Deployment = { id: string; name: string; artifact_id: string; engine
   canary_spec?: { source: string; revision: string; digest: string; weight: number } | null;
   canary_status?: { phase: string; readyReplicas?: number } | null; };
 export type TrainJob = { id: string; name: string; method: string; artifact_id: string;
-  dataset_id: string; observed_phase: string; parameters: Record<string, unknown> };
+  dataset_id: string; observed_phase: string; parameters: Record<string, unknown>;
+  parent_job_id?: string | null; attempt?: number; intent?: string;
+  runtime_verified?: boolean; cancel_requested?: boolean;
+  workflow_uid?: string; progress?: string; started_at?: string;
+  finished_at?: string; message?: string };
 export type AuditEvent = { id: string; at: string; actor: string; action: string;
   object_kind: string; object_id: string };
 export type Approval = { id: string; artifact_id: string; evaluation_id: string; approver: string; reason: string; created_at: string };

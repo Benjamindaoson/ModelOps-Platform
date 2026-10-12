@@ -215,13 +215,56 @@ function Deployments({ rows, act, busy, artifacts, approvals }: {
   </div>;
 }
 
-function Jobs({ rows }: { rows: TrainJob[] }) {
+function Jobs({ rows, act, busy }: {
+  rows: TrainJob[];
+  act: (path: string, body: unknown, method?: "POST" | "PATCH" | "DELETE") => Promise<void>;
+  busy: boolean;
+}) {
+  const terminal = new Set(["Succeeded", "Failed", "Error", "Terminated"]);
   if (!rows.length) return <Empty message="No training jobs. Submissions require a real Kubernetes cluster and an Argo workflow template."/>;
-  return <div className="table-scroll"><table><thead><tr><th>TRAINING JOB</th><th>METHOD</th><th>MODEL / DATASET</th><th>ARGO STATE</th></tr></thead>
-  <tbody>{rows.map(j => <tr key={j.id}><td><strong>{j.name}</strong><span className="sub-line"><ShortHash value={j.id}/></span></td>
-    <td><Status>{j.method.toUpperCase()}</Status></td><td>Model <ShortHash value={j.artifact_id}/><span className="sub-line">Data <ShortHash value={j.dataset_id}/></span></td>
-    <td><Status tone={j.observed_phase === "Succeeded" ? "good" : "warning"}>{j.observed_phase}</Status></td>
-  </tr>)}</tbody></table></div>;
+  return <div className="table-scroll"><table><thead><tr>
+    <th>TRAINING RUN</th><th>METHOD / ATTEMPT</th>
+    <th>MODEL / DATASET</th><th>OBSERVED ARGO PHASE</th><th>ACTIONS</th>
+  </tr></thead><tbody>{rows.map(j => {
+    const canCancel = Boolean(j.runtime_verified && !terminal.has(j.observed_phase) && !j.cancel_requested);
+    const canRetry = Boolean(j.runtime_verified && ["Failed", "Error", "Terminated"].includes(j.observed_phase)
+      && (j.attempt ?? 1) < 5);
+    return <tr key={j.id}>
+      <td><strong>{j.name}</strong>
+        <span className="sub-line">Job <ShortHash value={j.id}/></span>
+        {j.parent_job_id && <span className="sub-line">Retry of <ShortHash value={j.parent_job_id}/></span>}
+      </td>
+      <td><Status>{j.method.toUpperCase()}</Status>
+        <span className="sub-line">Attempt {j.attempt ?? 1} / 5</span>
+      </td>
+      <td>Model <ShortHash value={j.artifact_id}/>
+        <span className="sub-line">Dataset <ShortHash value={j.dataset_id}/></span>
+      </td>
+      <td><Status tone={j.observed_phase === "Succeeded" ? "good" : "warning"}>
+        {j.observed_phase}</Status>
+        <span className="sub-line">{j.progress ? "Progress " + j.progress : j.intent || "requested"}</span>
+        {j.cancel_requested && <span className="sub-line">Termination requested; awaiting Argo confirmation</span>}
+        {j.started_at && <span className="sub-line">Started {fmtDate(j.started_at)}</span>}
+        {j.finished_at && <span className="sub-line">Finished {fmtDate(j.finished_at)}</span>}
+      </td>
+      <td><div className="row-actions">
+        <button className="table-button danger" disabled={busy || !canCancel}
+          title="Request termination; does not immediately mark job stopped"
+          onClick={() => {
+            if (window.confirm("Request Argo termination for " + j.name + "?")) {
+              void act("train-jobs/" + j.id + "/cancel", {}).catch(() => {});
+            }
+          }}>Cancel</button>
+        <button className="table-button" disabled={busy || !canRetry}
+          title="Create a new immutable workflow using the same model, dataset and parameters"
+          onClick={() => {
+            if (window.confirm("Create a new retry workflow for " + j.name + "?")) {
+              void act("train-jobs/" + j.id + "/retry", {}).catch(() => {});
+            }
+          }}>Retry</button>
+      </div></td>
+    </tr>;
+  })}</tbody></table></div>;
 }
 
 function Evaluations({ rows }: { rows: Evaluation[] }) {
@@ -467,7 +510,7 @@ export default function Workspace({ section }: { section: string }) {
         {section==="models" && <Models rows={(data as Artifact[]) || []}/>}
         {section==="datasets" && <Datasets rows={(data as Dataset[]) || []}/>}
         {section==="deployments" && <Deployments rows={(data as Deployment[]) || []} act={act} busy={writing} artifacts={artifacts} approvals={approvals}/>}
-        {section==="training" && <Jobs rows={(data as TrainJob[]) || []}/>}
+        {section==="training" && <Jobs rows={(data as TrainJob[]) || []} act={act} busy={writing}/>}
         {section==="evaluations" && <Evaluations rows={(data as Evaluation[]) || []}/>}
         {section==="approvals" && <Approvals rows={(data as Approval[]) || []}/>}
         {section==="audit" && <Audit rows={(data as AuditEvent[]) || []}/>}

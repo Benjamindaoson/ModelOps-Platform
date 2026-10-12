@@ -27,6 +27,7 @@ class RecordingRuntime:
     def __init__(self):
         self.deployments = {}
         self.jobs = {}
+        self.cancel_calls = 0
         self.canaries = {}
         self.last_workflow = None
         self.fail_next = False
@@ -72,11 +73,29 @@ class RecordingRuntime:
         self.deployments.pop((row.tenant, row.name), None)
 
     def submit_finetune(self, row, artifact, dataset, parameters):
-        self.last_workflow = fine_tune_workflow_body(row, artifact, dataset, parameters)
-        self.jobs[row.workflow_name] = self.last_workflow
+        if self.fail_next:
+            self.fail_next = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Injected Argo submission failure")
+        body = fine_tune_workflow_body(row, artifact, dataset, parameters)
+        body["metadata"]["resourceVersion"] = "1"
+        body["metadata"]["uid"] = "uid-" + row.id
+        body["status"] = {"phase": "Pending", "progress": "0/7"}
+        self.last_workflow = body
+        self.jobs[row.workflow_name] = body
 
     def get_finetune(self, row):
-        return {"status": {"phase": "Pending"}}
+        return self.jobs[row.workflow_name]
+
+    def cancel_finetune(self, row, resource_version):
+        if self.fail_next:
+            self.fail_next = False
+            from modelops.runtime import RuntimeFailure
+            raise RuntimeFailure("Injected Argo PATCH error")
+        assert resource_version == self.jobs[row.workflow_name]["metadata"]["resourceVersion"]
+        self.cancel_calls += 1
+        self.jobs[row.workflow_name]["spec"]["shutdown"] = "Terminate"
+        self.jobs[row.workflow_name]["metadata"]["resourceVersion"] = "2"
 
 
 @pytest.fixture
@@ -353,3 +372,108 @@ def test_canary_cluster_error_must_not_report_success(api):
     records=client.get("/api/v1/deployments/"+deployment["id"]+"/revisions",
                        headers=headers()).json()
     assert len(records)==1
+
+
+
+def test_training_cancel_then_retries_immutable_job(api):
+    client, runtime = api
+    artifact, dataset = register(client)
+    submitted = client.post("/api/v1/train-jobs", json={
+        "name": "qwen-domain", "artifact_id": artifact["id"],
+        "dataset_id": dataset["id"], "method": "qlora",
+        "output_name": "qwen-domain-adapter", "epochs": 4, "lr": 0.0001,
+    }, headers=headers())
+    assert submitted.status_code == 201, submitted.text
+    job = submitted.json()
+    path = "/api/v1/train-jobs/" + job["id"]
+    detail = client.get(path, headers=headers())
+    assert detail.status_code == 200
+    assert detail.json()["observed_phase"] == "Pending"
+    assert detail.json()["runtime_verified"] is True
+    assert detail.json()["attempt"] == 1
+
+    stopped = client.post(path + "/cancel", headers=headers())
+    assert stopped.status_code == 200, stopped.text
+    assert stopped.json()["cancel_requested"] is True
+    assert runtime.cancel_calls == 1
+    repeat = client.post(path + "/cancel", headers=headers())
+    assert repeat.status_code == 200, repeat.text
+    assert runtime.cancel_calls == 1  # repeated requests are idempotent
+
+    active_retry = client.post(path + "/retry", headers=headers())
+    assert active_retry.status_code == 409
+    runtime.jobs[job["workflow_name"]]["status"]["phase"] = "Failed"
+    assert client.post(path + "/cancel", headers=headers()).status_code == 409
+
+    attempted = client.post(path + "/retry", headers=headers())
+    assert attempted.status_code == 201, attempted.text
+    retry = attempted.json()
+    assert retry["parent_job_id"] == job["id"]
+    assert retry["attempt"] == 2
+    assert retry["id"] != job["id"]
+    assert retry["workflow_name"] != job["workflow_name"]
+    assert retry["parameters"]["epochs"] == 4
+    assert retry["parameters"]["lr"] == 0.0001
+    assert retry["artifact_id"] == job["artifact_id"]
+    assert retry["dataset_id"] == job["dataset_id"]
+    repeat_retry = client.post(path + "/retry", headers=headers())
+    assert repeat_retry.status_code == 201
+    assert repeat_retry.json()["id"] == retry["id"]
+    assert len(runtime.jobs) == 2
+    assert client.get(path, headers=headers()).json()["observed_phase"] == "Failed"
+    assert client.get("/api/v1/train-jobs", headers=headers()).json()[0]["attempt"] == 2
+    assert client.get(path, headers=headers("foreign-tenant")).status_code == 404
+    assert client.post(path + "/retry", headers=headers("foreign-tenant")).status_code == 404
+    assert client.post(path + "/cancel", headers=headers(role="viewer")).status_code == 403
+
+    actions = [x["action"] for x in client.get("/api/v1/audit", headers=headers()).json()]
+    assert "training.cancel" in actions and "training.retry" in actions
+
+
+def test_training_retry_denied_when_argo_job_succeeded(api):
+    client, runtime = api
+    artifact, data = register(client)
+    result = client.post("/api/v1/train-jobs", json={
+        "name": "success", "artifact_id": artifact["id"],
+        "dataset_id": data["id"], "output_name": "success-output",
+    }, headers=headers()).json()
+    runtime.jobs[result["workflow_name"]]["status"]["phase"] = "Succeeded"
+    assert client.post("/api/v1/train-jobs/" + result["id"] + "/retry",
+                       headers=headers()).status_code == 409
+
+
+def test_training_cancel_failure_preserves_uncancelled_intent(api):
+    client, runtime = api
+    artifact, dataset = register(client)
+    result = client.post("/api/v1/train-jobs", json={
+        "name": "example-job", "artifact_id": artifact["id"],
+        "dataset_id": dataset["id"], "output_name": "example-output",
+    }, headers=headers()).json()
+    runtime.fail_next = True
+    path = "/api/v1/train-jobs/" + result["id"]
+    response = client.post(path + "/cancel", headers=headers())
+    assert response.status_code == 502
+    assert client.get(path, headers=headers()).json()["intent"] == "requested"
+    assert runtime.jobs[result["workflow_name"]]["spec"].get("shutdown") is None
+
+
+def test_training_cross_tenant_workflow_collision_fails_closed(api):
+    client, runtime = api
+    artifact, dataset = register(client)
+    result = client.post("/api/v1/train-jobs", json={
+        "name": "cross-tenant", "artifact_id": artifact["id"],
+        "dataset_id": dataset["id"], "output_name": "output",
+    }, headers=headers()).json()
+    workflow = runtime.jobs[result["workflow_name"]]
+    workflow["metadata"]["labels"]["modelops.io/tenant"] = "foreign"
+    result_response = client.get("/api/v1/train-jobs/" + result["id"], headers=headers())
+    assert result_response.status_code == 502
+    assert client.post("/api/v1/train-jobs/" + result["id"] + "/retry",
+                       headers=headers()).status_code == 502
+
+
+def test_retry_name_is_dns_safe():
+    from modelops.job_lifecycle import retry_workflow_name
+    name = retry_workflow_name("a" * 63, "12345678")
+    assert len(name + "-ft") <= 63
+    assert name.endswith("-r-12345678")

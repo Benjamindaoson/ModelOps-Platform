@@ -96,6 +96,8 @@ class FineTuneJob(Base):
     method: Mapped[str] = mapped_column(String(10))
     parameters_json: Mapped[str] = mapped_column(Text)
     workflow_name: Mapped[str] = mapped_column(String(100))
+    parent_job_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True, unique=True)
+    attempt: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     intent: Mapped[str] = mapped_column(String(25), default="requested")
     created_by: Mapped[str] = mapped_column(String(150))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
