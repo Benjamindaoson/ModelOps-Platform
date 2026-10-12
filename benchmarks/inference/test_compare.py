@@ -22,7 +22,12 @@ class ComparisonContractTests(unittest.TestCase):
                 "gpu_snapshot":"NVIDIA RTX 3090, 24576 MiB, driver 560",
                 "git_sha":"same",
             }))
-            (p/"status.json").write_text(json.dumps({"status":"PASS"}))
+            (p/"status.json").write_text(json.dumps({
+                "status":"PASS", "measurements_valid":True,
+                "tool_exit_code":0, "benchmark_timed_out":False,
+                "raw_results_exist":True, "successful_requests":10,
+                "failed_requests":0, "observed_success_rate":1.0,
+            }))
             (p/"raw-benchmark.json").write_text(json.dumps({
                 "duration":20,"completed":10,"failed":0,
                 "request_throughput":5,"output_throughput":metric,
@@ -46,6 +51,12 @@ class ComparisonContractTests(unittest.TestCase):
         f=self.r/"raw-benchmark.json";d=json.loads(f.read_text());d["failed"]=3;f.write_text(json.dumps(d))
         with self.assertRaisesRegex(ComparisonError,"failed requests"):
             compare(self.l,self.r)
+    def test_claimed_pass_without_measured_requests_is_rejected(self):
+        f=self.r/"status.json";d=json.loads(f.read_text())
+        d["successful_requests"]=9;f.write_text(json.dumps(d))
+        with self.assertRaisesRegex(ComparisonError,"status and raw"):
+            compare(self.l,self.r)
+
     def test_fake_pass_status_rejected(self):
         f=self.r/"status.json";f.write_text(json.dumps({"status":"FAIL_SLO"}))
         with self.assertRaisesRegex(ComparisonError,"SLO"):

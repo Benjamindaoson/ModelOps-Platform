@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
 import platform
 import re
@@ -59,7 +60,7 @@ def validate(a: argparse.Namespace) -> None:
         raise ValueError("--base-url must be an HTTP(S) origin without credentials, path or query")
     if not a.model.strip():
         raise ValueError("--model must not be empty")
-    if a.prompts < 1 or a.concurrency < 1 or a.request_rate <= 0:
+    if a.prompts < 1 or a.concurrency < 1 or not math.isfinite(a.request_rate) or a.request_rate <= 0:
         raise ValueError("prompts/concurrency/request-rate must be positive")
     if a.input_len < 1 or a.output_len < 1 or a.warmups < 0:
         raise ValueError("input/output lengths must be positive and warmups nonnegative")
@@ -132,6 +133,51 @@ def metadata(a: argparse.Namespace, cmd: list[str]) -> dict:
     }
 
 
+
+def evaluate_raw_result(raw: dict, *, planned: int, backend: str,
+                        minimum_success_rate: float) -> dict:
+    """Validate measured counts and metric schema; reject invented/NaN success.
+
+    The benchmark CLI result is the authority. This function never guesses
+    GPU performance when measurements or completed requests are absent.
+    """
+    def number(key: str, positive: bool = False) -> bool:
+        value = raw.get(key)
+        return (type(value) in (int, float) and math.isfinite(value)
+                and value >= 0 and (not positive or value > 0))
+
+    completed = raw.get("completed")
+    failed = raw.get("failed", 0)
+    valid_counts = (
+        type(completed) is int and type(failed) is int
+        and 0 <= completed <= planned and 0 <= failed <= planned
+        and completed + failed <= planned
+    )
+    rate = completed / planned if valid_counts else None
+    core_metrics = ("duration", "request_throughput")
+    if backend != "openai-embeddings":
+        core_metrics += ("output_throughput",)
+    latency_metrics = (
+        ("p50_e2el_ms", "p95_e2el_ms", "p99_e2el_ms")
+        if backend == "openai-embeddings"
+        else ("p50_ttft_ms", "p95_ttft_ms", "p99_ttft_ms",
+              "p50_tpot_ms", "p95_tpot_ms", "p99_tpot_ms",
+              "p50_e2el_ms", "p95_e2el_ms", "p99_e2el_ms")
+    )
+    valid = (
+        valid_counts
+        and all(number(m, positive=True) for m in core_metrics)
+        and all(number(m) for m in latency_metrics)
+    )
+    return {
+        "measurements_valid": valid,
+        "successful_requests": completed if valid_counts else None,
+        "failed_requests": failed if valid_counts else None,
+        "observed_success_rate": rate,
+        "passed_slo": valid and rate >= minimum_success_rate,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     a = parse_args(argv)
     try:
@@ -200,7 +246,6 @@ def main(argv: list[str] | None = None) -> int:
                              "temperature_c", "power_w"])
             writer.writerows(gpu_samples)
     result_file = result_dir / "raw-benchmark.json"
-    from math import isfinite
     raw_exists = result_file.is_file() and result_file.stat().st_size > 0
     raw = {}
     if raw_exists:
@@ -208,21 +253,13 @@ def main(argv: list[str] | None = None) -> int:
             raw = json.loads(result_file.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             pass
-    completed_count = raw.get("completed")
-    failed_count = raw.get("failed", 0)
-    observed_rate = (completed_count / a.prompts
-                     if isinstance(completed_count, int) and not isinstance(completed_count,bool)
-                     and 0 <= completed_count <= a.prompts else None)
-    measurements_ok = bool(
-        isinstance(raw.get("duration"), (int,float))
-        and isfinite(raw["duration"]) and raw["duration"] > 0
-        and isinstance(raw.get("request_throughput"), (int,float))
-        and isfinite(raw["request_throughput"]) and raw["request_throughput"] > 0
-        and (isinstance(failed_count,int) and failed_count >= 0)
-        and observed_rate is not None
+    measurements = evaluate_raw_result(
+        raw, planned=a.prompts, backend=a.backend,
+        minimum_success_rate=a.min_success_rate,
     )
+    measurements_ok = measurements["measurements_valid"]
     tool_ok = (rc == 0 and not timeout_hit and measurements_ok)
-    passed = tool_ok and observed_rate >= a.min_success_rate
+    passed = tool_ok and measurements["passed_slo"]
     outcome = {
         "tool_exit_code": rc,
         "benchmark_timed_out": timeout_hit,
@@ -230,9 +267,9 @@ def main(argv: list[str] | None = None) -> int:
         "gpu_profile_collected": bool(gpu_samples),
         "raw_results_exist": raw_exists,
         "measurements_valid": measurements_ok,
-        "successful_requests": completed_count,
-        "failed_requests": failed_count if measurements_ok else None,
-        "observed_success_rate": observed_rate,
+        "successful_requests": measurements["successful_requests"],
+        "failed_requests": measurements["failed_requests"],
+        "observed_success_rate": measurements["observed_success_rate"],
         "required_success_rate": a.min_success_rate,
         "status": "PASS" if passed else ("FAIL_SLO" if tool_ok else "FAIL_BENCHMARK"),
     }
