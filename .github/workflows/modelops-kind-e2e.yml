@@ -6,6 +6,7 @@ on:
       - "charts/**"
       - "operator/**"
       - "ops/**"
+      - "control-plane/**"
       - ".github/workflows/modelops-kind-e2e.yml"
   workflow_dispatch: {}
 concurrency:
@@ -56,7 +57,7 @@ jobs:
 
   kind-operator:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
@@ -66,7 +67,30 @@ jobs:
       - name: Bootstrap CRDs and namespace boundaries
         run: |
           kubectl apply -f operator/config/crd/bases/
-          kubectl create secret generic kube-llmops-litellm-secret --from-literal=master-key=test-only-not-valid-for-production
+      - name: Start REAL LiteLLM/PostgreSQL gateway for Operator finalizers
+        run: |
+          set -euo pipefail
+          helm dependency update charts/kube-llmops-stack
+          helm install kube-llmops charts/kube-llmops-stack \
+            -f charts/kube-llmops-stack/values-ci.yaml --wait --timeout 14m
+          kubectl rollout status deployment/kube-llmops-litellm-pg --timeout=180s
+          kubectl rollout status deployment/kube-llmops-litellm --timeout=180s
+          # The admin API must actually be reachable and authenticated before
+          # ModelDeployment finalizer tests. Never fake or bypass cleanup.
+          kubectl port-forward svc/kube-llmops-litellm 14000:4000 > /tmp/litellm-admin.log 2>&1 &
+          PF_PID=$!
+          trap 'kill "$PF_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --max-time 4 -fsS -H 'Authorization: Bearer sk-ci-test-key' \
+                http://127.0.0.1:14000/model/info > /tmp/litellm-model-info.json; then
+              python3 -c 'import json; d=json.load(open("/tmp/litellm-model-info.json")); assert isinstance(d.get("data"),list)'
+              echo "Verified real LiteLLM authenticated model admin endpoint"
+              exit 0
+            fi
+            sleep 3
+          done
+          cat /tmp/litellm-admin.log
+          exit 1
       - name: Build real Go Operator and load into kind
         run: |
           docker build -t modelops/operator:e2e -f operator/Dockerfile operator/
@@ -75,7 +99,7 @@ jobs:
         run: |
           helm install modelops-op operator/charts/kube-llmops-operator \
             --set image.repository=modelops/operator --set image.tag=e2e \
-            --set image.pullPolicy=IfNotPresent --set gateway.url=http://127.0.0.1:4000 \
+            --set image.pullPolicy=IfNotPresent --set gateway.url=http://kube-llmops-litellm.default.svc.cluster.local:4000 \
             --wait --timeout 8m
           kubectl rollout status deployment/modelops-op-operator --timeout=180s
       - name: Assert least privilege against actual Kubernetes RBAC
@@ -182,11 +206,11 @@ jobs:
         run: |
           kubectl create namespace modelops-ci
           kubectl -n modelops-ci create secret generic kube-llmops-litellm-secret \
-            --from-literal=master-key=test-only-not-valid-for-production
+            --from-literal=master-key=sk-ci-test-key
           helm install modelops-ci-op operator/charts/kube-llmops-operator \
             --namespace modelops-ci \
             --set image.repository=modelops/operator --set image.tag=e2e \
-            --set image.pullPolicy=IfNotPresent --set gateway.url=http://127.0.0.1:4000 \
+            --set image.pullPolicy=IfNotPresent --set gateway.url=http://kube-llmops-litellm.default.svc.cluster.local:4000 \
             --wait --timeout 8m
           kubectl -n modelops-ci rollout status deployment/modelops-ci-op-operator --timeout=180s
           SA=system:serviceaccount:modelops-ci:kube-llmops-operator
