@@ -154,6 +154,15 @@ jobs:
         run: python -m pip install "PyYAML==6.0.2"
       - name: Verify live HTTP protocol contracts and production preflight
         run: python -m unittest discover -s ops -p "test_*.py" -v
+      - name: Parse fail-closed recovery scripts before publishing artifacts
+        run: |
+          bash -n ops/backup.sh
+          bash -n ops/restore.sh
+          python3 -m py_compile ops/backup_integrity.py
+          if grep -nE 'kubectl get .*secrets|[|][|] true' ops/backup.sh ops/restore.sh; then
+            echo "Security failure: dangerous secret export or swallowed recovery errors"
+            exit 1
+          fi
       - name: Reject unsafe upstream production example
         run: |
           if python ops/preflight.py --values charts/kube-llmops-stack/values-production.yaml; then
