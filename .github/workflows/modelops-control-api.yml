@@ -45,3 +45,40 @@ jobs:
         run: |
           python -m pytest -q
           python -m compileall -q modelops
+
+  postgres-schema-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: modelops_ci
+          POSTGRES_USER: modelops_ci
+          POSTGRES_PASSWORD: ci-disposable-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U modelops_ci -d modelops_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install actual PostgreSQL driver and migrations
+        working-directory: control-plane
+        run: python -m pip install -e ".[dev,postgres]"
+      - name: Run forward, backward and repeatable migrations on real PostgreSQL 16
+        working-directory: control-plane
+        env:
+          MODELOPS_POSTGRES_SCHEMA_TEST: "1"
+          MODELOPS_DATABASE_URL: postgresql+psycopg://modelops_ci:ci-disposable-password@127.0.0.1:5432/modelops_ci
+          MODELOPS_ENV: test
+          MODELOPS_AUTH_MODE: dev
+          MODELOPS_JWT_SECRET: only-for-ci-migrations-32-chars-plus-000000000
+        run: |
+          python -m pytest tests/test_postgres_schema_integration.py -q
+          alembic current -v
