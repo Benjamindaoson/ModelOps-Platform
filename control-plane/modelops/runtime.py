@@ -89,6 +89,7 @@ class DisabledRuntime:
     delete_deployment = _deny
     submit_finetune = _deny
     get_finetune = _deny
+    cancel_finetune = _deny
 
 
 class KubernetesRuntime:
@@ -159,3 +160,15 @@ class KubernetesRuntime:
         return self._run(self.objects.get_namespaced_custom_object,
                          "argoproj.io", "v1alpha1", namespace_for(job.tenant),
                          "workflows", job.workflow_name)
+
+    def cancel_finetune(self, job, resource_version: str):
+        if not resource_version:
+            raise RuntimeFailure("Argo resourceVersion is mandatory before terminating a Workflow")
+        # Argo shutdown=Terminate is a REQUEST. The observed phase is polled
+        # independently; a successful PATCH is not "training stopped".
+        return self._run(self.objects.patch_namespaced_custom_object,
+                         "argoproj.io", "v1alpha1", namespace_for(job.tenant),
+                         "workflows", job.workflow_name, {
+                             "metadata": {"resourceVersion": resource_version},
+                             "spec": {"shutdown": "Terminate"},
+                         })
