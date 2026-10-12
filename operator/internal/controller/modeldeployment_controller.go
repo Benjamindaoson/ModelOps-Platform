@@ -31,6 +31,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -288,12 +289,13 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 // reconcileAutoScaling creates/updates HPA or KEDA ScaledObject.
 func (r *ModelDeploymentReconciler) reconcileAutoScaling(ctx context.Context, md *v1alpha1.ModelDeployment, eng string) error {
 	if md.Spec.AutoScaling == nil || !md.Spec.AutoScaling.Enabled {
-		r.cleanupAutoScaling(ctx, md)
-		return nil
+		return r.cleanupAutoScaling(ctx, md)
 	}
 	if md.Spec.AutoScaling.UseKEDA {
+		if err:=r.deleteHPA(ctx,md);err!=nil {return err}
 		return r.reconcileKEDA(ctx, md)
 	}
+	if err:=r.deleteScaledObject(ctx,md);err!=nil {return err}
 	return r.reconcileHPA(ctx, md)
 }
 
@@ -347,14 +349,25 @@ func (r *ModelDeploymentReconciler) reconcileHPA(ctx context.Context, md *v1alph
 		})
 	}
 
+	if len(hpa.Spec.Metrics)==0 {
+		cpuDefault:=int32(70)
+		hpa.Spec.Metrics=[]autoscalingv2.MetricSpec{{
+			Type: autoscalingv2.ResourceMetricSourceType,
+			Resource: &autoscalingv2.ResourceMetricSource{
+				Name: corev1.ResourceCPU,
+				Target: autoscalingv2.MetricTarget{Type:autoscalingv2.UtilizationMetricType,AverageUtilization:&cpuDefault},
+			},
+		}}
+	}
 	existing := &autoscalingv2.HorizontalPodAutoscaler{}
 	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = controllerutil.SetControllerReference(md, hpa, r.Scheme)
+			if err:=controllerutil.SetControllerReference(md,hpa,r.Scheme);err!=nil {return err}
 			return r.Create(ctx, hpa)
 		}
 		return err
 	}
+	if reflect.DeepEqual(existing.Spec,hpa.Spec) {return nil}
 	existing.Spec = hpa.Spec
 	return r.Update(ctx, existing)
 }
@@ -413,25 +426,39 @@ func (r *ModelDeploymentReconciler) reconcileKEDA(ctx context.Context, md *v1alp
 	existing.SetGroupVersionKind(schema.GroupVersionKind{Group: "keda.sh", Version: "v1alpha1", Kind: "ScaledObject"})
 	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			_ = controllerutil.SetControllerReference(md, so, r.Scheme)
+			if err:=controllerutil.SetControllerReference(md,so,r.Scheme);err!=nil {return err}
 			return r.Create(ctx, so)
 		}
 		return err
 	}
+	if reflect.DeepEqual(existing.Object["spec"],so.Object["spec"]) {return nil}
 	so.SetResourceVersion(existing.GetResourceVersion())
 	return r.Update(ctx, so)
 }
 
-func (r *ModelDeploymentReconciler) cleanupAutoScaling(ctx context.Context, md *v1alpha1.ModelDeployment) {
-	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
-	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, hpa); err == nil {
-		_ = r.Delete(ctx, hpa)
+func (r *ModelDeploymentReconciler) deleteHPA(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	hpa:=&autoscalingv2.HorizontalPodAutoscaler{}
+	if err:=r.Get(ctx,types.NamespacedName{Name:md.Name,Namespace:md.Namespace},hpa);err!=nil {
+		if apierrors.IsNotFound(err) {return nil}
+		return err
 	}
-	so := &unstructured.Unstructured{}
-	so.SetGroupVersionKind(schema.GroupVersionKind{Group: "keda.sh", Version: "v1alpha1", Kind: "ScaledObject"})
-	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, so); err == nil {
-		_ = r.Delete(ctx, so)
+	return client.IgnoreNotFound(r.Delete(ctx,hpa))
+}
+
+func (r *ModelDeploymentReconciler) deleteScaledObject(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	so:=&unstructured.Unstructured{}
+	so.SetGroupVersionKind(schema.GroupVersionKind{Group:"keda.sh",Version:"v1alpha1",Kind:"ScaledObject"})
+	if err:=r.Get(ctx,types.NamespacedName{Name:md.Name,Namespace:md.Namespace},so);err!=nil {
+		// KEDA is optional: its CRD may legitimately be absent in CPU clusters.
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {return nil}
+		return err
 	}
+	return client.IgnoreNotFound(r.Delete(ctx,so))
+}
+
+func (r *ModelDeploymentReconciler) cleanupAutoScaling(ctx context.Context, md *v1alpha1.ModelDeployment) error {
+	if err:=r.deleteHPA(ctx,md);err!=nil {return err}
+	return r.deleteScaledObject(ctx,md)
 }
 
 func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.ModelDeployment, name string) error {
