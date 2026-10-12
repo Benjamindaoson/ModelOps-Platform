@@ -106,7 +106,20 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	// 4. Resolve engine
+	// 4. Reject names that cannot accommodate the longest Canary PVC
+	// suffix before allocating any GPU/cache/network resources.
+	if err := builder.ValidateDeploymentName(md.Name); err != nil {
+		md.Status.Phase = "Failed"
+		setCondition(&md.Status.Conditions, metav1.Condition{
+			Type: "ModelReady", Status: metav1.ConditionFalse,
+			Reason: "InvalidGeneratedResourceName", Message: err.Error(),
+			LastTransitionTime: metav1.Now(), ObservedGeneration: md.Generation,
+		})
+		if err := r.Status().Update(ctx, md); err != nil { return ctrl.Result{}, err }
+		return ctrl.Result{}, nil
+	}
+
+	// 5. Resolve engine
 	resolvedEngine := engine.ResolveEngine(md.Spec.Source, md.Spec.Engine)
 
 	if !builder.SupportsServingEngine(resolvedEngine) {
