@@ -28,7 +28,7 @@ def upgrade() -> None:
                                                 server_default="1", nullable=False))
     indexes = {item["name"] for item in sa.inspect(connection).get_indexes("finetune_jobs")}
     if "ix_finetune_jobs_parent_job_id" not in indexes:
-        op.create_index("ix_finetune_jobs_parent_job_id", "finetune_jobs", ["parent_job_id"])
+        op.create_index("ix_finetune_jobs_parent_job_id", "finetune_jobs", ["parent_job_id"], unique=True)
 
 
 def downgrade() -> None:

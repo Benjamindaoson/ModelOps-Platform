@@ -416,6 +416,10 @@ def test_training_cancel_then_retries_immutable_job(api):
     assert retry["parameters"]["lr"] == 0.0001
     assert retry["artifact_id"] == job["artifact_id"]
     assert retry["dataset_id"] == job["dataset_id"]
+    repeat_retry = client.post(path + "/retry", headers=headers())
+    assert repeat_retry.status_code == 201
+    assert repeat_retry.json()["id"] == retry["id"]
+    assert len(runtime.jobs) == 2
     assert client.get(path, headers=headers()).json()["observed_phase"] == "Failed"
     assert client.get("/api/v1/train-jobs", headers=headers()).json()[0]["attempt"] == 2
     assert client.get(path, headers=headers("foreign-tenant")).status_code == 404

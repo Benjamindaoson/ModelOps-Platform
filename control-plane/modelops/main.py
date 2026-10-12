@@ -540,6 +540,13 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         prior = fetch_owned(db, FineTuneJob, p.tenant, key)
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Argo disconnected; no retry was created")
+        # One failed Workflow may have only one immutable child. This makes
+        # repeated POSTs safe even across UI reconnects; the DB unique index
+        # on parent_job_id enforces it across multiple API replicas.
+        child = db.scalar(select(FineTuneJob).where(
+            FineTuneJob.tenant == p.tenant, FineTuneJob.parent_job_id == prior.id))
+        if child is not None:
+            return summarize_train_job(child)
         actual = app.state.runtime.get_finetune(prior)
         check_job_identity(actual, prior)
         phase = actual.get("status", {}).get("phase") or "Pending"
