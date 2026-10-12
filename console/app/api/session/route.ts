@@ -9,7 +9,9 @@ function sameOrigin(req: NextRequest): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  if (process.env.MODELOPS_ENV === "production" && process.env.MODELOPS_CONSOLE_AUTH !== "oidc") {
+  const isProduction = process.env.MODELOPS_ENV === "production" ||
+    (process.env.NODE_ENV === "production" && process.env.MODELOPS_ENV !== "development");
+  if (isProduction && process.env.MODELOPS_CONSOLE_AUTH !== "oidc") {
     return NextResponse.json({detail:"OIDC login required in production"},{status:503});
   }
   if (process.env.MODELOPS_CONSOLE_AUTH === "oidc") {
