@@ -1163,3 +1163,62 @@ def test_generated_kubernetes_resource_names_cannot_exceed_dns_limit(api):
     }, headers=headers())
     assert illegal_job.status_code == 422
     assert len(runtime.jobs) == 1
+
+
+def test_auth_fails_closed_when_oidc_jwks_network_is_unavailable():
+    from types import SimpleNamespace
+    from urllib.error import URLError
+    from modelops.auth import Verifier
+    from fastapi import HTTPException
+    settings = Settings(auth_mode="oidc", environment="test",
+                        oidc_issuer="https://login.example.test/realm",
+                        oidc_audience="modelops",
+                        oidc_jwks_url="https://login.example.test/realm/keys")
+    verifier = Verifier(settings)
+
+    class OfflineJWKS:
+        def get_signing_key_from_jwt(self, token):
+            raise URLError("simulated network outage")
+
+    verifier.jwks = OfflineJWKS()
+    with pytest.raises(HTTPException) as exc:
+        verifier.verify("opaque.jwt.token")
+    assert exc.value.status_code == 401
+
+
+def test_auth_requires_standard_jwt_claims_and_bounded_headers(api):
+    client, _ = api
+    now = datetime.now(timezone.utc)
+    base = {"iss": "modelops-local", "aud": "modelops-dev", "sub": "operator",
+            "tenant": "alpha", "role": "admin", "iat": now,
+            "exp": now + timedelta(minutes=10)}
+    for omitted in ("iat", "exp", "sub", "iss", "aud"):
+        claims = {k: v for k, v in base.items() if k != omitted}
+        malformed = jwt.encode(
+            claims, "only-for-tests-32-chars-plus-000000000", algorithm="HS256"
+        )
+        assert client.get("/api/v1/me", headers={
+            "Authorization": "Bearer " + malformed
+        }).status_code == 401
+    assert client.get("/api/v1/me", headers={
+        "Authorization": "Bearer " + "x" * 8192
+    }).status_code == 401
+    assert client.get("/api/v1/me", headers={
+        "Authorization": "Bearer " + token() + " extra"
+    }).status_code == 401
+
+
+def test_oidc_jwks_must_match_https_issuer_host():
+    good = Settings(
+        auth_mode="oidc", environment="test",
+        oidc_issuer="https://id.example.test/realm",
+        oidc_audience="modelops",
+        oidc_jwks_url="https://id.example.test/realm/.well-known/jwks.json",
+    )
+    good.validate()
+    for url in ("http://id.example.test/keys",
+                "https://other.example.test/keys",
+                "https://admin:password@id.example.test/keys",
+                "https://id.example.test/keys?token=secret"):
+        with pytest.raises(ValueError):
+            Settings(**{**good.__dict__, "oidc_jwks_url": url}).validate()

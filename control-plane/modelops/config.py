@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import binascii
 import os
+from urllib.parse import urlparse
 from dataclasses import dataclass
 
 
@@ -54,8 +55,14 @@ class Settings:
         elif self.auth_mode == "oidc":
             if not all([self.oidc_issuer, self.oidc_audience, self.oidc_jwks_url]):
                 raise ValueError("OIDC requires issuer, audience and JWKS URL")
-            if not self.oidc_jwks_url.startswith("https://"):
-                raise ValueError("OIDC JWKS must be HTTPS")
+            parsed = urlparse(self.oidc_jwks_url)
+            issuer = urlparse(self.oidc_issuer)
+            if (parsed.scheme != "https" or not parsed.hostname
+                or parsed.username or parsed.password
+                or parsed.fragment or parsed.query
+                or issuer.scheme != "https" or not issuer.hostname
+                or parsed.hostname != issuer.hostname):
+                raise ValueError("OIDC issuer and JWKS must use matching HTTPS hosts without URL credentials")
         else:
             raise ValueError("MODELOPS_AUTH_MODE must be dev or oidc")
         if self.environment == "production":
