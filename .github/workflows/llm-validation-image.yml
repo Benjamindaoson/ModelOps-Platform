@@ -37,7 +37,12 @@ jobs:
           load: ${{ github.event_name == 'pull_request' }}
           tags: |
             ghcr.io/benjamindaoson/modelops-platform/llm-validation:${{ github.sha }}
-          provenance: true
+          provenance: ${{ github.event_name != 'pull_request' }}
+      - name: Smoke startup contract in the actual CPU container
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p image-evidence
+          docker run --rm --entrypoint python3 ghcr.io/benjamindaoson/modelops-platform/llm-validation:${{ github.sha }} /app/start.py --describe > image-evidence/container-smoke.json
       - name: Image provenance receipt
         env:
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
@@ -51,4 +56,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: llm-image-evidence
-          path: image-evidence/result.json
+          path: image-evidence/
