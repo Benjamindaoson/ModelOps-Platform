@@ -1,0 +1,38 @@
+{
+  "modelops": {
+    "adapter_type": "qlora",
+    "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/adapter-latest",
+    "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/merged/model.safetensors",
+    "base_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+    "created_at": "2026-10-13T05:40:35.093935+00:00",
+    "created_by": "llm-training-controller",
+    "deployment_status": "registered",
+    "digest": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+    "digest_verified": false,
+    "evaluation_id": null,
+    "family": "llm",
+    "framework": "transformers",
+    "id": "2a917120-7463-4a20-add2-bbbd7aab877f",
+    "model_type": "llm",
+    "name": "qwen2-5-3b-qlora",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "source": "Qwen/Qwen2.5-3B-Instruct",
+    "task_type": "short_answer",
+    "training_run_id": "7859def0-8be7-4931-a099-1193b790e709",
+    "version": 1
+  },
+  "mlflow": {
+    "adapter_sha256": "2cbead2c5070ea3ff6d51c93aea8eefb1cd96e878c53599f74512046d94d44f2",
+    "checkpoint_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+    "name": "ModelOps-Qwen2.5-3B",
+    "run_id": "b127f8d1474b414db0025df3a611d5c7",
+    "source": "runs:/b127f8d1474b414db0025df3a611d5c7/model",
+    "status": "READY",
+    "version": 1
+  },
+  "tracking": {
+    "experiment_id": "1",
+    "run_id": "b127f8d1474b414db0025df3a611d5c7",
+    "tracking_uri": "sqlite:////data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/mlflow.sqlite"
+  }
+}

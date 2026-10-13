@@ -1,0 +1,22 @@
+{
+  "adapter": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/adapter-latest",
+  "adapter_sha256": "2cbead2c5070ea3ff6d51c93aea8eefb1cd96e878c53599f74512046d94d44f2",
+  "base_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+  "checkpoint": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/merged/model.safetensors",
+  "checkpoint_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+  "dataset_sha256": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "gpu_peak_allocated_bytes": 8219970560,
+  "method": "qlora",
+  "model_load_s": 9.0399516489706,
+  "parameter_delta_linf": 0.00015870752395130694,
+  "resume_sha256": "a4604cff840488b5111e8d783bbfc3428dfc4a634439815e3630c8bea8280a0a",
+  "run_id": "7859def0-8be7-4931-a099-1193b790e709",
+  "source_sha256": "030f61ea5593671c8299ef14c957acd644d991996ecbc067d277c16d28938ecf",
+  "status": "COMPLETED",
+  "steps": 32,
+  "torch": "2.8.0+cu128",
+  "trainable_parameters": 14966784,
+  "training_wall_s": 14.084415451041423,
+  "wall_s": 53.60543483798392
+}
