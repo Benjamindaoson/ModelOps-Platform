@@ -1,0 +1,13 @@
+.git
+.venv
+.gpu-venv
+.tools
+.codegraph
+Evidence
+.env
+.env.*
+**/__pycache__
+**/node_modules
+**/*.safetensors
+**/*.pt
+**/*.sqlite

@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: ModelOps
+    orgId: 1
+    folder: ModelOps
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

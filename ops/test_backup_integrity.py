@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from backup_integrity import BackupIntegrityError, generate, verify
+from ops.backup_integrity import BackupIntegrityError, generate, verify
 
 
 class BackupIntegrityTests(unittest.TestCase):

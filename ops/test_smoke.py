@@ -4,7 +4,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from smoke import SmokeFailure,check_origin,payload,probe,validate_response
+from ops.smoke import SmokeFailure,check_origin,payload,probe,validate_response
 
 class FakeHTTP(BaseHTTPRequestHandler):
     def log_message(self,*a): pass

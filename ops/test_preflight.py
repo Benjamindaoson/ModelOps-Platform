@@ -1,6 +1,6 @@
 """Production preflight tests; safe config is a fixture, not production proof."""
 import unittest
-from preflight import merge,unsafe_secret,validate
+from ops.preflight import merge,unsafe_secret,validate
 
 def minimal_safe():
     return {

@@ -1,0 +1,21 @@
+{
+  "host_gpu": {
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=name,driver_version,memory.total,utilization.gpu",
+      "--format=csv,noheader"
+    ],
+    "exit": 0,
+    "stdout": "NVIDIA GeForce RTX 3090, 580.173.02, 24576 MiB, 0 %\n",
+    "stderr": ""
+  },
+  "docker_info": {
+    "argv": [
+      "docker",
+      "info"
+    ],
+    "exit": null,
+    "error": "command_not_found"
+  },
+  "container_gpu": null
+}

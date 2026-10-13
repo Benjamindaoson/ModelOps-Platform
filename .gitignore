@@ -75,3 +75,7 @@ Evidence/
 .codegraph/
 *.egg-info/
 *.db
+
+# Local browser test output
+console/playwright-report/
+console/test-results/

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from run import (EvaluationError, calculate, evaluate, prepare_heldout,
+from pipelines.evaluation.run import (EvaluationError, calculate, evaluate, prepare_heldout,
                  quality_gate, score, sha256_artifact)
 
 class EvidenceTests(unittest.TestCase):

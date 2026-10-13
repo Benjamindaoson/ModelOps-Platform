@@ -1,0 +1,27 @@
+{
+  "expanded-pytest.log": {
+    "sha256": "6f609b90ecc0fc454067f13d7b334dd519941966c65ff7cc0d5a8e65d22aa62b",
+    "bytes": 1687,
+    "tail": "..............................                                [100%]\n=============================== warnings summary ===============================\n.venv/lib/python3.12/site-packages/fastapi/testclient.py:1\n  /data/ModelOps-Platform/tmp/v1-production-readiness/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n    from starlette.testclient import TestClient as TestClient  # noqa\n\ncontrol-plane/tests/test_api.py::test_deployment_produces_real_runtime_contract_in_test\n  /data/ModelOps-Platform/tmp/v1-production-readiness/.venv/lib/python3.12/site-packages/_pytest/python.py:171: PytestReturnNotNoneWarning: Test functions should return None, but control-plane/tests/test_api.py::test_deployment_produces_real_runtime_contract_in_test returned <class 'dict'>.\n  Did you mean to use `assert` instead of `return`?\n  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n467 passed, 2 skipped, 2 warnings, 4 subtests passed in 78.48s (0:01:18)\n"
+  },
+  "unittest.log": {
+    "sha256": "49536e26221e33c95dab109a33e36516a29d8b84c7d2ff39283b73f1226975a3",
+    "bytes": 457,
+    "tail": ".........................\n----------------------------------------------------------------------\nRan 25 tests in 0.544s\n\nOK\n....................\n----------------------------------------------------------------------\nRan 20 tests in 0.094s\n\nOK\n.....\n----------------------------------------------------------------------\nRan 5 tests in 0.006s\n\nOK\n............\n----------------------------------------------------------------------\nRan 12 tests in 0.030s\n\nOK\n"
+  },
+  "console/typecheck.log": {
+    "sha256": "2f786feda19ff7e4b82c75964512633a9f2276eea12888db8819b8d2a414a78e",
+    "bytes": 57,
+    "tail": "\n> modelops-console@1.0.0-rc.1 typecheck\n> tsc --noEmit\n\n"
+  },
+  "console/build.log": {
+    "sha256": "64f34f1867e4ce2c542c6be8c94d09c2b47a764e6aa4b23b088805e6d9ea3b51",
+    "bytes": 4530,
+    "tail": "Generating static pages (12/17) \n \u2713 Generating static pages (17/17)\n   Finalizing page optimization ...\n   Collecting build traces ...\n\nRoute (app)                                 Size  First Load JS\n\u250c \u25cb /                                      141 B         103 kB\n\u251c \u25cb /_not-found                            990 B         103 kB\n\u251c \u25cf /[section]                           10.3 kB         113 kB\n\u251c   \u251c /dashboard\n\u251c   \u251c /models\n\u251c   \u251c /deployments\n\u251c   \u2514 [+6 more paths]\n\u251c \u0192 /api/auth/callback                     141 B         103 kB\n\u251c \u0192 /api/auth/config                       141 B         103 kB\n\u251c \u0192 /api/auth/start                        141 B         103 kB\n\u251c \u0192 /api/control/[...segments]             141 B         103 kB\n\u251c \u0192 /api/session                           141 B         103 kB\n\u2514 \u0192 /api/session/logout                    141 B         103 kB\n+ First Load JS shared by all             102 kB\n  \u251c chunks/255-4f84124391a7dac4.js       46.2 kB\n  \u251c chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB\n  \u2514 other shared chunks (total)          1.93 kB\n\n\n\u25cb  (Static)   prerendered as static content\n\u25cf  (SSG)      prerendered as static HTML (uses generateStaticParams)\n\u0192  (Dynamic)  server-rendered on demand\n\n"
+  },
+  "console/e2e.log": {
+    "sha256": "bd9dc4d0ad458344dbaa8be8f26ed6a0a9623aad0f5613954e6f4176ac4de65d",
+    "bytes": 527,
+    "tail": "\n> modelops-console@1.0.0-rc.1 test:e2e\n> playwright test\n\n\nRunning 3 tests using 1 worker\n\n  \u2713  1 e2e/control-plane.spec.ts:3:5 \u203a authenticates and registers real metadata; refuses disconnected Kubernetes writes (1.9s)\n  \u2713  2 e2e/control-plane.spec.ts:65:5 \u203a mobile navigation works without mock data (620ms)\n  \u2713  3 e2e/control-plane.spec.ts:77:5 \u203a rejects cross-origin mutations and oversized bodies before reaching the API (598ms)\n\n  3 passed (4.0s)\n\nTo open last HTML report run:\n\n  npx playwright show-report\n\n"
+  }
+}

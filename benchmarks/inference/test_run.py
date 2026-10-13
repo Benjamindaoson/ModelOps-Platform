@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from run import build_command, parse_args, validate, evaluate_raw_result
+from benchmarks.inference.run import build_command, parse_args, validate, evaluate_raw_result
 
 
 class BenchContractTests(unittest.TestCase):

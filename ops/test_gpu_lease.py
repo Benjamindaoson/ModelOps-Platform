@@ -1,7 +1,7 @@
 import unittest,tempfile,os
 from pathlib import Path
 from unittest.mock import patch
-from gpu_lease import gpu_lease
+from ops.gpu_lease import gpu_lease
 class GPULeaseContracts(unittest.TestCase):
     def test_shared_lease_bytes_are_preserved_and_exclusion_is_real(self):
         with tempfile.TemporaryDirectory() as tmp:

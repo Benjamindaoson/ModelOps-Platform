@@ -1,0 +1,19 @@
+services:
+  inference:
+    image: modelops-gpu-runtime:local
+    build:
+      context: ../../..
+      dockerfile: deploy/llm-validation/gpu-runtime/Dockerfile
+    gpus: all
+    ports: ["127.0.0.1:18000:8000"]
+    environment:
+      MODEL_SHA256: ${MODEL_SHA256:?set verified checkpoint hash}
+      SERVED_MODEL_NAME: ${SERVED_MODEL_NAME:-modelops-qwen3b-qlora}
+    volumes:
+      - "${MODEL_DIR:?set verified private merged model directory}:/model:ro"
+      - "${GPU_EVIDENCE_DIR:?set writable directory owned by UID10001}:/evidence"
+    read_only: true
+    tmpfs: ["/tmp:uid=10001,gid=10001,mode=1777,size=8g"]
+    shm_size: 2gb
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]

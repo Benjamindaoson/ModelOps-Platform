@@ -1,0 +1,7 @@
+- [x] Phase1 GPU Docker entrypoint/probe and actual environment status
+- [x] Phase2 version-bound artifact/evaluation/serving/benchmark release gate
+- [x] Phase3 streaming/GPU exporter, Prometheus/Grafana Compose and runtime checks
+- [ ] Phase4 lint/test/image/CPU validation/evidence Actions
+- [x] Phase5 actual matched base-versus-trained benchmark
+- [ ] Phase6 README/architecture/CHANGELOG and scope boundaries
+- [ ] Phase7 complete software/frontend/runtime verification and safe publication

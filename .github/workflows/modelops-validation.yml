@@ -1,0 +1,107 @@
+name: ModelOps LLM lifecycle validation
+on:
+  push:
+    branches: [main, codex/llm-production-validation]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: modelops-final-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  software:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: azure/setup-helm@v4.3.1
+        with:
+          version: v3.19.0
+      - name: Isolated project dependency environment
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e "control-plane[dev,robotics]" PyYAML
+      - name: Lint changed lifecycle modules
+        run: .venv/bin/ruff check --select F821,F822,F823 ops/model_release_gate ops/observability ops/gpu_runtime_validation.py ops/platform_serving.py ops/run_model_comparison.py ops/validate_live_monitoring.py ops/validate_monitoring_compose.py ops/validate_console_runtime.py
+      - name: CPU tests and unittest contracts
+        run: |
+          mkdir -p Evidence/ci-validation
+          set -o pipefail
+          .venv/bin/python -m pytest -q --tb=short | tee Evidence/ci-validation/pytest.log
+          .venv/bin/python -m unittest discover -s ops -p 'test_*.py' > Evidence/ci-validation/unittest.log 2>&1
+          .venv/bin/python -m unittest discover -s benchmarks/inference -p 'test_*.py' >> Evidence/ci-validation/unittest.log 2>&1
+          .venv/bin/python -m unittest discover -s pipelines/training -p 'test_*.py' >> Evidence/ci-validation/unittest.log 2>&1
+          .venv/bin/python -m unittest discover -s pipelines/evaluation -p 'test_*.py' >> Evidence/ci-validation/unittest.log 2>&1
+      - name: Compose runtime validation (CPU contract fixture)
+        run: .venv/bin/python -m ops.validate_monitoring_compose
+      - name: Generate honest validation evidence
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          mkdir -p Evidence/ci-validation
+          python - <<'PY'
+          import json,os,pathlib
+          p=pathlib.Path("Evidence/ci-validation")
+          data={"status":os.environ["JOB_STATUS"],"revision":os.environ["SOURCE_REVISION"],"scope":"CPU software + actual Docker Compose monitoring contract","gpu_runtime":"SKIPPED: hosted runner has no NVIDIA GPU","gpu_benchmark":"Reused hash-bound cloud evidence; no GPU benchmark ran in CI"}
+          (p/"validation-report.json").write_text(json.dumps(data,indent=2)+"\n")
+          (p/"validation-report.md").write_text("# CI validation\n\n"+json.dumps(data,indent=2)+"\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modelops-validation-evidence
+          path: |
+            Evidence/ci-validation/
+            benchmark/model-comparison.md
+            benchmark/model-comparison.json
+            docs/evidence/gpu-runtime-validation/validation-report.md
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free ephemeral CI build space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h
+      - uses: docker/setup-buildx-action@v3
+      - name: Build GPU validation image without weights or credentials
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/llm-validation/gpu-runtime/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: modelops-gpu-validation:ci
+          cache-from: type=gha,scope=modelops-gpu-validation
+          cache-to: type=gha,mode=min,scope=modelops-gpu-validation
+      - name: Run actual CPU container startup contract
+        run: |
+          mkdir -p Evidence/ci-image
+          docker run --rm --entrypoint python3 modelops-gpu-validation:ci /app/start.py --describe > Evidence/ci-image/startup-contract.json
+      - name: Record actual Docker build result
+        if: always()
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          mkdir -p Evidence/ci-image
+          python - <<'PY'
+          import json,os
+          data={"status":os.environ["JOB_STATUS"],"image_digest":os.environ["IMAGE_DIGEST"],"revision":os.environ["SOURCE_REVISION"],"gpu_execution":"SKIPPED: CPU hosted runner","weights_in_image":False}
+          json.dump(data,open("Evidence/ci-image/docker-build-result.json","w"),indent=2)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modelops-gpu-image-build
+          path: Evidence/ci-image/

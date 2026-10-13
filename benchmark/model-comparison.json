@@ -1,0 +1,842 @@
+{
+  "groups": [
+    {
+      "concurrency": 4,
+      "e2e_p95_ms": {
+        "mean": 896.5098088471374,
+        "sample_sd": 13.967836821974474,
+        "trials": [
+          882.6121860038256,
+          896.3704240974039,
+          910.5468164401827
+        ]
+      },
+      "model": "base",
+      "output_tokens_s": {
+        "mean": 292.02377609887674,
+        "sample_sd": 3.5523371255873575,
+        "trials": [
+          295.889484609796,
+          291.2789127252345,
+          288.9029309615998
+        ]
+      },
+      "peak_gpu_mib": {
+        "mean": 22743.0,
+        "sample_sd": 0.0,
+        "trials": [
+          22743.0,
+          22743.0,
+          22743.0
+        ]
+      },
+      "repeats": 3,
+      "requests": 384,
+      "ttft_p95_ms": {
+        "mean": 134.00788350845687,
+        "sample_sd": 4.557509608598999,
+        "trials": [
+          128.76084505114704,
+          136.2816393841058,
+          136.98116609011777
+        ]
+      }
+    },
+    {
+      "concurrency": 16,
+      "e2e_p95_ms": {
+        "mean": 1348.2400575487795,
+        "sample_sd": 34.22227644817641,
+        "trials": [
+          1382.3385164316273,
+          1348.486363128177,
+          1313.8952930865341
+        ]
+      },
+      "model": "base",
+      "output_tokens_s": {
+        "mean": 816.7647666508012,
+        "sample_sd": 1.8741495909039998,
+        "trials": [
+          817.9350244726193,
+          814.6031514056854,
+          817.756124074099
+        ]
+      },
+      "peak_gpu_mib": {
+        "mean": 22743.0,
+        "sample_sd": 0.0,
+        "trials": [
+          22743.0,
+          22743.0,
+          22743.0
+        ]
+      },
+      "repeats": 3,
+      "requests": 384,
+      "ttft_p95_ms": {
+        "mean": 461.2483354702513,
+        "sample_sd": 9.667876134369756,
+        "trials": [
+          463.9034393825568,
+          469.311238580849,
+          450.5303284473479
+        ]
+      }
+    },
+    {
+      "concurrency": 4,
+      "e2e_p95_ms": {
+        "mean": 945.466739058611,
+        "sample_sd": 30.528389337644832,
+        "trials": [
+          911.1663658986798,
+          969.6593581989873,
+          955.5744930781657
+        ]
+      },
+      "model": "trained",
+      "output_tokens_s": {
+        "mean": 283.1689499918215,
+        "sample_sd": 10.33900122545149,
+        "trials": [
+          294.51788238300446,
+          274.2857073120922,
+          280.7032602803678
+        ]
+      },
+      "peak_gpu_mib": {
+        "mean": 22743.0,
+        "sample_sd": 0.0,
+        "trials": [
+          22743.0,
+          22743.0,
+          22743.0
+        ]
+      },
+      "repeats": 3,
+      "requests": 384,
+      "ttft_p95_ms": {
+        "mean": 133.07872040216657,
+        "sample_sd": 5.686396561418491,
+        "trials": [
+          126.51282173756046,
+          136.40452878607903,
+          136.3188106828602
+        ]
+      }
+    },
+    {
+      "concurrency": 16,
+      "e2e_p95_ms": {
+        "mean": 1344.9726080036876,
+        "sample_sd": 53.14653463082872,
+        "trials": [
+          1324.4866120658114,
+          1405.3134813875658,
+          1305.1177305576855
+        ]
+      },
+      "model": "trained",
+      "output_tokens_s": {
+        "mean": 804.5381556137988,
+        "sample_sd": 14.330337804122241,
+        "trials": [
+          807.2865114473756,
+          789.0326831087822,
+          817.2952722852386
+        ]
+      },
+      "peak_gpu_mib": {
+        "mean": 22743.0,
+        "sample_sd": 0.0,
+        "trials": [
+          22743.0,
+          22743.0,
+          22743.0
+        ]
+      },
+      "repeats": 3,
+      "requests": 384,
+      "ttft_p95_ms": {
+        "mean": 451.6766089577382,
+        "sample_sd": 21.11078236816383,
+        "trials": [
+          460.4996958922128,
+          427.5856349879177,
+          466.9444959930842
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "Trial percentiles averaged, not pooled request percentiles",
+    "Sequential conditions; no cross-day or hardware stability claim",
+    "Whole-GPU samples include client initialization; no task-attributed GPU cost claim",
+    "No quality improvement demonstrated"
+  ],
+  "manifest_sha256": "5a9c094c35951367c86b27bcb346f48839c8330c243f110fa79c664ba3789129",
+  "protocol": {
+    "concurrency": [
+      4,
+      16
+    ],
+    "input_tokens": 256,
+    "model_identities": {
+      "base": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "trained": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b"
+    },
+    "output_tokens": 64,
+    "precision": "fp16",
+    "prefix_cache": false,
+    "proxy": "same CPU telemetry proxy",
+    "repeats": 3,
+    "requests_per_point": 128,
+    "seeds": [
+      8400,
+      8401,
+      8402
+    ]
+  },
+  "scope": "Actual native RTX3090 vLLM inference; not Docker",
+  "status": "PASS",
+  "total_requests": 1536,
+  "trials": [
+    {
+      "completed_requests": 128,
+      "concurrency": 4,
+      "gpu": {
+        "mean_power_w": 282.9602985074627,
+        "mean_utilization_percent": 67.73880597014926,
+        "peak_power_w": 344.63,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 134,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "base",
+        "model_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "seed": 8400,
+        "served_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "dc3dd71fa73460f22dfab469ccac53ffc73413b1cbdb0ffa079a7110badc8322"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 861.4255664870143,
+        "p50_itl_ms": 11.650091008050367,
+        "p50_tpot_ms": 11.74944654774172,
+        "p50_ttft_ms": 122.84790497506037,
+        "p95_e2el_ms": 882.6121860038256,
+        "p95_itl_ms": 12.547127259313129,
+        "p95_tpot_ms": 13.05381290694063,
+        "p95_ttft_ms": 128.76084505114704,
+        "p99_e2el_ms": 884.636910361005,
+        "p99_itl_ms": 14.062689753482118,
+        "p99_tpot_ms": 13.232241527977518,
+        "p99_ttft_ms": 134.8498630936956
+      },
+      "load_s": 59.521689808985684,
+      "model": "base",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 295.889484609796,
+      "raw_sha256": "118784980929b0119be83b77d29bb069cbad5ebdcd05fdf5957599c46ce3b94d",
+      "repeat": 0,
+      "requests_per_s": 4.6232731970280625,
+      "run_id": "base-r0-c4-retry-1791887021",
+      "status": "PASS",
+      "status_sha256": "02ffb50ba0eaf291746203a34a3105863231117ceb0e0d5d062d74b9741ecd59",
+      "wall_s": 27.686012602993287
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 16,
+      "gpu": {
+        "mean_power_w": 244.86859154929581,
+        "mean_utilization_percent": 50.67605633802817,
+        "peak_power_w": 348.83,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 100.0,
+        "samples": 71,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "base",
+        "model_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "seed": 8400,
+        "served_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "dc3dd71fa73460f22dfab469ccac53ffc73413b1cbdb0ffa079a7110badc8322"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 1235.2717725152615,
+        "p50_itl_ms": 12.476504023652524,
+        "p50_tpot_ms": 15.310349825692052,
+        "p50_ttft_ms": 267.4543554894626,
+        "p95_e2el_ms": 1382.3385164316273,
+        "p95_itl_ms": 14.016211239504626,
+        "p95_tpot_ms": 18.298456810196743,
+        "p95_ttft_ms": 463.9034393825568,
+        "p99_e2el_ms": 1403.8530461560003,
+        "p99_itl_ms": 188.97983216913417,
+        "p99_tpot_ms": 19.415883264025783,
+        "p99_ttft_ms": 464.4851039466448
+      },
+      "load_s": 59.521689808985684,
+      "model": "base",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 817.9350244726193,
+      "raw_sha256": "57f4eecacdd3206d6a159a1df8a8059cd3314663b0df062aa23f41b0572594a6",
+      "repeat": 0,
+      "requests_per_s": 12.780234757384676,
+      "run_id": "base-r0-c16",
+      "status": "PASS",
+      "status_sha256": "dbef8fda1276b345fb300bf699067df6d2afb87402dfb160bfb2f985e51dc2e3",
+      "wall_s": 10.015465476957615
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 4,
+      "gpu": {
+        "mean_power_w": 281.8214074074074,
+        "mean_utilization_percent": 69.76296296296296,
+        "peak_power_w": 348.92,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 135,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "base",
+        "model_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "seed": 8401,
+        "served_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "dc3dd71fa73460f22dfab469ccac53ffc73413b1cbdb0ffa079a7110badc8322"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 883.1830974959303,
+        "p50_itl_ms": 11.776618019212037,
+        "p50_tpot_ms": 11.923918182248368,
+        "p50_ttft_ms": 125.57236946304329,
+        "p95_e2el_ms": 896.3704240974039,
+        "p95_itl_ms": 12.710828077979386,
+        "p95_tpot_ms": 13.286476973019216,
+        "p95_ttft_ms": 136.2816393841058,
+        "p99_e2el_ms": 897.2618880600203,
+        "p99_itl_ms": 14.368969216593543,
+        "p99_tpot_ms": 13.442235659301607,
+        "p99_ttft_ms": 137.1687794639729
+      },
+      "load_s": 59.521689808985684,
+      "model": "base",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 291.2789127252345,
+      "raw_sha256": "110109fd2895ed320224b241bd1dc4db9db35a3a8a2662ad57abdd90cda7076e",
+      "repeat": 1,
+      "requests_per_s": 4.551233011331789,
+      "run_id": "base-r1-c4",
+      "status": "PASS",
+      "status_sha256": "ab958ec9e083972613fe9909591d37b5c365cb5f67331526d4a13fe00f004768",
+      "wall_s": 28.12424670002656
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 16,
+      "gpu": {
+        "mean_power_w": 248.38802816901406,
+        "mean_utilization_percent": 48.140845070422536,
+        "peak_power_w": 348.86,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 100.0,
+        "samples": 71,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "base",
+        "model_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "seed": 8401,
+        "served_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "dc3dd71fa73460f22dfab469ccac53ffc73413b1cbdb0ffa079a7110badc8322"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 1240.8586955280043,
+        "p50_itl_ms": 12.492411507992074,
+        "p50_tpot_ms": 15.349332214562251,
+        "p50_ttft_ms": 278.49839100963436,
+        "p95_e2el_ms": 1348.486363128177,
+        "p95_itl_ms": 13.50169824727345,
+        "p95_tpot_ms": 18.377643219788467,
+        "p95_ttft_ms": 469.311238580849,
+        "p99_e2el_ms": 1361.4709692151519,
+        "p99_itl_ms": 187.0891722146189,
+        "p99_tpot_ms": 19.74066614243572,
+        "p99_ttft_ms": 476.6201250790619
+      },
+      "load_s": 59.521689808985684,
+      "model": "base",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 814.6031514056854,
+      "raw_sha256": "3fdcfcaa6c2f45ccfbfb04f1a3290a47b257318608756340389c6565b660d01d",
+      "repeat": 1,
+      "requests_per_s": 12.728174240713834,
+      "run_id": "base-r1-c16",
+      "status": "PASS",
+      "status_sha256": "dbef8fda1276b345fb300bf699067df6d2afb87402dfb160bfb2f985e51dc2e3",
+      "wall_s": 10.0564305279986
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 4,
+      "gpu": {
+        "mean_power_w": 281.10713235294116,
+        "mean_utilization_percent": 68.16911764705883,
+        "peak_power_w": 347.6,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 136,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "base",
+        "model_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "seed": 8402,
+        "served_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "dc3dd71fa73460f22dfab469ccac53ffc73413b1cbdb0ffa079a7110badc8322"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 888.9747549837921,
+        "p50_itl_ms": 11.891608504811302,
+        "p50_tpot_ms": 12.094000404763465,
+        "p50_ttft_ms": 126.06002599932253,
+        "p95_e2el_ms": 910.5468164401827,
+        "p95_itl_ms": 12.798984671826474,
+        "p95_tpot_ms": 13.521354759688533,
+        "p95_ttft_ms": 136.98116609011777,
+        "p99_e2el_ms": 912.0378208183683,
+        "p99_itl_ms": 13.970582993351856,
+        "p99_tpot_ms": 13.65740039386779,
+        "p99_ttft_ms": 137.79448785935529
+      },
+      "load_s": 59.521689808985684,
+      "model": "base",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 288.9029309615998,
+      "raw_sha256": "73c08fa46ac0acff2c1992236b092f7c33da6c235ccfedd61e01be3bad7d897a",
+      "repeat": 2,
+      "requests_per_s": 4.514108296274997,
+      "run_id": "base-r2-c4",
+      "status": "PASS",
+      "status_sha256": "7a5e2e639f74984a0bbb5ae54e8c5d4f30028121505fb0a9134dad1bf06cf5ee",
+      "wall_s": 28.355544794001617
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 16,
+      "gpu": {
+        "mean_power_w": 246.5670422535211,
+        "mean_utilization_percent": 50.225352112676056,
+        "peak_power_w": 349.24,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 100.0,
+        "samples": 71,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "base",
+        "model_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "seed": 8402,
+        "served_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "dc3dd71fa73460f22dfab469ccac53ffc73413b1cbdb0ffa079a7110badc8322"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 1238.8757420121692,
+        "p50_itl_ms": 12.582527997437865,
+        "p50_tpot_ms": 15.894225150871549,
+        "p50_ttft_ms": 269.5167094934732,
+        "p95_e2el_ms": 1313.8952930865341,
+        "p95_itl_ms": 14.517206748132592,
+        "p95_tpot_ms": 18.722292516770448,
+        "p95_ttft_ms": 450.5303284473479,
+        "p99_e2el_ms": 1326.8225319334306,
+        "p99_itl_ms": 188.10104182630326,
+        "p99_tpot_ms": 18.967471749397983,
+        "p99_ttft_ms": 474.2551914276555
+      },
+      "load_s": 59.521689808985684,
+      "model": "base",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 817.756124074099,
+      "raw_sha256": "d582e865c7510fc27583207b0e40f11ef3ec5db55d7e3a2b88076019d0123fac",
+      "repeat": 2,
+      "requests_per_s": 12.777439438657797,
+      "run_id": "base-r2-c16",
+      "status": "PASS",
+      "status_sha256": "dbef8fda1276b345fb300bf699067df6d2afb87402dfb160bfb2f985e51dc2e3",
+      "wall_s": 10.017656559008174
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 4,
+      "gpu": {
+        "mean_power_w": 281.1410294117647,
+        "mean_utilization_percent": 68.11764705882354,
+        "peak_power_w": 343.99,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 136,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "trained",
+        "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+        "seed": 8400,
+        "served_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "e3207822122b1265d9568ef5014d52ea85ebc7588787e2edf519dbea61daa98b"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 862.7637939935084,
+        "p50_itl_ms": 11.667396000120789,
+        "p50_tpot_ms": 11.775586880662196,
+        "p50_ttft_ms": 123.57955650077201,
+        "p95_e2el_ms": 911.1663658986798,
+        "p95_itl_ms": 12.43238968309015,
+        "p95_tpot_ms": 13.047682891538855,
+        "p95_ttft_ms": 126.51282173756046,
+        "p99_e2el_ms": 944.903356875293,
+        "p99_itl_ms": 14.379131661262365,
+        "p99_tpot_ms": 13.43639149093106,
+        "p99_ttft_ms": 143.83634979836643
+      },
+      "load_s": 61.552421112020966,
+      "model": "trained",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 294.51788238300446,
+      "raw_sha256": "c08fe1c66aa050a9e9eab76bb19a4633b4e77864fff8a6ee1893f6a87e5ac076",
+      "repeat": 0,
+      "requests_per_s": 4.601841912234445,
+      "run_id": "trained-r0-c4",
+      "status": "PASS",
+      "status_sha256": "7a5e2e639f74984a0bbb5ae54e8c5d4f30028121505fb0a9134dad1bf06cf5ee",
+      "wall_s": 27.814949413994327
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 16,
+      "gpu": {
+        "mean_power_w": 243.7434722222222,
+        "mean_utilization_percent": 45.541666666666664,
+        "peak_power_w": 348.24,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 100.0,
+        "samples": 72,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "trained",
+        "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+        "seed": 8400,
+        "served_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "e3207822122b1265d9568ef5014d52ea85ebc7588787e2edf519dbea61daa98b"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 1265.103359008208,
+        "p50_itl_ms": 12.947545008501038,
+        "p50_tpot_ms": 15.796315896930913,
+        "p50_ttft_ms": 270.332508982392,
+        "p95_e2el_ms": 1324.4866120658114,
+        "p95_itl_ms": 15.238113491795957,
+        "p95_tpot_ms": 18.855298741208756,
+        "p95_ttft_ms": 460.4996958922128,
+        "p99_e2el_ms": 1338.1480104423827,
+        "p99_itl_ms": 185.65411983698147,
+        "p99_tpot_ms": 19.10094913979438,
+        "p99_ttft_ms": 466.7562283168081
+      },
+      "load_s": 61.552421112020966,
+      "model": "trained",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 807.2865114473756,
+      "raw_sha256": "cc7b072e062d043df99d8f6d694049ebdf20abaa182fc6c4928d2027972a0915",
+      "repeat": 0,
+      "requests_per_s": 12.613851741365243,
+      "run_id": "trained-r0-c16",
+      "status": "PASS",
+      "status_sha256": "4ccf16002439034b19f7bf2af085bf58ec10380ad110adad7ba5c4ddcbaa3db9",
+      "wall_s": 10.147574478003662
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 4,
+      "gpu": {
+        "mean_power_w": 282.43180555555557,
+        "mean_utilization_percent": 64.04861111111111,
+        "peak_power_w": 345.49,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 144,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "trained",
+        "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+        "seed": 8401,
+        "served_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "e3207822122b1265d9568ef5014d52ea85ebc7588787e2edf519dbea61daa98b"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 948.6547505075578,
+        "p50_itl_ms": 12.816638976801187,
+        "p50_tpot_ms": 13.036723642717188,
+        "p50_ttft_ms": 125.61395150260068,
+        "p95_e2el_ms": 969.6593581989873,
+        "p95_itl_ms": 13.737380906241013,
+        "p95_tpot_ms": 14.521747603153232,
+        "p95_ttft_ms": 136.40452878607903,
+        "p99_e2el_ms": 1054.3335130793275,
+        "p99_itl_ms": 15.999322048155591,
+        "p99_tpot_ms": 14.634387475671247,
+        "p99_ttft_ms": 147.0617524208501
+      },
+      "load_s": 61.552421112020966,
+      "model": "trained",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 274.2857073120922,
+      "raw_sha256": "49e3d630236da9b34c955acbdf8a6fbb4f8603347d1e54b5e05b8bd00d0a68de",
+      "repeat": 1,
+      "requests_per_s": 4.285714176751441,
+      "run_id": "trained-r1-c4",
+      "status": "PASS",
+      "status_sha256": "8e3b80818b5fe69ff4983203421efd7ad5300c8419cf64f829f03aa78f36e0e1",
+      "wall_s": 29.866667426016647
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 16,
+      "gpu": {
+        "mean_power_w": 246.53575342465754,
+        "mean_utilization_percent": 46.04109589041096,
+        "peak_power_w": 347.26,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 100.0,
+        "samples": 73,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "trained",
+        "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+        "seed": 8401,
+        "served_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "e3207822122b1265d9568ef5014d52ea85ebc7588787e2edf519dbea61daa98b"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 1280.7659219834022,
+        "p50_itl_ms": 13.284772488987073,
+        "p50_tpot_ms": 16.28837819878263,
+        "p50_ttft_ms": 253.6850280012004,
+        "p95_e2el_ms": 1405.3134813875658,
+        "p95_itl_ms": 16.1439236078877,
+        "p95_tpot_ms": 19.41646726765958,
+        "p95_ttft_ms": 427.5856349879177,
+        "p99_e2el_ms": 1464.7004867042415,
+        "p99_itl_ms": 173.40508745517582,
+        "p99_tpot_ms": 19.867982631752504,
+        "p99_ttft_ms": 475.29239471128676
+      },
+      "load_s": 61.552421112020966,
+      "model": "trained",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 789.0326831087822,
+      "raw_sha256": "6a819e733f47040e4607738a093ad56060bcbc733269ca558903f717bf661c46",
+      "repeat": 1,
+      "requests_per_s": 12.328635673574722,
+      "run_id": "trained-r1-c16",
+      "status": "PASS",
+      "status_sha256": "c7e5a5c14ebce4f31840c178c6792af6a7145af00749b46d794eefa9fc1293e1",
+      "wall_s": 10.382332918990869
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 4,
+      "gpu": {
+        "mean_power_w": 279.78744680851065,
+        "mean_utilization_percent": 66.61702127659575,
+        "peak_power_w": 347.38,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 141,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "trained",
+        "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+        "seed": 8402,
+        "served_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "e3207822122b1265d9568ef5014d52ea85ebc7588787e2edf519dbea61daa98b"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 911.8109974660911,
+        "p50_itl_ms": 12.43012203485705,
+        "p50_tpot_ms": 12.797175737981137,
+        "p50_ttft_ms": 125.91243398492225,
+        "p95_e2el_ms": 955.5744930781657,
+        "p95_itl_ms": 13.312835260876454,
+        "p95_tpot_ms": 14.33109058328675,
+        "p95_ttft_ms": 136.3188106828602,
+        "p99_e2el_ms": 1047.0752177521354,
+        "p99_itl_ms": 15.047460620407948,
+        "p99_tpot_ms": 14.509437166566459,
+        "p99_ttft_ms": 137.32810117769986
+      },
+      "load_s": 61.552421112020966,
+      "model": "trained",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 280.7032602803678,
+      "raw_sha256": "4d2f8dd1151501005de1009c8d0e07d48b238105442381d30a253028eef9f610",
+      "repeat": 2,
+      "requests_per_s": 4.385988441880746,
+      "run_id": "trained-r2-c4",
+      "status": "PASS",
+      "status_sha256": "762ebfd218cb2668fce66c076dd4be4b1b7aa91367a1354b3f237cb9b4dfcd36",
+      "wall_s": 29.183843436010648
+    },
+    {
+      "completed_requests": 128,
+      "concurrency": 16,
+      "gpu": {
+        "mean_power_w": 243.65472972972975,
+        "mean_utilization_percent": 47.75675675675676,
+        "peak_power_w": 348.76,
+        "peak_used_mib": 22743.0,
+        "peak_utilization_percent": 98.0,
+        "samples": 74,
+        "scope": "Whole GPU sampled during official CLI subprocess, including client initialization"
+      },
+      "identity": {
+        "model": "trained",
+        "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+        "seed": 8402,
+        "served_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+        "source": {
+          "files": {
+            "ops/observability/server.py": "a855b100cfb27cdb69db98cb9fe30e077eed58902a9191e29f2cf532e1693cc9",
+            "ops/observability/stream_metrics.py": "a63dad3ba729bfe6252ed1630b0866a3a5c46c2b7b0745c408ad3c2f287c8ac1",
+            "ops/platform_serving.py": "f02188f02af49ba1743bbc25aa0783a09b911d38dd66cbea0bde10f006523c14",
+            "ops/run_model_comparison.py": "e3207822122b1265d9568ef5014d52ea85ebc7588787e2edf519dbea61daa98b"
+          },
+          "git": "b8ca46cb2c4b3ddf2c862fa0e49ba46750f01f5f"
+        }
+      },
+      "latency_ms": {
+        "p50_e2el_ms": 1251.5018050034996,
+        "p50_itl_ms": 12.626675481442362,
+        "p50_tpot_ms": 15.44791034890324,
+        "p50_ttft_ms": 270.7775055023376,
+        "p95_e2el_ms": 1305.1177305576855,
+        "p95_itl_ms": 13.964157211012207,
+        "p95_tpot_ms": 18.575220194410544,
+        "p95_ttft_ms": 466.9444959930842,
+        "p99_e2el_ms": 1317.0125397085212,
+        "p99_itl_ms": 183.75876263948157,
+        "p99_tpot_ms": 18.86211574539572,
+        "p99_ttft_ms": 470.92955829924904
+      },
+      "load_s": 61.552421112020966,
+      "model": "trained",
+      "output_tokens": 8192,
+      "output_tokens_per_s": 817.2952722852386,
+      "raw_sha256": "4772d7d79d5a895c1b7a6ab69ed1cba523ce7fe99208b9cfdd80258a9a7531c0",
+      "repeat": 2,
+      "requests_per_s": 12.770238629456854,
+      "run_id": "trained-r2-c16",
+      "status": "PASS",
+      "status_sha256": "d30f1c5b070fb6f8115c681e29aac3b039faeb8cb3786d75fe7860dad27ff819",
+      "wall_s": 10.023305257956963
+    }
+  ]
+}
