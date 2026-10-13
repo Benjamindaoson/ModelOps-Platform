@@ -1,7 +1,7 @@
 name: ModelOps LLM lifecycle validation
 on:
   push:
-    branches: [main, codex/llm-production-validation]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch: {}
@@ -63,6 +63,8 @@ jobs:
             benchmark/model-comparison.json
             docs/evidence/gpu-runtime-validation/validation-report.md
   image:
+    # Heavy image validation runs on main pushes or explicit release validation, not every evidence-only PR edit.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -81,8 +83,6 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: modelops-gpu-validation:ci
-          cache-from: type=gha,scope=modelops-gpu-validation
-          cache-to: type=gha,mode=min,scope=modelops-gpu-validation
       - name: Run actual CPU container startup contract
         run: |
           mkdir -p Evidence/ci-image

@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ModelOps LLM Lifecycle",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1370,
+      880
+    ],
+    "repository": {
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform",
+      "revision": "d37241eb32183afda7affa7ff4df525dee6ac2fb"
+    }
+  },
+  "components": [
+    {
+      "id": "data",
+      "type": "external",
+      "label": "Frozen dataset",
+      "sublabel": "Source groups / SHA",
+      "pos": [
+        50,
+        100
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/freeze_shortqa_v1.py"
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "type": "backend",
+      "label": "QLoRA Worker",
+      "sublabel": "Transformers / PEFT",
+      "pos": [
+        50,
+        380
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "pipelines/training/sft_worker.py"
+        }
+      ]
+    },
+    {
+      "id": "weights",
+      "type": "database",
+      "label": "Private artifacts",
+      "sublabel": "Adapter / Checkpoint",
+      "pos": [
+        305,
+        100
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/mlflow_validation.py"
+        }
+      ]
+    },
+    {
+      "id": "registry",
+      "type": "database",
+      "label": "MLflow Registry",
+      "sublabel": "Version / Training Run",
+      "pos": [
+        305,
+        380
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/mlflow_validation.py"
+        }
+      ]
+    },
+    {
+      "id": "control",
+      "type": "backend",
+      "label": "Control Plane / Console",
+      "sublabel": "FastAPI / Next.js",
+      "pos": [
+        560,
+        100
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/dev_control.py"
+        },
+        {
+          "path": "console/package.json"
+        }
+      ]
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "Release gate",
+      "sublabel": "Hash / quality / health / speed",
+      "pos": [
+        560,
+        380
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/model_release_gate/__main__.py"
+        }
+      ]
+    },
+    {
+      "id": "bench",
+      "type": "backend",
+      "label": "Model comparison",
+      "sublabel": "Base / fine-tuned",
+      "pos": [
+        560,
+        660
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/run_model_comparison.py"
+        }
+      ]
+    },
+    {
+      "id": "serve",
+      "type": "backend",
+      "label": "vLLM Serving",
+      "sublabel": "OpenAI streaming API",
+      "pos": [
+        815,
+        380
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/platform_serving.py"
+        }
+      ]
+    },
+    {
+      "id": "proxy",
+      "type": "backend",
+      "label": "Telemetry proxy",
+      "sublabel": "TTFT / usage / errors",
+      "pos": [
+        815,
+        660
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "ops/observability/server.py"
+        }
+      ]
+    },
+    {
+      "id": "docker",
+      "type": "cloud",
+      "label": "GPU Docker",
+      "sublabel": "Host execution SKIPPED",
+      "pos": [
+        815,
+        100
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "deploy/llm-validation/gpu-runtime/Dockerfile"
+        }
+      ]
+    },
+    {
+      "id": "prom",
+      "type": "backend",
+      "label": "Prometheus",
+      "sublabel": "GPU / inference metrics",
+      "pos": [
+        1070,
+        660
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "deploy/monitoring/prometheus.yml"
+        }
+      ]
+    },
+    {
+      "id": "graf",
+      "type": "frontend",
+      "label": "Grafana",
+      "sublabel": "Provisioned dashboards",
+      "pos": [
+        1070,
+        380
+      ],
+      "size": [
+        200,
+        85
+      ],
+      "sources": [
+        {
+          "path": "deploy/monitoring/modelops-dashboard.json"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge0",
+      "from": "data",
+      "to": "train",
+      "label": "Data",
+      "labelAt": [
+        150,
+        199
+      ]
+    },
+    {
+      "id": "edge1",
+      "from": "train",
+      "to": "weights",
+      "label": "Save"
+    },
+    {
+      "id": "edge2",
+      "from": "weights",
+      "to": "registry",
+      "label": "Register",
+      "labelAt": [
+        405,
+        199
+      ]
+    },
+    {
+      "id": "edge3",
+      "from": "control",
+      "to": "registry",
+      "label": "Metadata"
+    },
+    {
+      "id": "edge4",
+      "from": "registry",
+      "to": "gate",
+      "label": "Version",
+      "labelAt": [
+        535,
+        500
+      ]
+    },
+    {
+      "id": "edge5",
+      "from": "gate",
+      "to": "serve",
+      "label": "Load"
+    },
+    {
+      "id": "edge6",
+      "from": "serve",
+      "to": "proxy",
+      "label": "Response",
+      "labelAt": [
+        915,
+        479
+      ]
+    },
+    {
+      "id": "edge7",
+      "from": "proxy",
+      "to": "bench",
+      "label": "Measure"
+    },
+    {
+      "id": "edge8",
+      "from": "bench",
+      "to": "gate",
+      "label": "Evidence"
+    },
+    {
+      "id": "edge9",
+      "from": "proxy",
+      "to": "prom",
+      "label": "Metrics"
+    },
+    {
+      "id": "edge10",
+      "from": "prom",
+      "to": "graf",
+      "label": "Query"
+    },
+    {
+      "id": "edge11",
+      "from": "docker",
+      "to": "serve",
+      "label": "Pending",
+      "variant": "dashed",
+      "labelAt": [
+        915,
+        199
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Private data and model assets",
+      "wraps": [
+        "data",
+        "train",
+        "weights",
+        "registry"
+      ],
+      "pad": 25
+    },
+    {
+      "kind": "security-group",
+      "label": "Native loopback services",
+      "wraps": [
+        "serve",
+        "proxy",
+        "prom",
+        "graf"
+      ],
+      "pad": 25
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Verified evidence",
+      "items": [
+        "Reuse completed QLoRA and MLflow runs",
+        "Hash-bound comparison, release gate and telemetry"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Validation boundary",
+      "items": [
+        "GPU Docker execution remains SKIPPED",
+        "CPU container checks do not prove GPU operation"
+      ]
+    }
+  ]
+}

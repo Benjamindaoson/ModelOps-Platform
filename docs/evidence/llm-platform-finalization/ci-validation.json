@@ -1,0 +1,101 @@
+{
+  "status": "PASS",
+  "workflow_run": 38389379022,
+  "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38389379022",
+  "source_commit": "d37241eb32183afda7affa7ff4df525dee6ac2fb",
+  "scope": "Actual CPU GitHub Actions runtime, Docker image build and Compose contracts. Native GPU benchmark is separate cloud evidence.",
+  "jobs": [
+    {
+      "name": "image",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38389379022/job/115269078811",
+      "startedAt": "2026-10-13T11:19:09Z",
+      "completedAt": "2026-10-13T11:46:50Z"
+    },
+    {
+      "name": "software",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38389379022/job/115269079108",
+      "startedAt": "2026-10-13T11:19:09Z",
+      "completedAt": "2026-10-13T11:21:45Z"
+    }
+  ],
+  "artifacts": {
+    "11811340213": {
+      "archive_sha256": "a82dfeb02707debe868b07627e354eaacbe73685acb3ccf7343bb99ec31128a7",
+      "artifact_id": 11811340213,
+      "files": [
+        "docker-build-result.json",
+        "startup-contract.json"
+      ],
+      "receipts": {
+        "docker-build-result.json": {
+          "status": "success",
+          "image_digest": "sha256:18acfc41563052167004491bec12408cb54f00189241f6bb571d3b962cd54b96",
+          "revision": "d37241eb32183afda7affa7ff4df525dee6ac2fb",
+          "gpu_execution": "SKIPPED: CPU hosted runner",
+          "weights_in_image": false
+        },
+        "startup-contract.json": {
+          "argv": [
+            "-m",
+            "vllm.entrypoints.openai.api_server",
+            "--model",
+            "/model",
+            "--served-model-name",
+            "modelops-qwen3b-qlora",
+            "--dtype",
+            "half",
+            "--max-model-len",
+            "2048",
+            "--gpu-memory-utilization",
+            "0.9",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8000"
+          ],
+          "weights_in_image": false,
+          "checkpoint_verification_required": true
+        }
+      }
+    },
+    "11808790479": {
+      "archive_sha256": "27c903b40a8e8eaa7da74628ef62a8fd62f12d9e7071a9f6d6d9321ff1ee1621",
+      "artifact_id": 11808790479,
+      "files": [
+        "Evidence/ci-validation/monitoring-runtime.log",
+        "Evidence/ci-validation/monitoring-validation.json",
+        "Evidence/ci-validation/pytest.log",
+        "Evidence/ci-validation/unittest.log",
+        "Evidence/ci-validation/validation-report.json",
+        "Evidence/ci-validation/validation-report.md",
+        "benchmark/model-comparison.md",
+        "benchmark/model-comparison.json",
+        "docs/evidence/gpu-runtime-validation/validation-report.md"
+      ],
+      "receipts": {
+        "Evidence/ci-validation/monitoring-validation.json": {
+          "status": "PASS",
+          "scope": "CPU synthetic OpenAI fixture + actual production proxy/Compose Prometheus/Grafana",
+          "gpu_inference": "NOT_EXECUTED",
+          "dashboard_uid": "modelops-lifecycle",
+          "scraped_token_count": 2,
+          "anonymous_access": false
+        },
+        "Evidence/ci-validation/validation-report.json": {
+          "status": "success",
+          "revision": "d37241eb32183afda7affa7ff4df525dee6ac2fb",
+          "scope": "CPU software + actual Docker Compose monitoring contract",
+          "gpu_runtime": "SKIPPED: hosted runner has no NVIDIA GPU",
+          "gpu_benchmark": "Reused hash-bound cloud evidence; no GPU benchmark ran in CI"
+        }
+      },
+      "pytest_tail": "/stable/how-to/capture-warnings.html\n467 passed, 2 skipped, 2 warnings, 4 subtests passed in 58.70s\n"
+    }
+  },
+  "gpu_container_execution": "SKIPPED_NO_NVIDIA_RUNNER",
+  "follow_up": "Heavy image checks run on main pushes or explicit workflow_dispatch; PRs run software/Compose checks. Removing optional large cache export does not change the tested Dockerfile or probe."
+}

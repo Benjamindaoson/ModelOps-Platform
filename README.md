@@ -1,10 +1,32 @@
 # ModelOps Platform
 
-**AI Model Training, Serving & Lifecycle Infrastructure — v1.0 RC**
+**Enterprise LLM Production Lifecycle Platform**
 
-A Kubernetes-native, open-source engineering platform for managing the lifecycle of enterprise models: **register → train → evaluate → deploy → benchmark → observe → release/roll back**. ModelOps serves model-owning teams, not end-user chat applications. It supports a hybrid architecture in which self-hosted engines and external providers can be governed through a common gateway.
+ModelOps gives model-owning teams a traceable path from a dataset version to a tested model release: **QLoRA training → MLflow tracking/registry → evaluation and release gate → vLLM serving → benchmark → monitoring → release/rollback**. It extends the existing FastAPI control plane and Next.js console rather than replacing them with a training notebook or chatbot.
 
-> **Engineering preview, not independently certified production infrastructure.** The repository contains a real FastAPI control plane, Next.js operator console, Kubernetes Operator, Argo training orchestration, gateway and monitoring integrations, and automation tests. A passing CPU test **does not prove** GPU-serving performance, model quality, multizone high availability or deployment into an enterprise production environment. See [evidence and gaps](#validation-and-evidence).
+> **Validation status:** the real single-host LLM lifecycle is validated on RTX3090. GPU Docker execution is **SKIPPED** on the current rented container, and enterprise production HA/security deployment is not certified. Every implemented feature is separated from its runtime evidence.
+
+[中文](README.zh-CN.md) · [Final evidence report](docs/evidence/final-validation-report.md) · [Architecture](docs/FINAL_ARCHITECTURE.md) · [Matched model benchmark](benchmark/model-comparison.md)
+
+## Production validation platform — 2026-10-13
+
+![Source-pinned model lifecycle](docs/architecture/llm-platform-20261013.visual-check.1440x900.light.png)
+
+| Capability | Implemented | Validated evidence |
+|---|---|---|
+| QLoRA / MLflow | Transformers + PEFT worker and version registry | Real 32-update run, checkpoint and adapter; prior evidence retained |
+| Evaluation / release gate | Version-bound artifact, quality, serving and performance checks | Actual MLflow v1 decision PASS; unchanged thresholds; quality decline retained |
+| vLLM / rollback | Explicit launch/checkpoint verification and version switching | Actual native GPU API and base → trained → base rollback |
+| Benchmark | Matched Base/fine-tuned workload with resumable trials | **1,536 real requests**; 12 trials; raw/config/model/source hashes |
+| Monitoring | Streaming TTFT/usage/error metrics, GPU gauges, Prometheus/Grafana | Real GPU requests and native scrape/dashboard verification; actual Compose CPU contract in CI |
+| Docker / CI | Digest-pinned non-root image, GPU probe, Actions evidence artifacts | Docker build/startup receipts tracked in CI; **GPU container runtime SKIPPED** |
+| Console / software | Real API/browser lifecycle and fail-closed tests | 467 pytest passed, 62 unittest passed, 3 browser tests passed; 2 optional tests skipped |
+
+The fine-tuned checkpoint delivered **283.17 output tokens/s at C4** (TTFT P95 133.08 ms; E2E P95 945.47 ms) and **804.54 tokens/s at C16**. Base results were 292.02 and 816.76 tokens/s, respectively. Peak sampled GPU memory was 22,743 MiB. Three trial percentiles are averaged; these are synthetic workloads on one device, not production SLOs. **No model-quality or throughput improvement is claimed.**
+
+[Release decision](docs/evidence/llm-platform-finalization/release_decision.json) · [Live monitoring](docs/evidence/llm-platform-finalization/monitoring-validation.json) · [CI receipts](docs/evidence/llm-platform-finalization/ci-validation.json) · [GPU runtime boundary](docs/evidence/gpu-runtime-validation/validation-report.md)
+
+See [reproduction commands and limitations](docs/evidence/final-validation-report.md#4-reproduction-guide). The earlier optimization run below used a different cache/profile protocol and is not pooled with the matched model comparison.
 
 ## LLM Production Validation Sprint
 
