@@ -1,0 +1,167 @@
+{
+  "status": "PASS",
+  "files": [
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/LICENSE",
+      "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+      "git_blob_sha1": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+      "bytes": 11343,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/README.md",
+      "sha256": "b19c806a904db6dc878a0462e70b551f6b7ac78dfbb88c2eb966ca2b9109ae15",
+      "git_blob_sha1": "4b8373851d093eb9f3017443f27781c6971eff24",
+      "bytes": 4917,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/config.json",
+      "sha256": "18e18afcaccafade98daf13a54092927904649e1dd4eba8299ab717d5d94ff45",
+      "git_blob_sha1": "0dbb161213629a23f0fc00ef286e6b1e366d180f",
+      "bytes": 659,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/generation_config.json",
+      "sha256": "e558847a8b4402616f1273797b015104dc266fe4b520056fca88823ba8f8ebe6",
+      "git_blob_sha1": "dfc11073787daf1b0f9c0f1499487ab5f4c93738",
+      "bytes": 242,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/merges.txt",
+      "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+      "git_blob_sha1": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+      "bytes": 1671839,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/model.safetensors",
+      "sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+      "git_blob_sha1": "697ff0ca19bfa3ee11b3d2980ed8b47f97dfa21e",
+      "bytes": 988097824,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/tokenizer.json",
+      "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+      "git_blob_sha1": "443909a61d429dff23010e5bddd28ff530edda00",
+      "bytes": 7031645,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/tokenizer_config.json",
+      "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+      "git_blob_sha1": "07bfe0640cb5a0037f9322287fbfc682806cf672",
+      "bytes": 7305,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "file": ".tools/assets/qwen-base/vocab.json",
+      "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "git_blob_sha1": "4783fe10ac3adce15ac8f358ef5462739852c569",
+      "bytes": 2776833,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "databricks/databricks-dolly-15k",
+      "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+      "file": ".tools/assets/dolly/README.md",
+      "sha256": "db06c60090a11b20e79d1933b2f316f781605f07761ff2ae2795d6523e3e960b",
+      "git_blob_sha1": "b72cf5c2c4e6f551e75c365cc8fd690601db4990",
+      "bytes": 8199,
+      "declared_upstream_license": "cc-by-sa-3.0"
+    },
+    {
+      "repo": "databricks/databricks-dolly-15k",
+      "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+      "file": ".tools/assets/dolly/databricks-dolly-15k.jsonl",
+      "sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+      "git_blob_sha1": "7c507d16b055ae32107a6dd0585779678565dcd2",
+      "bytes": 13085339,
+      "declared_upstream_license": "cc-by-sa-3.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/README.md",
+      "sha256": "dcd602d2fd35c203a247304a06fec6654a12f7941b739f9221a064fe8dc3b7f0",
+      "git_blob_sha1": "44af2e3b0fa3a0b6239e48422972bf755f28fde0",
+      "bytes": 10502,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/config.json",
+      "sha256": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+      "git_blob_sha1": "72b987fd805cfa2b58c4c8c952b274a11bfd5a00",
+      "bytes": 612,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/model.safetensors",
+      "sha256": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db",
+      "git_blob_sha1": "b117b07b913054e2d7fcaa8b0c1faf74b4b66a32",
+      "bytes": 90868376,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/special_tokens_map.json",
+      "sha256": "303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3",
+      "git_blob_sha1": "e7b0375001f109a6b8873d756ad4f7bbb15fbaa5",
+      "bytes": 112,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/tokenizer.json",
+      "sha256": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+      "git_blob_sha1": "cb202bfe2e3c98645018a6d12f182a434c9d3e02",
+      "bytes": 466247,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/tokenizer_config.json",
+      "sha256": "acb92769e8195aabd29b7b2137a9e6d6e25c476a4f15aa4355c233426c61576b",
+      "git_blob_sha1": "c79f2b6a0cea6f4b564fed1938984bace9d30ff0",
+      "bytes": 350,
+      "declared_upstream_license": "apache-2.0"
+    },
+    {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "file": ".tools/assets/embedding-base/vocab.txt",
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+      "git_blob_sha1": "fb140275c155a9c7c5a3b3e0e77a9e839594a938",
+      "bytes": 231508,
+      "declared_upstream_license": "apache-2.0"
+    }
+  ]
+}

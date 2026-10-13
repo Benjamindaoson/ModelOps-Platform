@@ -1,0 +1,43 @@
+{
+  "invoice_available": false,
+  "scope": "Measured job boundaries and benchmark telemetry; no monetary or full rental-cost claim",
+  "training_job_wall_s": {
+    "fde75b74-1c9f-42d4-9d4a-bdb0cc0c97f3": 13.561161421006545,
+    "e34c944b-cc59-4143-9df0-47f1a2fc1e2a": 16.282469690951984,
+    "b13b68bc-1496-4172-bd44-b4779c469c77": 12.678497252985835,
+    "5afeb516-6d11-4428-a019-bc071c2bcfa1": 18.432730984990485
+  },
+  "training_gpu_loop_wall_s": {
+    "fde75b74-1c9f-42d4-9d4a-bdb0cc0c97f3": 6.861687502998393,
+    "e34c944b-cc59-4143-9df0-47f1a2fc1e2a": 9.10843224596465,
+    "b13b68bc-1496-4172-bd44-b4779c469c77": 6.587645038962364,
+    "5afeb516-6d11-4428-a019-bc071c2bcfa1": 11.811428666987922
+  },
+  "resume_full_validation_wall_s": 39.54087301698746,
+  "llm_load_event_wall_s": {
+    "base_ready": 30.250664390972815,
+    "candidate_ready": 30.245570952014532,
+    "rollback_ready": 28.302856980997603
+  },
+  "first_invalid_benchmark": {
+    "configured_timeout_s": 300,
+    "outcome": "FAIL_BENCHMARK",
+    "gpu_service_allocated": true
+  },
+  "fixed_benchmark_wall_s": 6.216247880016454,
+  "gpu_samples": {
+    "samples": 58,
+    "peak_used_mib": 10075.0,
+    "mean_utilization_percent": 6.896551724137931,
+    "peak_utilization_percent": 24.0,
+    "sample_interval_s": 0.25,
+    "scope": "whole GPU during benchmark subprocess, includes client initialization"
+  },
+  "unmeasured": [
+    "container provisioning",
+    "some evaluation/encoding boundaries",
+    "all idle rental time",
+    "provider invoice"
+  ],
+  "accounting": "Nested durations must not be added as independent GPU costs."
+}

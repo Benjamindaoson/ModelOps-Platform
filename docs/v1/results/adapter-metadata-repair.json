@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "field": "adapter_uri",
+  "before": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/merged",
+  "after": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/adapter-latest",
+  "checkpoint_sha256": "dadc1ab918a2e3b780f80e78f16bdfe713239fb856e54d43a0bbe38896a4c9a8",
+  "adapter_sha256": "af16add588a0259fb63151d47035942b16814a53d15414f6d7d316e1bb0fc064",
+  "training_run_id": "b13b68bc-1496-4172-bd44-b4779c469c77",
+  "identity_and_bytes_unchanged": true,
+  "reason": "Original registration linked merged directory as adapter; correction preserves raw registration receipt.",
+  "audit_event_id": "58715027-bbc3-4b68-87ab-03f37bac9bcc"
+}

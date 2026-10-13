@@ -1,0 +1,10 @@
+{
+  "public_code_commit": "4559e3db44eddd44a08219e6cb029a73afdd76f9",
+  "cloud_code_commit": "dde42ad84ef75bf9b6f3d363bfcb8d2663751662",
+  "identical_tree": "505b76ec71a147de668e926eb7c070d8ae7cdbef",
+  "branch": "codex/v1-production-readiness",
+  "pull_request": "https://github.com/Benjamindaoson/ModelOps-Platform/pull/24",
+  "status": "published_branch_pending_main_merge",
+  "history_preserved": true,
+  "force_push": false
+}

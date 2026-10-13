@@ -56,6 +56,12 @@ def ensure_training(runtime, record, artifact, dataset) -> str:
         # Scheduled recovery must report an unadoptable foreign Workflow,
         # not abort the entire tenant batch before the next item is checked.
         raise RuntimeFailure("Existing Argo Workflow ownership mismatch") from exc
+    if getattr(runtime, "kind", "kubernetes") == "linux":
+        expected = runtime.training_contract(record, artifact, dataset,
+                                             json.loads(record.parameters_json))
+        if existing.get("kind") != expected["kind"] or existing.get("spec") != expected["spec"]:
+            raise RuntimeFailure("Native job disagrees with immutable training intent")
+        return "adopted"
     if existing.get("spec", {}).get("workflowTemplateRef", {}).get("name") != "modelops-finetune-dynamic":
         raise RuntimeFailure("Existing Argo Workflow uses an unexpected training template")
     # Every immutable Argo argument matters, not just the source model and

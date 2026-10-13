@@ -1,0 +1,11 @@
+model: Qwen/Qwen2.5-0.5B-Instruct
+revision: 7ae557604adf67be50417f59c2c2f167def9a775
+framework: transformers
+method: lora
+steps: 32
+seed: 9101
+batch_size: 2
+max_seq_length: 256
+lr: 0.00001
+lora_rank: 8
+lora_alpha: 16

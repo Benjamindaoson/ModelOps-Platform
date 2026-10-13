@@ -1,0 +1,3 @@
+# M06 independent robot policy release gate
+
+Ingest only validated VLA-Forge M06 manifests and 1600 matching, artifact-backed MuJoCo receipts. Bind base model, adapter, data lineage, immutable protocol and source hashes to each of four registry versions. Evaluate the predeclared Goal task 6 paired benefit, 39-task noninferiority margin (-0.03), safety/action integrity, latency and artifact completeness. Emit PROMOTE, REJECT or INSUFFICIENT_EVIDENCE without retroactive threshold changes. Keep the active simulator policy unchanged unless PROMOTE is proven; any activation is simulation-only. Preserve rejection and rollback records. No Kubernetes, real robot control or training is in scope.

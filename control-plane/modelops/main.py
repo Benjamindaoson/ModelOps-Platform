@@ -1,5 +1,9 @@
-"""Tenant-isolated ModelOps API. Never reports runtime PASS without Kubernetes evidence."""
+"""Tenant-isolated ModelOps API. Explicit observed backends; no fabricated runtime PASS."""
 from __future__ import annotations
+import time
+import httpx
+from fastapi.responses import Response
+from .observability import Telemetry
 
 import json
 import os
@@ -15,6 +19,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import Principal, Verifier, require_principal
+from .training_state import TrainingStateReconciler
+from .linux_runtime import LinuxRuntime
+from pathlib import Path
 from .config import Settings
 from .db import (Base, TenantRecord, ModelArtifact, DatasetVersion, Deployment,
                  DeploymentRevision, FineTuneJob, EvaluationRecord, ReleaseApproval,
@@ -39,14 +46,17 @@ def render(obj, *fields) -> dict:
 
 
 MODEL_FIELDS = ("id", "name", "version", "family", "source", "revision", "digest",
-                "digest_verified", "created_by", "created_at")
+                "digest_verified", "created_by", "created_at", "model_type", "task_type",
+                "framework", "base_model", "adapter_type", "adapter_uri", "artifact_uri",
+                "training_run_id", "evaluation_id", "deployment_status")
 DATASET_FIELDS = ("id", "name", "version", "uri", "digest", "train_count",
                   "heldout_count", "created_by", "created_at")
-DEPLOY_FIELDS = ("id", "name", "artifact_id", "engine", "replicas", "gpu",
+DEPLOY_FIELDS = ("id", "name", "artifact_id", "engine", "replicas", "gpu", "quantization", "cache",
                  "generation", "intent", "canary_artifact_id", "canary_weight",
                  "created_by", "created_at")
 RUN_FIELDS = ("id", "name", "artifact_id", "dataset_id", "method",
-              "workflow_name", "intent", "parent_job_id", "attempt", "created_by", "created_at")
+              "workflow_name", "intent", "parent_job_id", "attempt", "created_by", "created_at",
+              "worker", "state", "runtime_run_id")
 
 
 def fetch_owned(db: Session, klass, tenant: str, key: str):
@@ -166,7 +176,8 @@ def with_runtime_state(runtime, dep: Deployment, data: dict, db: Session):
             and status["readyReplicas"] >= dep.replicas
             and phase == "Ready"
             and fresh("Ready")
-            and fresh("GatewayReady")
+            and fresh("ModelReady" if observed.get("runtime_kind") == "linux" else
+                      "PolicyReady" if dep.engine=="custom" else "GatewayReady")
             and (not dep.canary_weight or (
                 isinstance(status.get("canary"), dict)
                 and status["canary"].get("phase") == "Ready"
@@ -178,7 +189,8 @@ def with_runtime_state(runtime, dep: Deployment, data: dict, db: Session):
             phase = "ConfigurationDrift"
         elif phase == "Ready" and not verified:
             phase = "Reconciling"
-        return {**data, "observed_phase": phase,
+        return {**data, "runtime_kind": observed.get("runtime_kind", "kubernetes"),
+                "endpoint": status.get("endpoint"), "observed_phase": phase,
                 "ready_replicas": status.get("readyReplicas", 0),
                 "canary_status": status.get("canary"),
                 "canary_spec": spec.get("canary"),
@@ -238,18 +250,41 @@ def apply_staged_revision(db: Session, runtime, row: Deployment,
     return with_runtime_state(runtime, row, render(row, *DEPLOY_FIELDS), db)
 
 
+def model_view(db: Session, runtime, artifact: ModelArtifact) -> dict:
+    data=render(artifact,*MODEL_FIELDS)
+    desired=db.scalars(select(Deployment).where(Deployment.tenant==artifact.tenant,
+        Deployment.artifact_id==artifact.id,Deployment.intent!="deleted")).all()
+    pending=False;deleting=False
+    data["deployment_status"]="registered"
+    for dep in desired:
+        observed=with_runtime_state(runtime,dep,render(dep,*DEPLOY_FIELDS),db)
+        if observed["runtime_verified"]:
+            data["deployment_status"]="deployed";return data
+        if dep.intent=="deleting":
+            if getattr(runtime,"kind",None)=="linux":
+                try:runtime.get_deployment(dep)
+                except RuntimeNotFound:continue
+            deleting=True
+        else:pending=True
+    data["deployment_status"]="deployment_requested" if pending else "deletion_requested" if deleting else "registered"
+    return data
+
+
 def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
     settings = settings or Settings.from_env()
     settings.validate()
     engine, session_factory = make_session_factory(settings.database_url)
     if settings.environment != "production":
         Base.metadata.create_all(engine)
-    app = FastAPI(title="ModelOps Control API", version="0.1.0",
+    app = FastAPI(title="ModelOps Control API", version="1.0.0-rc.1",
                   docs_url="/docs" if settings.environment != "production" else None)
     app.state.settings = settings
+    app.state.telemetry = Telemetry()
     app.state.verifier = Verifier(settings)
     app.state.sessions = session_factory
     app.state.runtime = runtime if runtime is not None else (
+        LinuxRuntime(Path(__file__).resolve().parents[2], settings.gpu_python, settings.artifact_root)
+        if settings.runtime == "linux" else
         KubernetesRuntime(settings.k8s_context)
         if settings.runtime == "kubernetes" else DisabledRuntime())
 
@@ -281,13 +316,41 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
     @app.get("/api/v1/overview")
     def overview(p: Principal = Depends(require_principal), db: Session = Depends(get_db)):
         result = {"runtime_connected": app.state.runtime.connected,
-                  "platform_state": "kubernetes" if app.state.runtime.connected else "development_metadata_only"}
+                  "platform_state": getattr(app.state.runtime, "kind", "kubernetes") if app.state.runtime.connected else "development_metadata_only"}
         for key, entity in (("models", ModelArtifact), ("datasets", DatasetVersion),
                             ("deployments", Deployment), ("training_jobs", FineTuneJob),
                             ("audit_events", AuditEvent)):
             result[key] = db.scalar(select(func.count()).select_from(entity).where(entity.tenant == p.tenant))
         result["runtime_proven"] = False  # Only individual workload checks prove model quality.
         return result
+
+    @app.get("/metrics")
+    def metrics(p: Principal = Depends(require_principal),db: Session = Depends(get_db)):
+        require_role(p,"admin")
+        return Response(app.state.telemetry.export(db,p.tenant),media_type="text/plain; version=0.0.4")
+
+    @app.post("/api/v1/deployments/{key}/infer")
+    def infer(key: str,body: dict,p: Principal = Depends(require_principal),db: Session = Depends(get_db)):
+        row=fetch_owned(db,Deployment,p.tenant,key)
+        artifact=fetch_owned(db,ModelArtifact,p.tenant,row.artifact_id)
+        observed=with_runtime_state(app.state.runtime,row,render(row,*DEPLOY_FIELDS),db)
+        if not observed["runtime_verified"] or not observed.get("endpoint"):
+            raise HTTPException(503,detail="Owned model-serving backend is not verified ready")
+        endpoint=observed["endpoint"]
+        # Endpoint comes exclusively from the owned backend; API clients cannot choose a URL.
+        if len(json.dumps(body))>2_000_000:raise HTTPException(413,detail="Inference request budget exceeded")
+        kind=artifact.model_type or artifact.family
+        path="/v1/embeddings" if kind=="embedding" else "/v1/action-chunks" if kind=="vla" else "/v1/chat/completions"
+        payload={**body,"model":artifact.id} if kind!="vla" else body
+        payload["stream"]=False if kind!="vla" else payload.get("stream",False)
+        start=time.perf_counter()
+        try:
+            response=httpx.post(endpoint+path,json=payload,timeout=30)
+            response.raise_for_status()
+            return response.json()
+        except httpx.TimeoutException as exc:raise HTTPException(504,detail="Prediction timeout") from exc
+        except httpx.HTTPError as exc:raise HTTPException(502,detail="Prediction backend failed") from exc
+        finally:app.state.telemetry.observe(p.tenant,kind,time.perf_counter()-start)
 
     @app.get("/api/v1/models")
     def models(limit: int = 50, offset: int = 0, p: Principal = Depends(require_principal),
@@ -296,7 +359,12 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(422, detail="Invalid pagination")
         rows = db.scalars(select(ModelArtifact).where(ModelArtifact.tenant == p.tenant)
                           .order_by(ModelArtifact.created_at.desc()).limit(limit).offset(offset)).all()
-        return [render(x, *MODEL_FIELDS) for x in rows]
+        return [model_view(db,app.state.runtime,x) for x in rows]
+
+    @app.get("/api/v1/models/{artifact_id}")
+    def model_detail(artifact_id: str, p: Principal = Depends(require_principal),
+                     db: Session = Depends(get_db)):
+        return model_view(db,app.state.runtime,fetch_owned(db,ModelArtifact,p.tenant,artifact_id))
 
     @app.post("/api/v1/models", status_code=201)
     def create_model(req: ArtifactIn, p: Principal = Depends(require_principal),
@@ -343,18 +411,28 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                           db: Session = Depends(get_db)):
         require_role(p, "editor")
         artifact = fetch_owned(db, ModelArtifact, p.tenant, req.artifact_id)
+        if artifact.family == "vla" and req.engine != "custom":
+            raise HTTPException(422, detail="VLA must use a continuous-action custom engine")
         if artifact.family in ("asr", "tts"):
             raise HTTPException(422, detail="ASR/TTS engines not yet implemented; no fake deployment")
-        if artifact.family == "embedding" and req.engine != "tei":
-            raise HTTPException(422, detail="Embedding model requires TEI engine in this release")
+        if artifact.family == "embedding" and req.engine not in {"tei", "custom"}:
+            raise HTTPException(422, detail="Embedding requires TEI or an explicit custom embedding backend")
+        if req.quantization!="none" and req.engine not in {"vllm","sglang"}:
+            raise HTTPException(422,detail="Quantization incompatible with engine")
+        if settings.runtime=="kubernetes" and artifact.artifact_uri and not artifact.artifact_uri.startswith(("s3://","hf://")):
+            raise HTTPException(422,detail="Kubernetes needs a pinned HF snapshot or authenticated S3 checkpoint bundle; local files are not a deployable remote artifact")
+        if req.engine=="custom" and settings.runtime=="kubernetes" and req.custom is None:
+            raise HTTPException(422,detail="Kubernetes custom requires pinned image and protocol")
         if not app.state.runtime.connected:
-            raise RuntimeUnavailable("Kubernetes disconnected; deployment cannot be submitted")
+            raise RuntimeUnavailable("Configured serving runtime unavailable")
 
         # Persist the desired identity BEFORE contacting Kubernetes. If a
         # network timeout follows a successful create, an identical CRD can be
         # adopted from this durable record by the recovery worker/API.
         row = Deployment(tenant=p.tenant, name=req.name, artifact_id=artifact.id,
                          engine=req.engine, replicas=req.replicas, gpu=req.gpu,
+                          quantization=req.quantization,cache=req.cache,
+                          custom_json=json.dumps(req.custom.model_dump()) if req.custom else None,
                          intent="submitting", created_by=p.subject)
         db.add(row)
         flush_record(db)
@@ -453,6 +531,8 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         artifact_id, dataset_id = req.get("artifact_id"), req.get("dataset_id")
         artifact = fetch_owned(db, ModelArtifact, p.tenant, artifact_id)
         dataset = fetch_owned(db, DatasetVersion, p.tenant, dataset_id)
+        if artifact.model_type!="llm":
+            raise HTTPException(422,detail="Text Token-F1 gate applies only to LLMs; robot policies use the dedicated robotics release gate")
         report = req.get("report")
         if not isinstance(report, dict):
             raise HTTPException(422, detail="Report must be an object")
@@ -473,6 +553,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                                passed=passed, submitted_by=p.subject)
         db.add(row)
         flush_record(db)
+        if artifact.evaluation_id is None:artifact.evaluation_id=row.id
         audit(db, p, "evaluation.attest", "evaluation", row.id,
               {"passed": row.passed, "report_sha256": row.report_sha256})
         commit(db)
@@ -594,7 +675,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
             raise HTTPException(409, detail="Approval does not cover requested artifact")
         if req.expected_generation != row.generation or row.intent == "deleted":
             raise HTTPException(409, detail="Stale generation/deleted deployment")
-        if artifact.family in ("asr", "tts") or (artifact.family == "embedding") != (row.engine == "tei"):
+        if artifact.family in ("asr", "tts") or (artifact.family == "embedding" and row.engine not in {"tei","custom"}) or (artifact.family=="vla" and row.engine!="custom"):
             raise HTTPException(422, detail="Artifact and engine are incompatible")
         if not app.state.runtime.connected:
             raise RuntimeUnavailable("Kubernetes disconnected; cannot promote")
@@ -658,40 +739,67 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         # A successful DELETE request is not proof that finalizers finished.
         # Keep polling on a separately scheduled recovery worker until the
         # Kubernetes API returns an authoritative NotFound.
+        if getattr(app.state.runtime,"kind",None)=="linux":
+            try:app.state.runtime.get_deployment(row)
+            except RuntimeNotFound:outcome="already_deleted"
         row.intent = "deleted" if outcome == "already_deleted" else "deleting"
         audit(db, p, "deployment.delete.acknowledged", "deployment", row.id,
               {"outcome": outcome, "generation": row.generation})
         commit(db)
-        return {"status": "deletion_requested", "id": row.id}
+        return {"status": "deleted" if row.intent=="deleted" else "deletion_requested", "id": row.id}
 
-    def summarize_train_job(row: FineTuneJob):
+    def summarize_train_job(row: FineTuneJob, db: Session):
         data = render(row, *RUN_FIELDS)
         data["parameters"] = json.loads(row.parameters_json)
+        reconciler = TrainingStateReconciler(app.state.settings.artifact_root or None)
+
+        def merge_state(body, phase=None, receipt=None):
+            observed = reconciler.reconcile(row.state, phase, receipt,
+                                            row.runtime_run_id or row.name)
+            if row.state != observed["state"]:
+                db.add(AuditEvent(tenant=row.tenant, actor="system:reconciler",
+                    action="training.state_reconciled", object_kind="train_job", object_id=row.id,
+                    detail=json.dumps({"from": row.state, "to": observed["state"],
+                                       "artifact_verified": observed["artifact_verified"]})))
+                row.state = observed["state"]
+                commit(db)
+            return {**data, **body, **observed}
+
         if not app.state.runtime.connected:
-            return {**data, "observed_phase": "RuntimeDisconnected",
-                    "runtime_verified": False,
-                    "message": "Kubernetes is not connected; Argo status cannot be verified"}
+            return merge_state({"observed_phase": "RuntimeDisconnected",
+                                "message": "Runtime is disconnected; training cannot be verified"})
         try:
             actual = app.state.runtime.get_finetune(row)
             check_job_identity(actual, row)
-            return {**data, **observed_job(actual)}
+            body = observed_job(actual)
+            body["runtime_kind"] = actual.get("runtime_kind", "kubernetes")
+            if body["runtime_kind"] == "linux":
+                body["message"] = "Linux worker " + body["observed_phase"]
+            receipt = actual.get("artifact_receipt")
+            for parameter in (actual.get("status") or {}).get("outputs", {}).get("parameters", []):
+                if parameter.get("name") == "modelops-training-receipt":
+                    try:
+                        receipt = json.loads(parameter.get("value", ""))
+                    except (ValueError, TypeError):
+                        receipt = {}
+            return merge_state(body, body["observed_phase"], receipt)
         except RuntimeNotFound:
-            return {**data, "observed_phase": "RuntimeMissing",
-                    "runtime_verified": False, "message": "Argo Workflow does not exist yet"}
+            return merge_state({"observed_phase": "RuntimeMissing",
+                                "message": "Training workload does not exist yet"})
         except RuntimeFailure:
-            return {**data, "observed_phase": "RuntimeUnreachable",
-                    "runtime_verified": False, "message": "Unable to query real Argo state"}
+            return merge_state({"observed_phase": "RuntimeUnreachable",
+                                "message": "Unable to query actual runtime state"})
 
     @app.get("/api/v1/train-jobs")
     def train_jobs(p: Principal = Depends(require_principal), db: Session = Depends(get_db)):
         jobs = db.scalars(select(FineTuneJob).where(FineTuneJob.tenant == p.tenant)
                           .order_by(FineTuneJob.created_at.desc()).limit(100)).all()
-        return [summarize_train_job(item) for item in jobs]
+        return [summarize_train_job(item, db) for item in jobs]
 
     @app.get("/api/v1/train-jobs/{key}")
     def get_train_job(key: str, p: Principal = Depends(require_principal),
                       db: Session = Depends(get_db)):
-        return summarize_train_job(fetch_owned(db, FineTuneJob, p.tenant, key))
+        return summarize_train_job(fetch_owned(db, FineTuneJob, p.tenant, key), db)
 
     @app.post("/api/v1/train-jobs", status_code=201)
     def submit_train_job(req: FineTuneIn, p: Principal = Depends(require_principal),
@@ -699,6 +807,8 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         require_role(p, "editor")
         artifact = fetch_owned(db, ModelArtifact, p.tenant, req.artifact_id)
         dataset = fetch_owned(db, DatasetVersion, p.tenant, req.dataset_id)
+        if dataset.train_count < 1:
+            raise HTTPException(422, detail="Heldout-only dataset cannot be used for training")
         if artifact.family != "llm":
             raise HTTPException(422, detail="Fine-tuning this model family not supported")
         if not app.state.runtime.connected:
@@ -706,9 +816,12 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         row = FineTuneJob(tenant=p.tenant, name=req.name,
                          artifact_id=artifact.id, dataset_id=dataset.id, method=req.method,
                          parameters_json=req.model_dump_json(), workflow_name=req.name + "-ft",
-                         parent_job_id=None, attempt=1, intent="submitting", created_by=p.subject)
+                         parent_job_id=None, attempt=1, intent="submitting", created_by=p.subject,
+                         worker="linux" if getattr(app.state.runtime, "kind", "") == "linux" else "argo")
         db.add(row)
         flush_record(db)
+        if row.worker == "linux":
+            row.runtime_run_id = row.id
         audit(db, p, "training.request", "train_job", row.id,
               {"method": req.method, "dataset_id": dataset.id, "attempt": 1})
         commit(db)
@@ -725,6 +838,33 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         commit(db)
         return {**render(row, *RUN_FIELDS), "parameters": req.model_dump(),
                 "observed_phase": "Pending", "runtime_verified": False}
+
+    @app.post("/api/v1/train-jobs/{key}/pause")
+    def pause_training(key: str, p: Principal = Depends(require_principal),
+                       db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, FineTuneJob, p.tenant, key)
+        if getattr(app.state.runtime, "kind", "") != "linux":
+            raise HTTPException(422, detail="Pause is supported by the native checkpointing worker")
+        app.state.runtime.pause_finetune(row)
+        audit(db, p, "training.pause_requested", "train_job", row.id)
+        commit(db)
+        return {"id": row.id, "pause_requested": True, "state": "RUNNING"}
+
+    @app.post("/api/v1/train-jobs/{key}/resume")
+    def resume_training(key: str, p: Principal = Depends(require_principal),
+                        db: Session = Depends(get_db)):
+        require_role(p, "editor")
+        row = fetch_owned(db, FineTuneJob, p.tenant, key)
+        if getattr(app.state.runtime, "kind", "") != "linux":
+            raise HTTPException(422, detail="Resume requires the native worker")
+        current = summarize_train_job(row, db)
+        if current["state"] != "PAUSED":
+            raise HTTPException(409, detail="Only a paused checkpointed job can resume")
+        app.state.runtime.resume_finetune(row)
+        audit(db, p, "training.resumed", "train_job", row.id)
+        commit(db)
+        return summarize_train_job(row, db)
 
     @app.post("/api/v1/train-jobs/{key}/recover")
     def recover_training(key: str, p: Principal = Depends(require_principal),
@@ -747,7 +887,7 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         audit(db, p, "training.recovered", "train_job", row.id,
               {"outcome": disposition, "workflow": row.workflow_name})
         commit(db)
-        return summarize_train_job(row)
+        return summarize_train_job(row, db)
 
     @app.post("/api/v1/train-jobs/{key}/cancel")
     def cancel_train_job(key: str, p: Principal = Depends(require_principal),
@@ -762,14 +902,14 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         if terminal_job_phase(phase):
             raise HTTPException(409, detail="Cannot cancel a terminal Workflow")
         if row.intent == "cancel_requested" or actual.get("spec", {}).get("shutdown") == "Terminate":
-            return {**summarize_train_job(row), "cancel_requested": True}
+            return {**summarize_train_job(row, db), "cancel_requested": True}
         resource_version = actual.get("metadata", {}).get("resourceVersion", "")
         app.state.runtime.cancel_finetune(row, resource_version)
         row.intent = "cancel_requested"
         audit(db, p, "training.cancel", "train_job", row.id,
               {"workflow": row.workflow_name, "observed_phase": phase})
         commit(db)
-        return {**summarize_train_job(row), "cancel_requested": True}
+        return {**summarize_train_job(row, db), "cancel_requested": True}
 
     @app.post("/api/v1/train-jobs/{key}/retry", status_code=201)
     def retry_train_job(key: str, p: Principal = Depends(require_principal),
@@ -784,11 +924,11 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         child = db.scalar(select(FineTuneJob).where(
             FineTuneJob.tenant == p.tenant, FineTuneJob.parent_job_id == prior.id))
         if child is not None:
-            return summarize_train_job(child)
+            return summarize_train_job(child, db)
         actual = app.state.runtime.get_finetune(prior)
         check_job_identity(actual, prior)
         phase = actual.get("status", {}).get("phase") or "Pending"
-        if phase not in ("Failed", "Error", "Terminated"):
+        if phase not in ("Failed", "Error", "Terminated", "FAILED", "CANCELLED"):
             raise HTTPException(409, detail="Only failed or terminated jobs can be retried")
         if prior.attempt >= 5:
             raise HTTPException(409, detail="Maximum five training attempts")
@@ -802,9 +942,10 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
                          parameters_json=json.dumps(params, sort_keys=True),
                          workflow_name=name + "-ft", intent="submitting",
                          parent_job_id=prior.id, attempt=prior.attempt + 1,
-                         created_by=p.subject)
+                         worker=prior.worker,created_by=p.subject)
         db.add(row)
         flush_record(db)
+        if row.worker=="linux":row.runtime_run_id=row.id
         audit(db, p, "training.retry.request", "train_job", row.id,
               {"parent_job_id": prior.id, "attempt": row.attempt,
                "previous_phase": phase, "workflow": row.workflow_name})

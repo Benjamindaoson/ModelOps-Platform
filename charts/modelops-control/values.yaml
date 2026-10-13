@@ -49,3 +49,6 @@ recovery:
   schedule: "*/5 * * * *"
 networkPolicy:
   enabled: true
+
+# Optional tenant-owned unified ModelDeployment CRDs; Operator is installed separately.
+modelDeployments: []

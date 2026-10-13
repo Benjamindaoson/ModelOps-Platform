@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -21,18 +22,50 @@ type engineConfig struct {
 }
 
 var engines = map[string]engineConfig{
+	"custom":   {Port: 8000},
 	"vllm":     {Image: "vllm/vllm-openai:v0.19.0", Port: 8000},
 	"tei":      {Image: "ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.3", Port: 8080},
 	"llamacpp": {Image: "ghcr.io/ggml-org/llama.cpp:server-b8672", Port: 8080},
-	"sglang": {Image: "lmsysorg/sglang:latest-runtime", Port: 30000},
+	"sglang":   {Image: "lmsysorg/sglang:latest-runtime", Port: 30000},
 }
 
 // SupportsServingEngine guards the runtime builder from generating a blank
 // container image/port for an unsupported engine. Source-based heuristics
 // may produce names which are implemented in Helm but not in this Operator.
 func SupportsServingEngine(engine string) bool {
-    _,ok:=engines[engine]
-    return ok
+	_, ok := engines[engine]
+	return ok
+}
+
+// ValidateServingSpec fails before allocating a GPU for incompatible protocols.
+func ValidateServingSpec(md *v1alpha1.ModelDeployment, eng string) error {
+	if !SupportsServingEngine(eng) {
+		return fmt.Errorf("unsupported engine %s", eng)
+	}
+	if md.Spec.Model != nil && md.Spec.Model.ModelType == "vla" && eng != "custom" {
+		return fmt.Errorf("VLA needs a continuous-action custom server")
+	}
+	if md.Spec.Quantization != "" && md.Spec.Quantization != "none" && eng != "vllm" && eng != "sglang" {
+		return fmt.Errorf("quantization unsupported for this engine")
+	}
+	if eng != "custom" {
+		return nil
+	}
+	c := md.Spec.Custom
+	if c == nil || !regexp.MustCompile("^.+@sha256:[a-f0-9]{64}$").MatchString(c.Image) || len(c.Command) == 0 || c.Port < 1024 || c.Port > 65535 || (c.HealthPath != "/health" && c.HealthPath != "/readyz") {
+		return fmt.Errorf("custom requires pinned image, command, valid port and health path")
+	}
+	if md.Spec.Canary != nil {
+		return fmt.Errorf("custom policy server does not use the LLM chat gateway canary")
+	}
+	return nil
+}
+
+func DeploymentPort(md *v1alpha1.ModelDeployment, eng string) int32 {
+	if eng == "custom" && md.Spec.Custom != nil {
+		return md.Spec.Custom.Port
+	}
+	return EnginePort(eng)
 }
 
 // acceleratorResources maps accelerator vendor to the Kubernetes device plugin resource name.
@@ -51,6 +84,10 @@ func modelSlug(source string) string {
 // BuildDeployment creates a Kubernetes Deployment for the given ModelDeployment CR.
 func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1alpha1.LLMPlatform) *appsv1.Deployment {
 	cfg := engines[engine]
+	if engine == "custom" && md.Spec.Custom != nil {
+		cfg.Image = md.Spec.Custom.Image
+		cfg.Port = md.Spec.Custom.Port
+	}
 	slug := modelSlug(md.Spec.Source)
 
 	labels := map[string]string{
@@ -76,6 +113,9 @@ func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1al
 
 	// --- Probes ---
 	healthPath := "/health"
+	if engine == "custom" && md.Spec.Custom != nil {
+		healthPath = md.Spec.Custom.HealthPath
+	}
 	probe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
@@ -99,6 +139,10 @@ func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1al
 		VolumeMounts:   volumeMounts,
 		ReadinessProbe: probe,
 		LivenessProbe:  probe.DeepCopy(),
+	}
+
+	if engine == "custom" && md.Spec.Custom != nil {
+		mainContainer.Command = append([]string(nil), md.Spec.Custom.Command...)
 	}
 
 	// SGLang runtime needs an explicit module invocation rather than vLLM entrypoint semantics.
@@ -139,7 +183,7 @@ func BuildDeployment(md *v1alpha1.ModelDeployment, engine string, platform *v1al
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{FSGroup: func() *int64 {group:=int64(10001);return &group}()},
+					SecurityContext:               &corev1.PodSecurityContext{FSGroup: func() *int64 { group := int64(10001); return &group }()},
 					InitContainers:                initContainers,
 					Containers:                    []corev1.Container{mainContainer},
 					Volumes:                       volumes,
@@ -160,6 +204,10 @@ func buildEngineArgs(md *v1alpha1.ModelDeployment, engine, slug string, port int
 	var args []string
 
 	switch engine {
+	case "custom":
+		if md.Spec.Custom != nil {
+			return append([]string(nil), md.Spec.Custom.Args...)
+		}
 	case "vllm":
 		args = []string{
 			"--model", modelPath,
@@ -167,7 +215,7 @@ func buildEngineArgs(md *v1alpha1.ModelDeployment, engine, slug string, port int
 			"--host", "0.0.0.0",
 			"--port", fmt.Sprintf("%d", port),
 		}
-		if md.Spec.PrefixCaching {
+		if md.Spec.PrefixCaching || (md.Spec.Cache != nil && md.Spec.Cache.PrefixCaching) {
 			args = append(args, "--enable-prefix-caching")
 		}
 	case "sglang":
@@ -189,6 +237,10 @@ func buildEngineArgs(md *v1alpha1.ModelDeployment, engine, slug string, port int
 			"--host", "0.0.0.0",
 			"--port", fmt.Sprintf("%d", port),
 		}
+	}
+
+	if md.Spec.Quantization != "" && md.Spec.Quantization != "none" && (engine == "vllm" || engine == "sglang") {
+		args = append(args, "--quantization", md.Spec.Quantization)
 	}
 
 	// Append user-specified engine args in sorted key order for deterministic output.
@@ -287,54 +339,60 @@ func buildInitContainers(md *v1alpha1.ModelDeployment, platform *v1alpha1.LLMPla
 	const loaderImage = "ghcr.io/benjamindaoson/modelops-model-loader:v0.1.0"
 	revision := md.Annotations["modelops.io/artifact-revision"]
 	digest := md.Annotations["modelops.io/artifact-sha256"]
+	fetchSource := md.Spec.Source
+	if md.Spec.Model != nil && strings.HasPrefix(md.Spec.Model.ArtifactURI, "s3://") {
+		fetchSource = md.Spec.Model.ArtifactURI
+	}
 	envs := []corev1.EnvVar{
-		{Name:"MODEL_SOURCE",Value:md.Spec.Source},
-		{Name:"MODEL_SLUG",Value:slug},
-		{Name:"MODEL_REVISION",Value:revision},
-		{Name:"MODEL_ARTIFACT_SHA256",Value:digest},
+		{Name: "MODEL_SOURCE", Value: fetchSource},
+		{Name: "MODEL_SLUG", Value: slug},
+		{Name: "MODEL_REVISION", Value: revision},
+		{Name: "MODEL_ARTIFACT_SHA256", Value: digest},
 	}
 	// Gated HF models use an optional namespace Secret, never an inline Pod
 	// environment variable copied from a CRD or Helm Values.
-	trueValue:=true
-	falseValue:=false
-	user:=int64(10001)
-	envs=append(envs,corev1.EnvVar{
-		Name:"HF_TOKEN",ValueFrom:&corev1.EnvVarSource{SecretKeyRef:&corev1.SecretKeySelector{
-			LocalObjectReference:corev1.LocalObjectReference{Name:"modelops-hf-token"},
-			Key:"token",Optional:&trueValue,
+	trueValue := true
+	falseValue := false
+	user := int64(10001)
+	envs = append(envs, corev1.EnvVar{
+		Name: "HF_TOKEN", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{Name: "modelops-hf-token"},
+			Key:                  "token", Optional: &trueValue,
 		}},
 	})
-	if strings.HasPrefix(md.Spec.Source,"s3://") {
-		endpoint:=""
-		if platform!=nil {endpoint=platform.Spec.ModelStore.Endpoint}
-		if md.Spec.ModelStore!=nil && md.Spec.ModelStore.Endpoint!="" {
-			endpoint=md.Spec.ModelStore.Endpoint
+	if strings.HasPrefix(fetchSource, "s3://") {
+		endpoint := ""
+		if platform != nil {
+			endpoint = platform.Spec.ModelStore.Endpoint
 		}
-		envs=append(envs,corev1.EnvVar{Name:"MODELOPS_S3_ENDPOINT",Value:endpoint})
-		for _,item:=range []struct{name,key string}{
-			{"MODELOPS_S3_ACCESS_KEY","accessKey"},{"MODELOPS_S3_SECRET_KEY","secretKey"},
-		}{
-			envs=append(envs,corev1.EnvVar{
-				Name:item.name,
-				ValueFrom:&corev1.EnvVarSource{SecretKeyRef:&corev1.SecretKeySelector{
-					LocalObjectReference:corev1.LocalObjectReference{Name:"modelops-objectstore"},
-					Key:item.key,
+		if md.Spec.ModelStore != nil && md.Spec.ModelStore.Endpoint != "" {
+			endpoint = md.Spec.ModelStore.Endpoint
+		}
+		envs = append(envs, corev1.EnvVar{Name: "MODELOPS_S3_ENDPOINT", Value: endpoint})
+		for _, item := range []struct{ name, key string }{
+			{"MODELOPS_S3_ACCESS_KEY", "accessKey"}, {"MODELOPS_S3_SECRET_KEY", "secretKey"},
+		} {
+			envs = append(envs, corev1.EnvVar{
+				Name: item.name,
+				ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: "modelops-objectstore"},
+					Key:                  item.key,
 				}},
 			})
 		}
 	}
 	return []corev1.Container{{
-		Name:"model-loader",Image:loaderImage,
-		ImagePullPolicy:corev1.PullIfNotPresent,
-		Env:envs,
-		VolumeMounts:[]corev1.VolumeMount{{Name:"model-cache",MountPath:"/models"}},
-		SecurityContext:&corev1.SecurityContext{
-			RunAsUser:&user,RunAsNonRoot:&trueValue,AllowPrivilegeEscalation:&falseValue,
+		Name: "model-loader", Image: loaderImage,
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Env:             envs,
+		VolumeMounts:    []corev1.VolumeMount{{Name: "model-cache", MountPath: "/models"}},
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser: &user, RunAsNonRoot: &trueValue, AllowPrivilegeEscalation: &falseValue,
 		},
-		Resources:corev1.ResourceRequirements{
-			Requests:corev1.ResourceList{
-				corev1.ResourceCPU:resource.MustParse("500m"),
-				corev1.ResourceMemory:resource.MustParse("1Gi"),
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("500m"),
+				corev1.ResourceMemory: resource.MustParse("1Gi"),
 			},
 		},
 	}}
@@ -366,7 +424,7 @@ func BuildCanaryPVC(md *v1alpha1.ModelDeployment, canarySlug string) *corev1.Per
 				"app.kubernetes.io/name":     "pvc",
 				"app.kubernetes.io/instance": md.Name + "-canary",
 				"app.kubernetes.io/part-of":  "kube-llmops",
-				"kube-llmops/model":        md.Name,
+				"kube-llmops/model":          md.Name,
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
@@ -391,9 +449,9 @@ func BuildCanaryDeployment(canaryMD *v1alpha1.ModelDeployment, engine string, pl
 		"app.kubernetes.io/instance":  mainName + "-canary",
 		"app.kubernetes.io/part-of":   "kube-llmops",
 		"app.kubernetes.io/component": "canary",
-		"kube-llmops/model":          mainName + "-canary",
-		"kube-llmops/engine":         engine,
-		"kube-llmops/canary":        "true",
+		"kube-llmops/model":           mainName + "-canary",
+		"kube-llmops/engine":          engine,
+		"kube-llmops/canary":          "true",
 	}
 
 	args := buildCanaryEngineArgs(canaryMD, engine, canarySlug, cfg.Port)
@@ -414,18 +472,18 @@ func BuildCanaryDeployment(canaryMD *v1alpha1.ModelDeployment, engine string, pl
 		InitialDelaySeconds: 30,
 		PeriodSeconds:       10,
 		TimeoutSeconds:      5,
-		FailureThreshold:   3,
+		FailureThreshold:    3,
 	}
 
 	mainContainer := corev1.Container{
-		Name:            "model-server",
-		Image:           cfg.Image,
-		Args:            args,
-		Ports:           []corev1.ContainerPort{{Name: "http", ContainerPort: cfg.Port, Protocol: corev1.ProtocolTCP}},
-		Resources:       containerResources,
-		VolumeMounts:    volumeMounts,
-		ReadinessProbe:   probe,
-		LivenessProbe:    probe.DeepCopy(),
+		Name:           "model-server",
+		Image:          cfg.Image,
+		Args:           args,
+		Ports:          []corev1.ContainerPort{{Name: "http", ContainerPort: cfg.Port, Protocol: corev1.ProtocolTCP}},
+		Resources:      containerResources,
+		VolumeMounts:   volumeMounts,
+		ReadinessProbe: probe,
+		LivenessProbe:  probe.DeepCopy(),
 	}
 
 	if engine == "sglang" {
@@ -459,10 +517,10 @@ func BuildCanaryDeployment(canaryMD *v1alpha1.ModelDeployment, engine string, pl
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					InitContainers:                 canaryInit,
-					SecurityContext: &corev1.PodSecurityContext{FSGroup: func() *int64 { n:=int64(10001);return &n }()},
+					InitContainers:                canaryInit,
+					SecurityContext:               &corev1.PodSecurityContext{FSGroup: func() *int64 { n := int64(10001); return &n }()},
 					Containers:                    []corev1.Container{mainContainer},
-					Volumes:                      volumes,
+					Volumes:                       volumes,
 					Tolerations:                   tolerations,
 					EnableServiceLinks:            &enableServiceLinks,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,

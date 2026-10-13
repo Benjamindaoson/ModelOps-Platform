@@ -1,0 +1,7 @@
+{
+  "executed_worker_sha256": "6d69cd48a9804d4de4d28615ad1fd9f3a9ce6b06e849a3b236e7813d4b281b38",
+  "published_frozen_source": "docs/v1/execution/sft_worker_frozen.py",
+  "current_worker_sha256": "c4df36f0220ae2f1aa5828be396537d70496c8288007e804d7f197d410e460f3",
+  "training_function_ast_identical": true,
+  "only_change": "shared GPU lease moved to project-safe helper; training algorithm unchanged"
+}

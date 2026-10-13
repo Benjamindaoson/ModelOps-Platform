@@ -1,0 +1,109 @@
+{
+  "revision": "4559e3db44eddd44a08219e6cb029a73afdd76f9",
+  "scope": "CPU GitHub runners; no GPU Kubernetes inference proof",
+  "checks": [
+    {
+      "name": "Sourcery review",
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://sourcery.ai"
+    },
+    {
+      "name": "python-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120645168"
+    },
+    {
+      "name": "training-evidence-contracts",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120645007"
+    },
+    {
+      "name": "browser",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851113/job/115120644996"
+    },
+    {
+      "name": "helm-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120644995"
+    },
+    {
+      "name": "kind-operator",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851071/job/115120644989"
+    },
+    {
+      "name": "evidence-boundary",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120644934"
+    },
+    {
+      "name": "console-image",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851080/job/115120644933"
+    },
+    {
+      "name": "benchmark-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120644932"
+    },
+    {
+      "name": "operator-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120644921"
+    },
+    {
+      "name": "operations-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120644888"
+    },
+    {
+      "name": "control-api-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851072/job/115120644817"
+    },
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851073/job/115120644805"
+    },
+    {
+      "name": "argo-render-contract",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851085/job/115120644798"
+    },
+    {
+      "name": "kind-gateway",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851071/job/115120644763"
+    },
+    {
+      "name": "postgres-schema-integration",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851072/job/115120644739"
+    },
+    {
+      "name": "api-image",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38343851080/job/115120644607"
+    }
+  ],
+  "initial_training_failure": "Legacy bare-module test imports conflicted with importlib pytest mode; qualified imports fixed, six local checks pass. Final CI follows new head."
+}

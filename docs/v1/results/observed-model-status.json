@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "while_real_cpu_embedding_ready": "deployed",
+  "after_cleanup": "registered",
+  "delete_status": "deleted",
+  "source": "live model-owned backend, never client supplied",
+  "initial_bug": "native absence was hidden by the Kubernetes deleting intent; fixed and reverified"
+}

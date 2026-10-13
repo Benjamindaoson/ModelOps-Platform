@@ -1,0 +1,153 @@
+[
+  {
+    "kind": "model",
+    "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "license": "apache-2.0",
+    "files": [
+      {
+        "name": "LICENSE",
+        "blob": "6634c8cc3133b3848ec74b9f275acaaa1ea618ab",
+        "lfs": null
+      },
+      {
+        "name": "README.md",
+        "blob": "4b8373851d093eb9f3017443f27781c6971eff24",
+        "lfs": null
+      },
+      {
+        "name": "config.json",
+        "blob": "0dbb161213629a23f0fc00ef286e6b1e366d180f",
+        "lfs": null
+      },
+      {
+        "name": "generation_config.json",
+        "blob": "dfc11073787daf1b0f9c0f1499487ab5f4c93738",
+        "lfs": null
+      },
+      {
+        "name": "merges.txt",
+        "blob": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+        "lfs": null
+      },
+      {
+        "name": "model.safetensors",
+        "blob": "d7db405a3f0d9bf1ba5bdd4e4211db8022ebe4eb",
+        "lfs": {
+          "sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+          "size": 988097824,
+          "pointerSize": 134
+        }
+      },
+      {
+        "name": "tokenizer.json",
+        "blob": "443909a61d429dff23010e5bddd28ff530edda00",
+        "lfs": null
+      },
+      {
+        "name": "tokenizer_config.json",
+        "blob": "07bfe0640cb5a0037f9322287fbfc682806cf672",
+        "lfs": null
+      },
+      {
+        "name": "vocab.json",
+        "blob": "4783fe10ac3adce15ac8f358ef5462739852c569",
+        "lfs": null
+      }
+    ]
+  },
+  {
+    "kind": "dataset",
+    "repo": "databricks/databricks-dolly-15k",
+    "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+    "license": "cc-by-sa-3.0",
+    "files": [
+      {
+        "name": "README.md",
+        "blob": "b72cf5c2c4e6f551e75c365cc8fd690601db4990",
+        "lfs": null
+      },
+      {
+        "name": "databricks-dolly-15k.jsonl",
+        "blob": "0b3363ee4c467c5c0662d041b2cd0c21503fe2d0",
+        "lfs": {
+          "sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+          "size": 13085339,
+          "pointerSize": 133
+        }
+      }
+    ]
+  },
+  {
+    "kind": "embedding",
+    "repo": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "license": "apache-2.0",
+    "files": [
+      {
+        "name": "1_Pooling/config.json",
+        "blob": "d1514c3162bbe87b343f565fadc62e6c06f04f03",
+        "lfs": null
+      },
+      {
+        "name": "README.md",
+        "blob": "44af2e3b0fa3a0b6239e48422972bf755f28fde0",
+        "lfs": null
+      },
+      {
+        "name": "config.json",
+        "blob": "72b987fd805cfa2b58c4c8c952b274a11bfd5a00",
+        "lfs": null
+      },
+      {
+        "name": "config_sentence_transformers.json",
+        "blob": "fd1b291129c607e5d49799f87cb219b27f98acdf",
+        "lfs": null
+      },
+      {
+        "name": "data_config.json",
+        "blob": "2e85f0eac205cf444bdf97ede4935603ca6a0416",
+        "lfs": null
+      },
+      {
+        "name": "model.safetensors",
+        "blob": "d49eff1e4a6f0e3ba5069f21c6d20aad156dd2c9",
+        "lfs": {
+          "sha256": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db",
+          "size": 90868376,
+          "pointerSize": 133
+        }
+      },
+      {
+        "name": "modules.json",
+        "blob": "952a9b81c0bfd99800fabf352f69c7ccd46c5e43",
+        "lfs": null
+      },
+      {
+        "name": "sentence_bert_config.json",
+        "blob": "59d594003bf59880a884c574bf88ef7555bb0202",
+        "lfs": null
+      },
+      {
+        "name": "special_tokens_map.json",
+        "blob": "e7b0375001f109a6b8873d756ad4f7bbb15fbaa5",
+        "lfs": null
+      },
+      {
+        "name": "tokenizer.json",
+        "blob": "cb202bfe2e3c98645018a6d12f182a434c9d3e02",
+        "lfs": null
+      },
+      {
+        "name": "tokenizer_config.json",
+        "blob": "c79f2b6a0cea6f4b564fed1938984bace9d30ff0",
+        "lfs": null
+      },
+      {
+        "name": "vocab.txt",
+        "blob": "fb140275c155a9c7c5a3b3e0e77a9e839594a938",
+        "lfs": null
+      }
+    ]
+  }
+]

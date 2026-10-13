@@ -1,0 +1,32 @@
+{{- range .Values.modelDeployments }}
+{{- if not (has .tenant $.Values.tenants) }}{{ fail "ModelDeployment tenant must be explicitly provisioned" }}{{- end }}
+{{- if and (eq .engine "custom") (not .custom) }}{{ fail "Custom action serving requires an explicit pinned-image protocol" }}{{- end }}
+---
+apiVersion: llmops.kubellmops.io/v1alpha1
+kind: ModelDeployment
+metadata:
+  name: {{ .name | quote }}
+  namespace: {{ printf "modelops-%s" .tenant | quote }}
+  annotations:
+    modelops.io/tenant: {{ .tenant | quote }}
+    modelops.io/artifact-id: {{ .model.id | quote }}
+    modelops.io/artifact-revision: {{ .model.revision | quote }}
+    modelops.io/artifact-sha256: {{ .model.digest | quote }}
+spec:
+  source: {{ .source | quote }}
+  engine: {{ .engine | quote }}
+  model:
+    {{- toYaml .model | nindent 4 }}
+  quantization: {{ default "none" .quantization | quote }}
+  cache:
+    prefixCaching: {{ default false .cache }}
+  replicas: {{ default 1 .replicas }}
+  resources:
+    gpu: {{ .gpu | int }}
+    cpu: {{ default "2" .cpu | quote }}
+    memory: {{ default "8Gi" .memory | quote }}
+  {{- with .custom }}
+  custom:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

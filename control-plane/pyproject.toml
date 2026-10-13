@@ -4,10 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modelops-control-plane"
-version = "0.1.0"
+version = "1.0.0rc1"
 description = "Audited, tenant-scoped ModelOps control API backed by Kubernetes CRDs"
 requires-python = ">=3.11"
 dependencies = [
+  "prometheus-client>=0.21,<1",
+  "httpx>=0.27,<1",
+  "psutil>=5.9,<8",
   "fastapi>=0.115,<1",
   "uvicorn>=0.30,<1",
   "SQLAlchemy>=2.0,<3",
@@ -18,8 +21,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+robotics = ["mlflow>=2.9,<4"]
 postgres = ["psycopg[binary]>=3.1,<4"]
-dev = ["httpx>=0.27,<1", "pytest>=8,<10", "ruff>=0.8,<1"]
+dev = ["pytest>=8,<10", "ruff>=0.8,<1"]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,0 +1,27 @@
+# Static template fixtures only. These are dummy identities and a nonexistent test image.
+modelDeployments:
+  - name: qwen-contract
+    tenant: ci
+    source: Qwen/Qwen2.5-0.5B-Instruct
+    engine: vllm
+    gpu: 1
+    cache: true
+    model: {id: fixture-qwen, modelType: llm, revision: abcdef012345, digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+  - name: embedding-contract
+    tenant: ci
+    source: sentence-transformers/all-MiniLM-L6-v2
+    engine: tei
+    gpu: 0
+    model: {id: fixture-embedding, modelType: embedding, revision: abcdef012345, digest: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+  - name: smolvla-contract
+    tenant: ci
+    source: lerobot/smolvla_libero
+    engine: custom
+    gpu: 1
+    model: {id: fixture-vla, modelType: vla, revision: abcdef012345, digest: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+    custom:
+      image: example.invalid/policy@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+      command: [python, -m, pipelines.robotics.serve]
+      args: [--registry, /private/registry, --port, "8000"]
+      port: 8000
+      healthPath: /health

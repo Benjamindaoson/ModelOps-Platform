@@ -29,9 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -83,17 +83,25 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// 2. Handle deletion
 	if !md.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(md, modelDeploymentFinalizer) && md.Spec.Engine == "custom" {
+			controllerutil.RemoveFinalizer(md, modelDeploymentFinalizer)
+			return ctrl.Result{}, r.Update(ctx, md)
+		}
 		if controllerutil.ContainsFinalizer(md, modelDeploymentFinalizer) {
 			if r.GatewayClient == nil {
 				return ctrl.Result{}, fmt.Errorf("cannot clear LiteLLM group during deletion: Gateway missing")
 			}
-			router,ok:=r.GatewayClient.(gateway.RouteManager)
-			if !ok {return ctrl.Result{}, fmt.Errorf("gateway does not support safe managed route deletion")}
-			if err:=router.DeleteModelGroup(ctx,gatewayPublicGroup(md));err!=nil {
-				return ctrl.Result{},fmt.Errorf("delete owned LiteLLM deployments before finalizer: %w",err)
+			router, ok := r.GatewayClient.(gateway.RouteManager)
+			if !ok {
+				return ctrl.Result{}, fmt.Errorf("gateway does not support safe managed route deletion")
+			}
+			if err := router.DeleteModelGroup(ctx, gatewayPublicGroup(md)); err != nil {
+				return ctrl.Result{}, fmt.Errorf("delete owned LiteLLM deployments before finalizer: %w", err)
 			}
 			controllerutil.RemoveFinalizer(md, modelDeploymentFinalizer)
-			if err := r.Update(ctx, md); err != nil { return ctrl.Result{}, err }
+			if err := r.Update(ctx, md); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 		return ctrl.Result{}, nil
 	}
@@ -115,14 +123,16 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			Reason: "InvalidGeneratedResourceName", Message: err.Error(),
 			LastTransitionTime: metav1.Now(), ObservedGeneration: md.Generation,
 		})
-		if err := r.Status().Update(ctx, md); err != nil { return ctrl.Result{}, err }
+		if err := r.Status().Update(ctx, md); err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 
 	// 5. Resolve engine
 	resolvedEngine := engine.ResolveEngine(md.Spec.Source, md.Spec.Engine)
 
-	if !builder.SupportsServingEngine(resolvedEngine) {
+	if builder.ValidateServingSpec(md, resolvedEngine) != nil {
 		md.Status.Phase = "Failed"
 		md.Status.Engine = resolvedEngine
 		setCondition(&md.Status.Conditions, metav1.Condition{
@@ -133,7 +143,9 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			LastTransitionTime: metav1.Now(),
 			ObservedGeneration: md.Generation,
 		})
-		if err := r.Status().Update(ctx, md); err != nil { return ctrl.Result{}, err }
+		if err := r.Status().Update(ctx, md); err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -143,15 +155,21 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := r.List(ctx, platformList, client.InNamespace(md.Namespace)); err != nil {
 		return ctrl.Result{}, err
 	}
-	if len(platformList.Items) > 0 { platform = &platformList.Items[0] }
+	if len(platformList.Items) > 0 {
+		platform = &platformList.Items[0]
+	}
 
 	// 6. Ensure PVC
 	pvc := builder.BuildPVC(md, resolvedEngine)
 	existingPVC := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, existingPVC); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, pvc, r.Scheme); err != nil { return ctrl.Result{}, err }
-			if err := r.Create(ctx, pvc); err != nil { return ctrl.Result{}, err }
+			if err := controllerutil.SetControllerReference(md, pvc, r.Scheme); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, pvc); err != nil {
+				return ctrl.Result{}, err
+			}
 			log.Info("created PVC", "name", pvc.Name)
 		} else {
 			return ctrl.Result{}, err
@@ -163,8 +181,12 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	existingDep := &appsv1.Deployment{}
 	if err := r.Get(ctx, types.NamespacedName{Name: desiredDep.Name, Namespace: desiredDep.Namespace}, existingDep); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, desiredDep, r.Scheme); err != nil { return ctrl.Result{}, err }
-			if err := r.Create(ctx, desiredDep); err != nil { return ctrl.Result{}, err }
+			if err := controllerutil.SetControllerReference(md, desiredDep, r.Scheme); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, desiredDep); err != nil {
+				return ctrl.Result{}, err
+			}
 			log.Info("created Deployment", "name", desiredDep.Name)
 		} else {
 			return ctrl.Result{}, err
@@ -173,7 +195,9 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if !reflect.DeepEqual(existingDep.Spec, desiredDep.Spec) || !reflect.DeepEqual(existingDep.Labels, desiredDep.Labels) {
 			existingDep.Spec = desiredDep.Spec
 			existingDep.Labels = desiredDep.Labels
-			if err := r.Update(ctx, existingDep); err != nil { return ctrl.Result{}, err }
+			if err := r.Update(ctx, existingDep); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -182,8 +206,12 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	existingSvc := &corev1.Service{}
 	if err := r.Get(ctx, types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, existingSvc); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, svc, r.Scheme); err != nil { return ctrl.Result{}, err }
-			if err := r.Create(ctx, svc); err != nil { return ctrl.Result{}, err }
+			if err := controllerutil.SetControllerReference(md, svc, r.Scheme); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, svc); err != nil {
+				return ctrl.Result{}, err
+			}
 			log.Info("created Service", "name", svc.Name)
 		} else {
 			return ctrl.Result{}, err
@@ -218,17 +246,24 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// 13. Register with gateway
+	if resolvedEngine == "custom" {
+		return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
+	}
 	if md.Status.Phase == "Ready" {
-		if r.GatewayClient == nil { return r.setGatewayDegraded(ctx, req, "GatewayNotConfigured") }
+		if r.GatewayClient == nil {
+			return r.setGatewayDegraded(ctx, req, "GatewayNotConfigured")
+		}
 		// Reconcile the actual LiteLLM deployment IDs every interval. A
 		// Kubernetes generation check alone would miss a canary that becomes
 		// Ready after its CRD generation has already been registered.
-		if err:=r.registerWithGateway(ctx,md,resolvedEngine);err!=nil {
-			log.Error(err,"managed public model route failed to converge")
-			return r.setGatewayDegraded(ctx,req,"GatewayRegistrationFailed")
+		if err := r.registerWithGateway(ctx, md, resolvedEngine); err != nil {
+			log.Error(err, "managed public model route failed to converge")
+			return r.setGatewayDegraded(ctx, req, "GatewayRegistrationFailed")
 		}
 		if !gatewayConditionUpToDate(md) {
-			if err:=r.setGatewayReady(ctx,req);err!=nil{return ctrl.Result{},err}
+			if err := r.setGatewayReady(ctx, req); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
@@ -238,7 +273,7 @@ func (r *ModelDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1alpha1.ModelDeployment, eng string, platform *v1alpha1.LLMPlatform) error {
 	log := logf.FromContext(ctx)
 	canary := md.Spec.Canary
-	if canary == nil || len(canary.Revision)<7 || len(canary.Digest)!=64 {
+	if canary == nil || len(canary.Revision) < 7 || len(canary.Digest) != 64 {
 		return fmt.Errorf("candidate requires pinned revision and 64-character artifact digest")
 	}
 	canarySlug := builder.CanarySlug(canary.Source)
@@ -249,8 +284,12 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 		existing := &corev1.PersistentVolumeClaim{}
 		if err := r.Get(ctx, types.NamespacedName{Name: canaryPVC.Name, Namespace: canaryPVC.Namespace}, existing); err != nil {
 			if apierrors.IsNotFound(err) {
-				if err := controllerutil.SetControllerReference(md, canaryPVC, r.Scheme); err != nil { return err }
-				if err := r.Create(ctx, canaryPVC); err != nil { return err }
+				if err := controllerutil.SetControllerReference(md, canaryPVC, r.Scheme); err != nil {
+					return err
+				}
+				if err := r.Create(ctx, canaryPVC); err != nil {
+					return err
+				}
 				log.Info("created canary PVC", "name", canaryPVC.Name)
 			}
 		}
@@ -262,7 +301,7 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 			Name: md.Name + "-canary", Namespace: md.Namespace,
 			Annotations: map[string]string{
 				"modelops.io/artifact-revision": canary.Revision,
-				"modelops.io/artifact-sha256": canary.Digest,
+				"modelops.io/artifact-sha256":   canary.Digest,
 			},
 		},
 		Spec: v1alpha1.ModelDeploymentSpec{
@@ -275,15 +314,21 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 	existingDep := &appsv1.Deployment{}
 	if err := r.Get(ctx, types.NamespacedName{Name: canaryDep.Name, Namespace: canaryDep.Namespace}, existingDep); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, canaryDep, r.Scheme); err != nil { return err }
-			if err := r.Create(ctx, canaryDep); err != nil { return err }
+			if err := controllerutil.SetControllerReference(md, canaryDep, r.Scheme); err != nil {
+				return err
+			}
+			if err := r.Create(ctx, canaryDep); err != nil {
+				return err
+			}
 			log.Info("created canary Deployment", "name", canaryDep.Name)
 		}
 	} else {
 		canaryDep.Spec.Replicas = existingDep.Spec.Replicas
 		if !reflect.DeepEqual(existingDep.Spec, canaryDep.Spec) {
 			existingDep.Spec = canaryDep.Spec
-			if err := r.Update(ctx, existingDep); err != nil { return err }
+			if err := r.Update(ctx, existingDep); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -292,19 +337,27 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 	existingSvc := &corev1.Service{}
 	if err := r.Get(ctx, types.NamespacedName{Name: canarySvc.Name, Namespace: canarySvc.Namespace}, existingSvc); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := controllerutil.SetControllerReference(md, canarySvc, r.Scheme); err != nil { return err }
-			if err := r.Create(ctx, canarySvc); err != nil { return err }
+			if err := controllerutil.SetControllerReference(md, canarySvc, r.Scheme); err != nil {
+				return err
+			}
+			if err := r.Create(ctx, canarySvc); err != nil {
+				return err
+			}
 			log.Info("created canary Service", "name", canarySvc.Name)
 		}
 	}
 
 	// Canary PDB
-	if err := r.ensurePDB(ctx, md, md.Name+"-canary"); err != nil { return err }
+	if err := r.ensurePDB(ctx, md, md.Name+"-canary"); err != nil {
+		return err
+	}
 
 	// Update canary status
 	canaryDep = &appsv1.Deployment{}
-	if err := r.Get(ctx, types.NamespacedName{Name: md.Name + "-canary", Namespace: md.Namespace}, canaryDep); err != nil { return err }
-	port := builder.EnginePort(eng)
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name + "-canary", Namespace: md.Namespace}, canaryDep); err != nil {
+		return err
+	}
+	port := builder.DeploymentPort(md, eng)
 	md.Status.Canary = &v1alpha1.CanaryStatus{
 		Phase:         getCanaryPhase(canaryDep),
 		Endpoint:      fmt.Sprintf("http://%s-canary.%s.svc.cluster.local:%d", md.Name, md.Namespace, port),
@@ -317,26 +370,30 @@ func (r *ModelDeploymentReconciler) reconcileCanary(ctx context.Context, md *v1a
 // not just remove a LiteLLM route. Only objects owned by this ModelDeployment
 // are eligible for deletion, preserving other tenants' resources.
 func (r *ModelDeploymentReconciler) cleanupCanary(ctx context.Context, md *v1alpha1.ModelDeployment) error {
-	name:=md.Name+"-canary"
-	objects:=[]struct {
-		obj client.Object
+	name := md.Name + "-canary"
+	objects := []struct {
+		obj  client.Object
 		name string
 	}{
-		{obj:&appsv1.Deployment{},name:name},
-		{obj:&corev1.Service{},name:name},
-		{obj:&policyv1.PodDisruptionBudget{},name:name},
-		{obj:&corev1.PersistentVolumeClaim{},name:name+"-cache"},
+		{obj: &appsv1.Deployment{}, name: name},
+		{obj: &corev1.Service{}, name: name},
+		{obj: &policyv1.PodDisruptionBudget{}, name: name},
+		{obj: &corev1.PersistentVolumeClaim{}, name: name + "-cache"},
 	}
-	for _,item:=range objects {
-		key:=types.NamespacedName{Name:item.name,Namespace:md.Namespace}
-		if err:=r.Get(ctx,key,item.obj);err!=nil {
-			if apierrors.IsNotFound(err){continue}
+	for _, item := range objects {
+		key := types.NamespacedName{Name: item.name, Namespace: md.Namespace}
+		if err := r.Get(ctx, key, item.obj); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
 			return err
 		}
-		if !metav1.IsControlledBy(item.obj,md) {
-			return fmt.Errorf("refusing to delete unmanaged Canary resource %s/%s",md.Namespace,item.name)
+		if !metav1.IsControlledBy(item.obj, md) {
+			return fmt.Errorf("refusing to delete unmanaged Canary resource %s/%s", md.Namespace, item.name)
 		}
-		if err:=client.IgnoreNotFound(r.Delete(ctx,item.obj));err!=nil{return err}
+		if err := client.IgnoreNotFound(r.Delete(ctx, item.obj)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -347,10 +404,14 @@ func (r *ModelDeploymentReconciler) reconcileAutoScaling(ctx context.Context, md
 		return r.cleanupAutoScaling(ctx, md)
 	}
 	if md.Spec.AutoScaling.UseKEDA {
-		if err:=r.deleteHPA(ctx,md);err!=nil {return err}
+		if err := r.deleteHPA(ctx, md); err != nil {
+			return err
+		}
 		return r.reconcileKEDA(ctx, md)
 	}
-	if err:=r.deleteScaledObject(ctx,md);err!=nil {return err}
+	if err := r.deleteScaledObject(ctx, md); err != nil {
+		return err
+	}
 	return r.reconcileHPA(ctx, md)
 }
 
@@ -376,7 +437,7 @@ func (r *ModelDeploymentReconciler) reconcileHPA(ctx context.Context, md *v1alph
 				APIVersion: "apps/v1", Kind: "Deployment", Name: md.Name,
 			},
 			MinReplicas: &minR, MaxReplicas: maxR,
-			Metrics:     []autoscalingv2.MetricSpec{},
+			Metrics: []autoscalingv2.MetricSpec{},
 		},
 	}
 	if as.ScaleTargetCPUUtilizationPercentage != nil {
@@ -404,25 +465,29 @@ func (r *ModelDeploymentReconciler) reconcileHPA(ctx context.Context, md *v1alph
 		})
 	}
 
-	if len(hpa.Spec.Metrics)==0 {
-		cpuDefault:=int32(70)
-		hpa.Spec.Metrics=[]autoscalingv2.MetricSpec{{
+	if len(hpa.Spec.Metrics) == 0 {
+		cpuDefault := int32(70)
+		hpa.Spec.Metrics = []autoscalingv2.MetricSpec{{
 			Type: autoscalingv2.ResourceMetricSourceType,
 			Resource: &autoscalingv2.ResourceMetricSource{
-				Name: corev1.ResourceCPU,
-				Target: autoscalingv2.MetricTarget{Type:autoscalingv2.UtilizationMetricType,AverageUtilization:&cpuDefault},
+				Name:   corev1.ResourceCPU,
+				Target: autoscalingv2.MetricTarget{Type: autoscalingv2.UtilizationMetricType, AverageUtilization: &cpuDefault},
 			},
 		}}
 	}
 	existing := &autoscalingv2.HorizontalPodAutoscaler{}
 	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err:=controllerutil.SetControllerReference(md,hpa,r.Scheme);err!=nil {return err}
+			if err := controllerutil.SetControllerReference(md, hpa, r.Scheme); err != nil {
+				return err
+			}
 			return r.Create(ctx, hpa)
 		}
 		return err
 	}
-	if reflect.DeepEqual(existing.Spec,hpa.Spec) {return nil}
+	if reflect.DeepEqual(existing.Spec, hpa.Spec) {
+		return nil
+	}
 	existing.Spec = hpa.Spec
 	return r.Update(ctx, existing)
 }
@@ -458,7 +523,7 @@ func (r *ModelDeploymentReconciler) reconcileKEDA(ctx context.Context, md *v1alp
 				},
 			},
 			"spec": map[string]interface{}{
-				"scaleTargetRef": map[string]interface{}{"name": md.Name},
+				"scaleTargetRef":  map[string]interface{}{"name": md.Name},
 				"minReplicaCount": minR,
 				"maxReplicaCount": maxR,
 				"triggers": []map[string]interface{}{
@@ -467,9 +532,9 @@ func (r *ModelDeploymentReconciler) reconcileKEDA(ctx context.Context, md *v1alp
 						"name": "queue-depth",
 						"metadata": map[string]interface{}{
 							"serverAddress": "http://prometheus:9090",
-							"metricName":  metricName,
-							"threshold":    strconv.FormatInt(threshold, 10),
-							"query":       fmt.Sprintf("sum(%s{job=\"vllm\",model=\"%s\"}) or vector(0)", metricName, md.Name),
+							"metricName":    metricName,
+							"threshold":     strconv.FormatInt(threshold, 10),
+							"query":         fmt.Sprintf("sum(%s{job=\"vllm\",model=\"%s\"}) or vector(0)", metricName, md.Name),
 						},
 					},
 				},
@@ -481,39 +546,49 @@ func (r *ModelDeploymentReconciler) reconcileKEDA(ctx context.Context, md *v1alp
 	existing.SetGroupVersionKind(schema.GroupVersionKind{Group: "keda.sh", Version: "v1alpha1", Kind: "ScaledObject"})
 	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err:=controllerutil.SetControllerReference(md,so,r.Scheme);err!=nil {return err}
+			if err := controllerutil.SetControllerReference(md, so, r.Scheme); err != nil {
+				return err
+			}
 			return r.Create(ctx, so)
 		}
 		return err
 	}
-	if reflect.DeepEqual(existing.Object["spec"],so.Object["spec"]) {return nil}
+	if reflect.DeepEqual(existing.Object["spec"], so.Object["spec"]) {
+		return nil
+	}
 	so.SetResourceVersion(existing.GetResourceVersion())
 	return r.Update(ctx, so)
 }
 
 func (r *ModelDeploymentReconciler) deleteHPA(ctx context.Context, md *v1alpha1.ModelDeployment) error {
-	hpa:=&autoscalingv2.HorizontalPodAutoscaler{}
-	if err:=r.Get(ctx,types.NamespacedName{Name:md.Name,Namespace:md.Namespace},hpa);err!=nil {
-		if apierrors.IsNotFound(err) {return nil}
+	hpa := &autoscalingv2.HorizontalPodAutoscaler{}
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, hpa); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
-	return client.IgnoreNotFound(r.Delete(ctx,hpa))
+	return client.IgnoreNotFound(r.Delete(ctx, hpa))
 }
 
 func (r *ModelDeploymentReconciler) deleteScaledObject(ctx context.Context, md *v1alpha1.ModelDeployment) error {
-	so:=&unstructured.Unstructured{}
-	so.SetGroupVersionKind(schema.GroupVersionKind{Group:"keda.sh",Version:"v1alpha1",Kind:"ScaledObject"})
-	if err:=r.Get(ctx,types.NamespacedName{Name:md.Name,Namespace:md.Namespace},so);err!=nil {
+	so := &unstructured.Unstructured{}
+	so.SetGroupVersionKind(schema.GroupVersionKind{Group: "keda.sh", Version: "v1alpha1", Kind: "ScaledObject"})
+	if err := r.Get(ctx, types.NamespacedName{Name: md.Name, Namespace: md.Namespace}, so); err != nil {
 		// KEDA is optional: its CRD may legitimately be absent in CPU clusters.
-		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {return nil}
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			return nil
+		}
 		return err
 	}
-	return client.IgnoreNotFound(r.Delete(ctx,so))
+	return client.IgnoreNotFound(r.Delete(ctx, so))
 }
 
 func (r *ModelDeploymentReconciler) cleanupAutoScaling(ctx context.Context, md *v1alpha1.ModelDeployment) error {
-	if err:=r.deleteHPA(ctx,md);err!=nil {return err}
-	return r.deleteScaledObject(ctx,md)
+	if err := r.deleteHPA(ctx, md); err != nil {
+		return err
+	}
+	return r.deleteScaledObject(ctx, md)
 }
 
 func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.ModelDeployment, name string) error {
@@ -533,7 +608,9 @@ func (r *ModelDeploymentReconciler) ensurePDB(ctx context.Context, md *v1alpha1.
 	existing := &policyv1.PodDisruptionBudget{}
 	if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: md.Namespace}, existing); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err:=controllerutil.SetControllerReference(md,pdb,r.Scheme);err!=nil {return err}
+			if err := controllerutil.SetControllerReference(md, pdb, r.Scheme); err != nil {
+				return err
+			}
 			return r.Create(ctx, pdb)
 		}
 		return err
@@ -548,7 +625,9 @@ func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.R
 	}
 
 	initStatus, err := r.getInitContainerStatus(ctx, md)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	port := builder.EnginePort(eng)
 	md.Status.Engine = eng
 	md.Status.ReadyReplicas = dep.Status.ReadyReplicas
@@ -595,11 +674,21 @@ func (r *ModelDeploymentReconciler) updateStatus(ctx context.Context, req ctrl.R
 		readyCond.Message = fmt.Sprintf("%d/%d replicas ready", dep.Status.ReadyReplicas, desired)
 	}
 	setCondition(&md.Status.Conditions, readyCond)
+	if eng == "custom" {
+		policy := readyCond
+		policy.Type = "PolicyReady"
+		policy.Message = "Owned custom policy Pod readiness; no Chat gateway"
+		setCondition(&md.Status.Conditions, policy)
+	}
 
 	status := md.Status
 	latest := &v1alpha1.ModelDeployment{}
-	if err := r.Get(ctx, req.NamespacedName, latest); err != nil { return err }
-	if reflect.DeepEqual(latest.Status, status) { return nil }
+	if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
+		return err
+	}
+	if reflect.DeepEqual(latest.Status, status) {
+		return nil
+	}
 	latest.Status = status
 	return r.Status().Update(ctx, latest)
 }
@@ -612,7 +701,9 @@ func (r *ModelDeploymentReconciler) getInitContainerStatus(ctx context.Context, 
 	}
 	for _, pod := range pods.Items {
 		for _, cs := range pod.Status.InitContainerStatuses {
-			if cs.Name != "model-loader" { continue }
+			if cs.Name != "model-loader" {
+				continue
+			}
 			status := &v1alpha1.InitContainerStatus{}
 			switch {
 			case cs.State.Running != nil:
@@ -638,56 +729,80 @@ func (r *ModelDeploymentReconciler) getInitContainerStatus(ctx context.Context, 
 // A namespace-qualified public group prevents two tenants from accidentally
 // using a shared gateway routing alias even if their CRD names match.
 func gatewayPublicGroup(md *v1alpha1.ModelDeployment) string {
-	return md.Namespace+"--"+md.Name
+	return md.Namespace + "--" + md.Name
 }
 
 // desiredGatewayRoutes uses *one* public name for all upstream versions; an
 // independent "-canary" public name never produces traffic splitting.
-func desiredGatewayRoutes(md *v1alpha1.ModelDeployment) ([]gateway.GatewayModel,error) {
-	public:=gatewayPublicGroup(md)
-	prefix:="openai/"
-	isEmbedding:=engine.ResolveModelType(md.Spec.Source)=="embedding" || engine.ResolveModelType(md.Spec.Source)=="reranker"
-	if isEmbedding {prefix="huggingface/"}
-	base:=md.Status.Endpoint
-	if !isEmbedding {base=strings.TrimSuffix(base,"/")+"/v1"} else {base=strings.TrimSuffix(base,"/v1")}
-	if base=="" {return nil,fmt.Errorf("stable endpoint not available")}
-	weight:=100
-	canaryWeight:=0
-	ready:=md.Spec.Canary!=nil && md.Status.Canary!=nil && md.Status.Canary.Phase=="Ready"
+func desiredGatewayRoutes(md *v1alpha1.ModelDeployment) ([]gateway.GatewayModel, error) {
+	public := gatewayPublicGroup(md)
+	prefix := "openai/"
+	isEmbedding := engine.ResolveModelType(md.Spec.Source) == "embedding" || engine.ResolveModelType(md.Spec.Source) == "reranker"
+	if isEmbedding {
+		prefix = "huggingface/"
+	}
+	base := md.Status.Endpoint
+	if !isEmbedding {
+		base = strings.TrimSuffix(base, "/") + "/v1"
+	} else {
+		base = strings.TrimSuffix(base, "/v1")
+	}
+	if base == "" {
+		return nil, fmt.Errorf("stable endpoint not available")
+	}
+	weight := 100
+	canaryWeight := 0
+	ready := md.Spec.Canary != nil && md.Status.Canary != nil && md.Status.Canary.Phase == "Ready"
 	if ready {
-		canaryWeight=int(md.Spec.Canary.Weight)
-		if canaryWeight<0 || canaryWeight>100 {return nil,fmt.Errorf("canary weight out of range")}
-		weight=100-canaryWeight
+		canaryWeight = int(md.Spec.Canary.Weight)
+		if canaryWeight < 0 || canaryWeight > 100 {
+			return nil, fmt.Errorf("canary weight out of range")
+		}
+		weight = 100 - canaryWeight
 	}
-	routes:=make([]gateway.GatewayModel,0,2)
-	if weight>0 {
-		routes=append(routes,gateway.BuildOwnedRoute(public,md.Namespace,md.Name,
-			"stable",prefix+md.Name,base,weight))
+	routes := make([]gateway.GatewayModel, 0, 2)
+	if weight > 0 {
+		routes = append(routes, gateway.BuildOwnedRoute(public, md.Namespace, md.Name,
+			"stable", prefix+md.Name, base, weight))
 	}
-	if canaryWeight>0 {
-		canaryBase:=md.Status.Canary.Endpoint
-		if !isEmbedding {canaryBase=strings.TrimSuffix(canaryBase,"/")+"/v1"}
-		if canaryBase=="" {return nil,fmt.Errorf("ready canary endpoint missing")}
-		routes=append(routes,gateway.BuildOwnedRoute(public,md.Namespace,md.Name,
-			"canary",prefix+md.Name+"-canary",canaryBase,canaryWeight))
+	if canaryWeight > 0 {
+		canaryBase := md.Status.Canary.Endpoint
+		if !isEmbedding {
+			canaryBase = strings.TrimSuffix(canaryBase, "/") + "/v1"
+		}
+		if canaryBase == "" {
+			return nil, fmt.Errorf("ready canary endpoint missing")
+		}
+		routes = append(routes, gateway.BuildOwnedRoute(public, md.Namespace, md.Name,
+			"canary", prefix+md.Name+"-canary", canaryBase, canaryWeight))
 	}
-	return routes,nil
+	return routes, nil
 }
 
 func (r *ModelDeploymentReconciler) registerWithGateway(ctx context.Context, md *v1alpha1.ModelDeployment, eng string) error {
-	if r.GatewayClient==nil {return fmt.Errorf("gateway is not configured")}
-	router,ok:=r.GatewayClient.(gateway.RouteManager)
-	if !ok{return fmt.Errorf("gateway lacks managed weighted-route reconciliation")}
-	if err:=r.GatewayClient.HealthCheck(ctx);err!=nil{return err}
-	modelRoutes,err:=desiredGatewayRoutes(md)
-	if err!=nil{return err}
-	return router.ReconcileModelGroup(ctx,gatewayPublicGroup(md),modelRoutes)
+	if r.GatewayClient == nil {
+		return fmt.Errorf("gateway is not configured")
+	}
+	router, ok := r.GatewayClient.(gateway.RouteManager)
+	if !ok {
+		return fmt.Errorf("gateway lacks managed weighted-route reconciliation")
+	}
+	if err := r.GatewayClient.HealthCheck(ctx); err != nil {
+		return err
+	}
+	modelRoutes, err := desiredGatewayRoutes(md)
+	if err != nil {
+		return err
+	}
+	return router.ReconcileModelGroup(ctx, gatewayPublicGroup(md), modelRoutes)
 }
 
 // Never report a model Ready if the route through LiteLLM failed.
 func (r *ModelDeploymentReconciler) setGatewayDegraded(ctx context.Context, req ctrl.Request, reason string) (ctrl.Result, error) {
 	latest := &v1alpha1.ModelDeployment{}
-	if err := r.Get(ctx, req.NamespacedName, latest); err != nil { return ctrl.Result{}, err }
+	if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
+		return ctrl.Result{}, err
+	}
 	latest.Status.Phase = "Degraded"
 	setCondition(&latest.Status.Conditions, metav1.Condition{
 		Type: "GatewayReady", Status: metav1.ConditionFalse,
@@ -699,23 +814,29 @@ func (r *ModelDeploymentReconciler) setGatewayDegraded(ctx context.Context, req 
 		Reason: reason, Message: "Gateway registration is required before model readiness",
 		LastTransitionTime: metav1.Now(), ObservedGeneration: latest.Generation,
 	})
-	if err := r.Status().Update(ctx, latest); err != nil { return ctrl.Result{}, err }
+	if err := r.Status().Update(ctx, latest); err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 }
 
 // gatewayConditionUpToDate requires that the current CR generation has already
 // been registered with the gateway; older successes cannot certify new weights.
 func gatewayConditionUpToDate(md *v1alpha1.ModelDeployment) bool {
-	for _,cond:=range md.Status.Conditions {
-		if cond.Type=="GatewayReady" && cond.Status==metav1.ConditionTrue &&
-			cond.ObservedGeneration>=md.Generation { return true }
+	for _, cond := range md.Status.Conditions {
+		if cond.Type == "GatewayReady" && cond.Status == metav1.ConditionTrue &&
+			cond.ObservedGeneration >= md.Generation {
+			return true
+		}
 	}
 	return false
 }
 
 func (r *ModelDeploymentReconciler) setGatewayReady(ctx context.Context, req ctrl.Request) error {
 	latest := &v1alpha1.ModelDeployment{}
-	if err := r.Get(ctx, req.NamespacedName, latest); err != nil { return err }
+	if err := r.Get(ctx, req.NamespacedName, latest); err != nil {
+		return err
+	}
 	setCondition(&latest.Status.Conditions, metav1.Condition{
 		Type: "GatewayReady", Status: metav1.ConditionTrue,
 		Reason: "Registered", Message: "Gateway accepted model registration",

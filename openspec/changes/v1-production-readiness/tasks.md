@@ -1,0 +1,14 @@
+## Implementation
+- [x] Preserve upstream main and M06/SmolVLA ancestry in an isolated worktree.
+- [x] Extend ModelArtifact and versioned database migrations with compatibility tests.
+- [x] Add observed native job states, receipt integrity, pause/resume and retry/cancel contracts.
+- [x] Execute bounded real Qwen LoRA and QLoRA GPU jobs and retain negative evaluation results.
+- [x] Validate trained Qwen registry, evaluation gate, deployment, API and rollback.
+- [x] Validate LLM, embedding and frozen VLA native prediction APIs.
+- [x] Extend Operator/CRD/Helm with explicit custom policy protocol, quantization/cache and model references.
+- [x] Collect real streamed benchmark metrics and raw GPU samples.
+- [x] Add protected tenant metrics and verify real metadata backup/restore.
+- [x] Preserve legacy VLA assets, checkpoints and active registry bytes.
+- [x] Finish consolidated tests, source review and documentation.
+- [x] Publish reviewed integration preserving Git history. Main merge follows required CI checks.
+- [ ] Validate enterprise Kubernetes GPU deployment, real OIDC and full disaster recovery (requires external infrastructure).
