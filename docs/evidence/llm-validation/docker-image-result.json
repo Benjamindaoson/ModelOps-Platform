@@ -1,0 +1,11 @@
+{
+  "source_revision": "2107cc04ca900aeaafaee953f99ae3739865180f",
+  "image_digest": "sha256:9c478c2f0d6f772238cfd4ccf541fc25c31dfc150d072671a4e66094c03d95a9",
+  "gpu_container_execution": "not executed on CPU runner",
+  "base_image": "vllm/vllm-openai:v0.10.2@sha256:607442e407b0fea97f8a132a78b787c121a996dd4de181fa08e8da06e71ec2db",
+  "github_run_id": 38354101307,
+  "github_run_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38354101307",
+  "build_status": "PASS",
+  "registry": "ghcr.io/benjamindaoson/modelops-platform/llm-validation",
+  "published_tag": "2107cc04ca900aeaafaee953f99ae3739865180f"
+}

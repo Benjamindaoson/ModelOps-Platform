@@ -1,0 +1,278 @@
+{
+  "approval": {
+    "approver": "llm-release-controller",
+    "artifact_id": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+    "id": "15e2d150-8db2-4b9c-9201-8fea1eedeb0d",
+    "reason": "Frozen independent heldout gate passed for bounded native validation"
+  },
+  "base": {
+    "adapter_type": null,
+    "adapter_uri": null,
+    "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base/modelops-files.json",
+    "base_model": "Qwen/Qwen2.5-3B-Instruct",
+    "created_at": "2026-10-13T05:38:49.494844+00:00",
+    "created_by": "llm-training-controller",
+    "deployment_status": "registered",
+    "digest": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+    "digest_verified": false,
+    "evaluation_id": null,
+    "family": "llm",
+    "framework": "transformers",
+    "id": "76305cf6-029c-461d-af6f-0cbf70de376e",
+    "model_type": "llm",
+    "name": "qwen2-5-3b-base",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "source": "Qwen/Qwen2.5-3B-Instruct",
+    "task_type": "text-generation",
+    "training_run_id": null,
+    "version": 1
+  },
+  "base_api": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "annotations": null,
+          "audio": null,
+          "content": "Paris",
+          "function_call": null,
+          "reasoning_content": null,
+          "refusal": null,
+          "role": "assistant",
+          "tool_calls": []
+        },
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "created": 1791870740,
+    "id": "chatcmpl-0d72ee8604a84ac0b632822e6cc6ed77",
+    "kv_transfer_params": null,
+    "model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+    "object": "chat.completion",
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 42,
+      "prompt_tokens_details": null,
+      "total_tokens": 44
+    }
+  },
+  "candidate": {
+    "adapter_type": "qlora",
+    "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/adapter-latest",
+    "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/merged",
+    "base_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+    "created_at": "2026-10-13T05:51:45.917871+00:00",
+    "created_by": "llm-evaluation-controller",
+    "deployment_status": "registered",
+    "digest": "2654416af054e5c15e9ac26533ad405610da0e7f4497020280001e94575ee939",
+    "digest_verified": false,
+    "evaluation_id": null,
+    "family": "llm",
+    "framework": "transformers",
+    "id": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+    "model_type": "llm",
+    "name": "qwen2-5-3b-qlora",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "source": "Qwen/Qwen2.5-3B-Instruct",
+    "task_type": "short_answer",
+    "training_run_id": "7859def0-8be7-4931-a099-1193b790e709",
+    "version": 2
+  },
+  "candidate_api": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "annotations": null,
+          "audio": null,
+          "content": "Paris",
+          "function_call": null,
+          "reasoning_content": null,
+          "refusal": null,
+          "role": "assistant",
+          "tool_calls": []
+        },
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "created": 1791870787,
+    "id": "chatcmpl-17f8d9994a384d2aa185c167381327b8",
+    "kv_transfer_params": null,
+    "model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+    "object": "chat.completion",
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 42,
+      "prompt_tokens_details": null,
+      "total_tokens": 44
+    }
+  },
+  "deployment_id": "d8ace9df-f4f0-41e0-b33d-c35f2b062de1",
+  "evaluation": {
+    "id": "4538da49-363b-47cf-bd64-a6f5e8d68742",
+    "metrics": {
+      "base_exact_match": 0.5833333333333334,
+      "base_token_f1": 0.7631980628304157,
+      "candidate_exact_match": 0.5416666666666666,
+      "candidate_token_f1": 0.7493091739415269,
+      "delta_exact_match": -0.04166666666666674,
+      "delta_token_f1": -0.01388888888888884
+    },
+    "passed": true,
+    "report_sha256": "73f32840921cc3e5050e73b9eec413d49bd686d549f5272bca27cdfdd3cb33ad",
+    "verified": true
+  },
+  "events": [
+    {
+      "artifact_id": "76305cf6-029c-461d-af6f-0cbf70de376e",
+      "event": "base_ready",
+      "generation": 1,
+      "load_wall_s": 32.298172112961765
+    },
+    {
+      "artifact_id": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+      "event": "trained_candidate_ready",
+      "generation": 2,
+      "load_wall_s": 30.292937285033986
+    },
+    {
+      "artifact_id": "76305cf6-029c-461d-af6f-0cbf70de376e",
+      "event": "rollback_base_ready",
+      "generation": 3,
+      "load_wall_s": 32.30968072399264
+    }
+  ],
+  "finished": "2026-10-13T05:53:41.174824+00:00",
+  "heldout": {
+    "created_at": "2026-10-13T05:51:45.935562+00:00",
+    "created_by": "llm-evaluation-controller",
+    "digest": "7bcda49c2eff03606d021024400a7bf225594ca6e259ebf166bb4e102d2f0e3e",
+    "heldout_count": 24,
+    "id": "0fac285b-65af-407b-a770-a439397e5e84",
+    "name": "dolly-shortqa-3b-heldout",
+    "train_count": 0,
+    "uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/evaluation/heldout.jsonl",
+    "version": 1
+  },
+  "modelops_models_api": [
+    {
+      "adapter_type": "qlora",
+      "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/adapter-latest",
+      "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/merged",
+      "base_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+      "created_at": "2026-10-13T05:51:45.917871",
+      "created_by": "llm-evaluation-controller",
+      "deployment_status": "registered",
+      "digest": "2654416af054e5c15e9ac26533ad405610da0e7f4497020280001e94575ee939",
+      "digest_verified": false,
+      "evaluation_id": "4538da49-363b-47cf-bd64-a6f5e8d68742",
+      "family": "llm",
+      "framework": "transformers",
+      "id": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+      "model_type": "llm",
+      "name": "qwen2-5-3b-qlora",
+      "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "source": "Qwen/Qwen2.5-3B-Instruct",
+      "task_type": "short_answer",
+      "training_run_id": "7859def0-8be7-4931-a099-1193b790e709",
+      "version": 2
+    },
+    {
+      "adapter_type": "qlora",
+      "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/adapter-latest",
+      "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/merged/model.safetensors",
+      "base_model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+      "created_at": "2026-10-13T05:40:35.093935",
+      "created_by": "llm-training-controller",
+      "deployment_status": "registered",
+      "digest": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+      "digest_verified": false,
+      "evaluation_id": null,
+      "family": "llm",
+      "framework": "transformers",
+      "id": "2a917120-7463-4a20-add2-bbbd7aab877f",
+      "model_type": "llm",
+      "name": "qwen2-5-3b-qlora",
+      "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "source": "Qwen/Qwen2.5-3B-Instruct",
+      "task_type": "short_answer",
+      "training_run_id": "7859def0-8be7-4931-a099-1193b790e709",
+      "version": 1
+    },
+    {
+      "adapter_type": null,
+      "adapter_uri": null,
+      "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base/modelops-files.json",
+      "base_model": "Qwen/Qwen2.5-3B-Instruct",
+      "created_at": "2026-10-13T05:38:49.494844",
+      "created_by": "llm-training-controller",
+      "deployment_status": "deployed",
+      "digest": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "digest_verified": false,
+      "evaluation_id": null,
+      "family": "llm",
+      "framework": "transformers",
+      "id": "76305cf6-029c-461d-af6f-0cbf70de376e",
+      "model_type": "llm",
+      "name": "qwen2-5-3b-base",
+      "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "source": "Qwen/Qwen2.5-3B-Instruct",
+      "task_type": "text-generation",
+      "training_run_id": null,
+      "version": 1
+    }
+  ],
+  "rollback_api": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "annotations": null,
+          "audio": null,
+          "content": "Paris",
+          "function_call": null,
+          "reasoning_content": null,
+          "refusal": null,
+          "role": "assistant",
+          "tool_calls": []
+        },
+        "stop_reason": null,
+        "token_ids": null
+      }
+    ],
+    "created": 1791870821,
+    "id": "chatcmpl-9b818cc385614d0e9c926358e8f8f9aa",
+    "kv_transfer_params": null,
+    "model": "76305cf6-029c-461d-af6f-0cbf70de376e",
+    "object": "chat.completion",
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "service_tier": null,
+    "system_fingerprint": null,
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 42,
+      "prompt_tokens_details": null,
+      "total_tokens": 44
+    }
+  },
+  "scope": "Native Linux development validation; Kubernetes explicitly out of scope",
+  "status": "PASS",
+  "training_run_id": "7859def0-8be7-4931-a099-1193b790e709"
+}

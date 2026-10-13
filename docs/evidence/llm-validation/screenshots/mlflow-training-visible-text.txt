@@ -1,0 +1,162 @@
+3.17.0
+GenAI
+Model training
+ModelOps LLM Production Validation
+Overview
+Observability
+Traces
+Sessions
+Evaluation
+Judges
+Review
+Datasets
+Evaluation runs
+Prompts & versions
+Playground
+Prompts
+Agent versions
+AI Gateway
+New
+Docs
+Settings
+ModelOps LLM Production Validation
+Evaluations
+Qwen2.5-3B true managed QLoRA
+Overview
+Model metrics
+System metrics
+Traces
+Artifacts
+Description
+No description
+Metrics (21)
+Metric
+Value
+loss
+3.4297664165496826
+gradient_norm
+16.00816535949707
+lr
+0
+forward_s
+0.1889120750129223
+backward_s
+0.2009800440282561
+optimizer_s
+0.0073593309498392045
+wall_s
+0.40406052401522174
+gpu_allocated_bytes
+8219970560
+gpu_reserved_bytes
+8705277952
+steps
+32
+model_load_s
+9.0399516489706
+training_wall_s
+14.084415451041423
+trainable_parameters
+14966784
+parameter_delta_linf
+0.00015870752395130694
+gpu_peak_allocated_bytes
+8219970560
+evaluation.base_exact_match
+0.5833333333333334
+evaluation.base_token_f1
+0.7631980628304157
+evaluation.candidate_exact_match
+0.5416666666666666
+evaluation.candidate_token_f1
+0.7493091739415269
+evaluation.delta_exact_match
+-0.04166666666666674
+evaluation.delta_token_f1
+-0.01388888888888884
+Parameters (18)
+Parameter
+Value
+model
+Qwen/Qwen2.5-3B-Instruct
+revision
+aa8e72537993ba99e69dfaafa59ed015b17504d1
+framework
+transformers
+method
+qlora
+dataset
+dolly-shortqa-v1
+steps
+32
+batch_size
+2
+sampler
+with_replacement
+seed
+9101
+lora_rank
+8
+lora_alpha
+16
+lr
+1e-05
+max_seq_length
+384
+gpu
+1
+quantization
+nf4_double_quant
+precision
+bf16
+scope
+bounded_engineering_validation
+code_revision
+ed4b3a82842d70ab112f077674d1eab0056e67b7
+About this run
+Created at
+10/13/2026, 01:38:49 PM
+Created by
+—
+Experiment ID
+1
+Status
+Finished
+Run ID
+b127f8d1474b414db0025df3a611d5c7
+Duration
+1.8min
+Source
+—
+Logged models
+—
+Registered prompts
+—
+Datasets
+None
+Tags
+evidence_scope
+: single-host engineering validation
+modelops.training_started
+: true
+modelops.training_run_id
+: 7859def0-8be7-4931-a099-1193b790e709
+adapter_sha256
+: 2cbead2c5070ea3ff6d51c93aea8eefb1cd96e878c53599f74512046d94d44f2
+checkpoint_sha256
+: 04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b
+modelops.artifact_id
+: 2a917120-7463-4a20-add2-bbbd7aab877f
+modelops.evaluation_id
+: 4538da49-363b-47cf-bd64-a6f5e8d68742
+Registered models
+ModelOps-Qwen2.5-3B
+v1
+MLflow Assistant
+Beta
+Ask questions about your experiments, traces, evaluations, and more.
+Summarize this run.
+What parameters were used?
+How does this run compare to others?
+b127f8d1...
+Ollama

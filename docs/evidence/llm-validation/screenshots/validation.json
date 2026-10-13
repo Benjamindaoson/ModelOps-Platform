@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "browser": "Chromium 141.0.7390.37",
+  "source": "Actual live MLflow 3.17 UI",
+  "records": [
+    {
+      "name": "mlflow-training",
+      "url": "http://127.0.0.1:18791/#/experiments/1/runs/b127f8d1474b414db0025df3a611d5c7",
+      "visible_token": "QLoRA",
+      "visible_token_found": true,
+      "sha256": "f8fd10ce8cfaaac227bc7b3bba6daaaed7b97d28ac974f9ca1178304e55b2195",
+      "bytes": 203060
+    },
+    {
+      "name": "mlflow-registry",
+      "url": "http://127.0.0.1:18791/#/models/ModelOps-Qwen2.5-3B/versions/1",
+      "visible_token": "ModelOps-Qwen2.5-3B",
+      "visible_token_found": true,
+      "sha256": "fa635d9509a5894b3d64aa4f2b2aaa0a87091145107e957aac6b5a024a46c04e",
+      "bytes": 189646
+    }
+  ],
+  "page_errors": []
+}
