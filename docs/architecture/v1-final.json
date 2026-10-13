@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ModelOps v1.0 RC：模型生命周期与验证边界",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "viewBox": [
+      1120,
+      810
+    ],
+    "repository": {
+      "url": "https://github.com/Benjamindaoson/ModelOps-Platform",
+      "revision": "4559e3db44eddd44a08219e6cb029a73afdd76f9"
+    }
+  },
+  "components": [
+    {
+      "id": "console",
+      "type": "frontend",
+      "label": "Console",
+      "sublabel": "Console / OIDC 会话边界",
+      "pos": [
+        40,
+        170
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "console/package.json"
+        },
+        {
+          "path": "control-plane/modelops/auth.py"
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Control API",
+      "sublabel": "租户、权限、生命周期",
+      "pos": [
+        320,
+        170
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "control-plane/modelops/main.py"
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "Metadata DB",
+      "sublabel": "PostgreSQL / 本轮 SQLite",
+      "pos": [
+        320,
+        430
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "control-plane/modelops/db.py"
+        }
+      ]
+    },
+    {
+      "id": "client",
+      "type": "external",
+      "label": "应用调用方",
+      "sublabel": "模型服务消费者",
+      "pos": [
+        880,
+        670
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "examples/rag/app.py"
+        }
+      ]
+    },
+    {
+      "id": "argo",
+      "type": "backend",
+      "label": "Training Runtime",
+      "sublabel": "Linux实测 / Argo合同",
+      "pos": [
+        600,
+        430
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "charts/kube-llmops-stack/charts/finetune/templates/workflow-dynamic.yaml"
+        },
+        {
+          "path": "control-plane/modelops/linux_runtime.py"
+        }
+      ]
+    },
+    {
+      "id": "operator",
+      "type": "backend",
+      "label": "Deployment Runtime",
+      "sublabel": "Linux实测 / Operator合同",
+      "pos": [
+        600,
+        170
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "operator/internal/controller/modeldeployment_controller.go"
+        },
+        {
+          "path": "control-plane/modelops/native_serving.py"
+        }
+      ]
+    },
+    {
+      "id": "serving",
+      "type": "backend",
+      "label": "推理引擎",
+      "sublabel": "vLLM / SGLang / TEI",
+      "pos": [
+        880,
+        170
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "operator/internal/builder/deployment.go"
+        }
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "LiteLLM Gateway",
+      "sublabel": "HTTP 路由与版本流量",
+      "pos": [
+        880,
+        430
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "operator/internal/gateway/client.go"
+        }
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "external",
+      "label": "GPU Runner / CLI",
+      "sublabel": "租约、作业和专用动作协议",
+      "pos": [
+        40,
+        670
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "pipelines/robotics/adapter.py"
+        },
+        {
+          "path": "ops/gpu_lease.py"
+        }
+      ]
+    },
+    {
+      "id": "vla",
+      "type": "backend",
+      "label": "Model Adapters",
+      "sublabel": "LLM / VLA / Embedding",
+      "pos": [
+        320,
+        670
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "pipelines/robotics/serve.py"
+        },
+        {
+          "path": "ops/custom_server.py"
+        }
+      ]
+    },
+    {
+      "id": "assets",
+      "type": "database",
+      "label": "私有产物 / MLflow",
+      "sublabel": "权重、指标及来源引用",
+      "pos": [
+        600,
+        670
+      ],
+      "size": [
+        140,
+        72
+      ],
+      "sources": [
+        {
+          "path": "pipelines/training/publish_dynamic.py"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "console",
+      "to": "api",
+      "label": "租户 API"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "label": "SQL",
+      "labelDy": 24
+    },
+    {
+      "from": "api",
+      "to": "argo",
+      "label": "训练 Workflow"
+    },
+    {
+      "from": "api",
+      "to": "operator",
+      "label": "ModelDeployment CRD"
+    },
+    {
+      "from": "operator",
+      "to": "serving",
+      "label": "资源协调"
+    },
+    {
+      "from": "serving",
+      "to": "gateway",
+      "label": "模型端点",
+      "labelDy": 24
+    },
+    {
+      "from": "gateway",
+      "to": "client",
+      "label": "推理响应",
+      "labelDy": 24
+    },
+    {
+      "from": "argo",
+      "to": "assets",
+      "label": "发布产物",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "from": "cli",
+      "to": "vla",
+      "label": "管理作业"
+    },
+    {
+      "from": "vla",
+      "to": "assets",
+      "label": "记录与校验"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "本轮实测",
+      "items": [
+        "3类模型 / 64步恢复",
+        "40请求 / 元数据恢复"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "尚未验收",
+      "items": [
+        "GPU集群 / 企业OIDC",
+        "全平台容灾 / 生产SLO"
+      ]
+    }
+  ]
+}

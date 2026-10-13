@@ -24,6 +24,10 @@ See the [execution report](docs/v1/SPRINT_REPORT.md), [validation receipts](docs
 
 **Architectural separation:** production metadata lives in PostgreSQL, Kubernetes/Argo own cluster workloads, and private object storage owns checkpoint bundles. The explicit Linux development backend owns observed processes and receipts and is rejected in production mode. Text Token-F1 cannot qualify a robot policy; robotics retains its own release gate.
 
+## Runtime architecture
+
+Source-linked [architecture JSON](docs/architecture/v1-final.json) and [self-contained interactive HTML](docs/architecture/v1-final.html) cover the Control API, observed runtimes, metadata, model adapters, serving and private artifacts. Native GPU proof and cluster validation are marked separately.
+
 ## Repository layout
 
 - `control-plane/` — Python/FastAPI management API, SQL models, migrations, tenant roles and reconciliation.

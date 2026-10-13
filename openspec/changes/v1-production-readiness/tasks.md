@@ -10,5 +10,5 @@
 - [x] Add protected tenant metrics and verify real metadata backup/restore.
 - [x] Preserve legacy VLA assets, checkpoints and active registry bytes.
 - [x] Finish consolidated tests, source review and documentation.
-- [ ] Publish reviewed integration preserving Git history.
+- [x] Publish reviewed integration preserving Git history. Main merge follows required CI checks.
 - [ ] Validate enterprise Kubernetes GPU deployment, real OIDC and full disaster recovery (requires external infrastructure).

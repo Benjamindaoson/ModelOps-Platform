@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/data/ModelOps-Platform/tmp/v1-production-readiness/docs/architecture/v1-final.json",
+  "output": "/data/ModelOps-Platform/tmp/v1-production-readiness/docs/architecture/v1-final.html",
+  "specification": {
+    "sha256": "3a778f6540b7c3641228c27f8ac059d4fb84818e8afefbb3a824c442b9a54556",
+    "bytes": 5898
+  },
+  "artifact": {
+    "sha256": "63c4a757d163e012d76d71de76b80bec0feadcf66626a623019a0de17039abc2",
+    "bytes": 732301
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  },
+  "evidence": {
+    "verified": true,
+    "repository": "https://github.com/Benjamindaoson/ModelOps-Platform",
+    "revision": "4559e3db44eddd44a08219e6cb029a73afdd76f9",
+    "references": 16
+  }
+}
