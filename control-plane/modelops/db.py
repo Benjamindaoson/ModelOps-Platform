@@ -1,4 +1,4 @@
-"""SQL metadata and immutable audit rows. Kubernetes is the only runtime authority."""
+"""SQL metadata and immutable audit rows. Explicit observed backends own runtime state."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -38,6 +38,16 @@ class ModelArtifact(Base):
     digest: Mapped[str] = mapped_column(String(64))
     digest_verified: Mapped[bool] = mapped_column(default=False)
     family: Mapped[str] = mapped_column(String(15))
+    model_type: Mapped[str] = mapped_column(String(15), default="llm", server_default="llm")
+    task_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    framework: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    base_model: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    adapter_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    adapter_uri: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    artifact_uri: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    training_run_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    evaluation_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    deployment_status: Mapped[str] = mapped_column(String(25), default="registered", server_default="registered")
     created_by: Mapped[str] = mapped_column(String(150))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
@@ -65,6 +75,9 @@ class Deployment(Base):
     name: Mapped[str] = mapped_column(String(63))
     artifact_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_artifacts.id"))
     engine: Mapped[str] = mapped_column(String(20))
+    quantization: Mapped[str] = mapped_column(String(20),default="none",server_default="none")
+    cache: Mapped[bool] = mapped_column(default=False,server_default="0")
+    custom_json: Mapped[str | None] = mapped_column(Text,nullable=True)
     replicas: Mapped[int] = mapped_column(Integer)
     gpu: Mapped[int] = mapped_column(Integer)
     generation: Mapped[int] = mapped_column(Integer, default=1)
@@ -99,6 +112,9 @@ class FineTuneJob(Base):
     method: Mapped[str] = mapped_column(String(10))
     parameters_json: Mapped[str] = mapped_column(Text)
     workflow_name: Mapped[str] = mapped_column(String(100))
+    worker: Mapped[str] = mapped_column(String(20), default="argo", server_default="argo")
+    state: Mapped[str] = mapped_column(String(20), default="QUEUED", server_default="QUEUED")
+    runtime_run_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     parent_job_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True, unique=True)
     attempt: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     intent: Mapped[str] = mapped_column(String(25), default="requested")

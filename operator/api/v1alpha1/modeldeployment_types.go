@@ -22,13 +22,26 @@ import (
 
 // ModelDeploymentSpec defines the desired state of a model deployment.
 type ModelDeploymentSpec struct {
+	// Model links this workload to a unified immutable Registry artifact.
+	// +optional
+	Model *ModelArtifactReference `json:"model,omitempty"`
+	// Quantization is explicit and validated against the selected engine.
+	// +kubebuilder:validation:Enum=none;awq;gptq;bitsandbytes
+	// +optional
+	Quantization string `json:"quantization,omitempty"`
+	// Cache preserves legacy prefixCaching while exposing unified settings.
+	// +optional
+	Cache *ServingCacheSpec `json:"cache,omitempty"`
+	// Custom declares a continuous-action server; never a Chat Completion adapter.
+	// +optional
+	Custom *CustomServerSpec `json:"custom,omitempty"`
 	// Source is the HuggingFace model ID or path (e.g. "Qwen/Qwen2.5-7B-Instruct").
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Source string `json:"source"`
 
 	// Engine selects the inference engine. "auto" detects from source name.
-	// +kubebuilder:validation:Enum=auto;vllm;sglang;tei;llamacpp
+	// +kubebuilder:validation:Enum=auto;vllm;sglang;tei;llamacpp;custom
 	// +kubebuilder:default="auto"
 	// +optional
 	Engine string `json:"engine,omitempty"`
@@ -78,6 +91,37 @@ type ModelDeploymentSpec struct {
 	AutoScaling *AutoScalingSpec `json:"autoScaling,omitempty"`
 }
 
+// ModelArtifactReference is immutable model lineage, not an arbitrary remote fetch command.
+type ModelArtifactReference struct {
+	ID string `json:"id"`
+	// ArtifactURI points to an authenticated immutable S3 bundle when used.
+	// +optional
+	ArtifactURI string `json:"artifactURI,omitempty"`
+	// +kubebuilder:validation:Enum=llm;vlm;vla;embedding
+	ModelType string `json:"modelType"`
+	// +kubebuilder:validation:Pattern="^[a-f0-9]{64}$"
+	Digest   string `json:"digest"`
+	Revision string `json:"revision"`
+}
+
+type ServingCacheSpec struct {
+	PrefixCaching bool `json:"prefixCaching"`
+}
+
+type CustomServerSpec struct {
+	// +kubebuilder:validation:Pattern="^.+@sha256:[a-f0-9]{64}$"
+	Image string `json:"image"`
+	// +kubebuilder:validation:MinItems=1
+	Command []string `json:"command"`
+	// +optional
+	Args []string `json:"args,omitempty"`
+	// +kubebuilder:validation:Minimum=1024
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port"`
+	// +kubebuilder:validation:Enum=/health;/readyz
+	HealthPath string `json:"healthPath"`
+}
+
 // ModelResources defines compute resources for model serving.
 type ModelResources struct {
 	// GPU is the number of GPUs to request (0 for CPU-only).
@@ -120,7 +164,7 @@ type CanaryConfig struct {
 	Revision string `json:"revision"`
 
 	// Digest is the verified SHA-256 of the candidate checkpoint tree.
-	// +kubebuilder:validation:Pattern=^[a-f0-9]{64}$
+	// +kubebuilder:validation:Pattern="^[a-f0-9]{64}$"
 	Digest string `json:"digest"`
 
 	// Weight is the percentage of traffic routed to the canary (0-100).

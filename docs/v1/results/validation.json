@@ -1,0 +1,202 @@
+{
+  "software_groups": [
+    {
+      "group": "core",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 24.983087514992803,
+      "recheck_log": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/verify-core.log"
+    },
+    {
+      "group": "data-contract",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "pipelines/training/test_data_contract.py"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 0.3144731540232897
+    },
+    {
+      "group": "training",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "pipelines/training",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 0.16426838195184246
+    },
+    {
+      "group": "evaluation",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "pipelines/evaluation",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 0.11416927701793611
+    },
+    {
+      "group": "benchmark",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "benchmarks/inference",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 0.21488828904693946
+    },
+    {
+      "group": "ops",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ops",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 0.7164949290454388
+    },
+    {
+      "group": "model-loader",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "test_loader.py"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness/images/model-loader",
+      "exit": 0,
+      "wall_s": null,
+      "recheck_log": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/verify-model-loader.log"
+    },
+    {
+      "group": "operator-envtest",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/go/bin/go",
+        "test",
+        "-p",
+        "2",
+        "github.com/kube-llmops/operator/api/v1alpha1",
+        "github.com/kube-llmops/operator/cmd",
+        "github.com/kube-llmops/operator/cmd/kubectl-llmops",
+        "github.com/kube-llmops/operator/cmd/migrate",
+        "github.com/kube-llmops/operator/internal/builder",
+        "github.com/kube-llmops/operator/internal/cli/cmd",
+        "github.com/kube-llmops/operator/internal/cli/printer",
+        "github.com/kube-llmops/operator/internal/cli/util",
+        "github.com/kube-llmops/operator/internal/controller",
+        "github.com/kube-llmops/operator/internal/engine",
+        "github.com/kube-llmops/operator/internal/gateway",
+        "github.com/kube-llmops/operator/internal/helmbridge",
+        "github.com/kube-llmops/operator/test/utils"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness/operator",
+      "exit": 0,
+      "wall_s": 17.73165649699513
+    },
+    {
+      "group": "console-types",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness/console",
+      "exit": 0,
+      "wall_s": 3.1720875629689544
+    },
+    {
+      "group": "console-build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness/console",
+      "exit": 0,
+      "wall_s": 33.11900665104622
+    },
+    {
+      "group": "helm",
+      "command": [
+        "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/helm/linux-amd64/helm",
+        "lint",
+        "charts/modelops-control",
+        "-f",
+        "charts/modelops-control/values-ci.yaml",
+        "-f",
+        "charts/modelops-control/values-v1-contract.yaml"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": 0.11440136801684275
+    }
+  ],
+  "test_counts": {
+    "core": 104,
+    "data-contract": 4,
+    "training": 5,
+    "evaluation": 12,
+    "benchmark": 18,
+    "ops": 25,
+    "model-loader": 6
+  },
+  "software_passed": true,
+  "native_llm": "PASS",
+  "native_embedding": "PASS",
+  "native_vla": "PASS",
+  "gpu_resume": "PASS",
+  "model_status": {
+    "status": "PASS",
+    "while_real_cpu_embedding_ready": "deployed",
+    "after_cleanup": "registered",
+    "delete_status": "deleted",
+    "source": "live model-owned backend, never client supplied",
+    "initial_bug": "native absence was hidden by the Kubernetes deleting intent; fixed and reverified"
+  },
+  "metadata_restore": "PASS",
+  "production_cluster_passed": false,
+  "real_oidc_passed": false,
+  "full_disaster_recovery_passed": false,
+  "docker_kind_e2e": "Attempt failed before tests because Docker executable is absent; preserved go-tests-final.log",
+  "scope": "Source/software contracts and real single-host model lifecycle; not production certification"
+}

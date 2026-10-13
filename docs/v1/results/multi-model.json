@@ -1,0 +1,30 @@
+{
+  "llm": "Real trained Qwen served by vLLM; promotion and rollback verified",
+  "embedding": {
+    "status": "PASS",
+    "dimensions": 384,
+    "vectors": 3,
+    "duplicate_input_exact": true,
+    "l2_norms": [
+      1.0000000543621046,
+      1.0000000543621046,
+      1.0000000031337772
+    ],
+    "framework": "Transformers on CPU; not TEI runtime validation"
+  },
+  "vla": {
+    "status": "PASS",
+    "action_shape": [
+      50,
+      7
+    ],
+    "input_state_dimensions": 8,
+    "chunk_s": 1.1163461189717054,
+    "observation_source": "/data/VLA-Forge/Evidence/M05/training_perf/data_pipeline/observation-corrective-0.npz",
+    "observation_sha256": "55d0f57780b1dac5b826854b6740d7c3722392cfefadada271317b3fe4cc5554",
+    "model_sha256": "9a9f6413e42c0f332fccbce9a0dc796af2790f82cf002f791cdbf7e01e1afca8",
+    "original_registry_unchanged": true
+  },
+  "vla_scope": "Frozen qualified simulation policy, one real recorded observation; no new rollout or real robot actuation",
+  "vlm": "Registry contracts only; native serving rejects unsupported VLM before GPU allocation"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "34db9fc5-40ac-4a03-8d0e-ea206be5e920",
+  "name": "qwen-base",
+  "version": 2,
+  "family": "llm",
+  "source": "Qwen/Qwen2.5-0.5B-Instruct",
+  "revision": "v1qa-49230fb285fc4ade",
+  "digest": "dadc1ab918a2e3b780f80e78f16bdfe713239fb856e54d43a0bbe38896a4c9a8",
+  "digest_verified": false,
+  "created_by": "v1-evaluation-controller",
+  "created_at": "2026-10-13T00:51:19.252990+00:00",
+  "model_type": "llm",
+  "task_type": "short-answer-qa",
+  "framework": "transformers",
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct@7ae557604adf67be50417f59c2c2f167def9a775",
+  "adapter_type": "lora",
+  "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/merged",
+  "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/merged",
+  "training_run_id": "b13b68bc-1496-4172-bd44-b4779c469c77",
+  "evaluation_id": null,
+  "deployment_status": "registered"
+}

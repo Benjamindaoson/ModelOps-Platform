@@ -1,0 +1,50 @@
+{
+  "scope": "legacy compatibility import; no new GPU experiment",
+  "versions": [
+    {
+      "artifact_id": "c8f353e9-2f7c-42a4-b8f1-563ad5056f64",
+      "version": "m05-base-frozen",
+      "training_run_id": "lerobot-smolvla-libero-upstream",
+      "checkpoint_sha256": "9a9f6413e42c0f332fccbce9a0dc796af2790f82cf002f791cdbf7e01e1afca8",
+      "processor_sha256": "122ec5106602b1bf129f49690d05ab2f49748a0ac6119de55ea0677d4e90d248",
+      "normalizer_sha256": "b0cdde6e8a6f49a8e19eefb376728e47c09d3b3cc20ce3a97c45619fe7a732d9",
+      "legacy_registry_record": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/vla-registry/m05-base-frozen.json",
+      "metadata_status": "registered",
+      "deployed_by_this_sprint": true
+    },
+    {
+      "artifact_id": "543f6b0f-edd6-47c1-8eeb-808e8990ff22",
+      "version": "m05-corrective-cam180-s5501",
+      "training_run_id": "m05-corrective-cam180-s5501",
+      "checkpoint_sha256": "70c360304fafc74fc2e2e8564046efc4d54e69690e0bcdb2e0e205a4a8ae1cac",
+      "processor_sha256": "122ec5106602b1bf129f49690d05ab2f49748a0ac6119de55ea0677d4e90d248",
+      "normalizer_sha256": "b0cdde6e8a6f49a8e19eefb376728e47c09d3b3cc20ce3a97c45619fe7a732d9",
+      "legacy_registry_record": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/vla-registry/m05-corrective-cam180-s5501.json",
+      "metadata_status": "registered",
+      "deployed_by_this_sprint": false
+    },
+    {
+      "artifact_id": "abeee997-a30b-4949-992f-1368b77d3c8f",
+      "version": "m05-replay-cam180-s5501",
+      "training_run_id": "m05-replay-cam180-s5501",
+      "checkpoint_sha256": "9ef568e52feef240042cdd0d4a16336e77a4134dff065f99bcb4bbf146275930",
+      "processor_sha256": "122ec5106602b1bf129f49690d05ab2f49748a0ac6119de55ea0677d4e90d248",
+      "normalizer_sha256": "b0cdde6e8a6f49a8e19eefb376728e47c09d3b3cc20ce3a97c45619fe7a732d9",
+      "legacy_registry_record": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/vla-registry/m05-replay-cam180-s5501.json",
+      "metadata_status": "registered",
+      "deployed_by_this_sprint": false
+    },
+    {
+      "artifact_id": "4654f4d5-716b-451e-94fc-21a37f7e30ee",
+      "version": "m05-standard-s5501",
+      "training_run_id": "m05-standard-s5501",
+      "checkpoint_sha256": "6e266e2bc662b82edf38c7dd320070db97547615df22883bfd597cafd4803f0e",
+      "processor_sha256": "122ec5106602b1bf129f49690d05ab2f49748a0ac6119de55ea0677d4e90d248",
+      "normalizer_sha256": "b0cdde6e8a6f49a8e19eefb376728e47c09d3b3cc20ce3a97c45619fe7a732d9",
+      "legacy_registry_record": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/vla-registry/m05-standard-s5501.json",
+      "metadata_status": "registered",
+      "deployed_by_this_sprint": false
+    }
+  ],
+  "status": "PASS"
+}

@@ -1,0 +1,7 @@
+registry: modelops-control-api
+artifact_format: safetensors
+require_checkpoint_hash: true
+require_heldout_receipt: true
+weights_visibility: private
+serving_engine: vllm
+production_promotion: requires_separate_oidc_postgres_kubernetes_gate

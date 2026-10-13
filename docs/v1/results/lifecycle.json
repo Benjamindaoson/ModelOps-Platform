@@ -1,0 +1,119 @@
+{
+  "training_run_id": "b13b68bc-1496-4172-bd44-b4779c469c77",
+  "candidate": {
+    "id": "34db9fc5-40ac-4a03-8d0e-ea206be5e920",
+    "name": "qwen-base",
+    "version": 2,
+    "family": "llm",
+    "source": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "v1qa-49230fb285fc4ade",
+    "digest": "dadc1ab918a2e3b780f80e78f16bdfe713239fb856e54d43a0bbe38896a4c9a8",
+    "digest_verified": false,
+    "created_by": "v1-evaluation-controller",
+    "created_at": "2026-10-13T00:51:19.252990+00:00",
+    "model_type": "llm",
+    "task_type": "short-answer-qa",
+    "framework": "transformers",
+    "base_model": "Qwen/Qwen2.5-0.5B-Instruct@7ae557604adf67be50417f59c2c2f167def9a775",
+    "adapter_type": "lora",
+    "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/merged",
+    "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/merged",
+    "training_run_id": "b13b68bc-1496-4172-bd44-b4779c469c77",
+    "evaluation_id": null,
+    "deployment_status": "registered"
+  },
+  "evaluation": {
+    "id": "fdfb14c6-5504-42a7-b071-ef891454bb78",
+    "verified": true,
+    "passed": true,
+    "report_sha256": "247fb0fd99fe6c9e413f5ea6340d7e4242767ec5ff6882b0c3597eb17834a6cb",
+    "metrics": {
+      "base_exact_match": 0.4166666666666667,
+      "base_token_f1": 0.5605387667887668,
+      "candidate_exact_match": 0.4166666666666667,
+      "candidate_token_f1": 0.5605387667887668,
+      "delta_exact_match": 0.0,
+      "delta_token_f1": 0.0
+    }
+  },
+  "approval": {
+    "id": "155eafe7-7a13-4585-b9ec-8cd8cdaec80f",
+    "artifact_id": "34db9fc5-40ac-4a03-8d0e-ea206be5e920",
+    "approver": "v1-release-controller",
+    "reason": "Bounded heldout gate passed; development lifecycle validation only"
+  },
+  "events": [
+    {
+      "event": "base_ready",
+      "generation": 1,
+      "artifact_id": "72e62e08-acd9-4e80-b2d5-5f15e10c5bd4",
+      "load_wall_s": 30.250664390972815,
+      "observed_phase": "Ready",
+      "runtime_kind": "linux"
+    },
+    {
+      "event": "candidate_ready",
+      "generation": 2,
+      "artifact_id": "34db9fc5-40ac-4a03-8d0e-ea206be5e920",
+      "load_wall_s": 30.245570952014532,
+      "observed_phase": "Ready",
+      "runtime_kind": "linux"
+    },
+    {
+      "event": "rollback_ready",
+      "generation": 3,
+      "artifact_id": "72e62e08-acd9-4e80-b2d5-5f15e10c5bd4",
+      "load_wall_s": 28.302856980997603,
+      "observed_phase": "Ready",
+      "runtime_kind": "linux"
+    }
+  ],
+  "base_api": {
+    "artifact_id": "72e62e08-acd9-4e80-b2d5-5f15e10c5bd4",
+    "elapsed_s": 0.518682913039811,
+    "content": "Paris.",
+    "usage": {
+      "prompt_tokens": 42,
+      "total_tokens": 45,
+      "completion_tokens": 3,
+      "prompt_tokens_details": null
+    }
+  },
+  "candidate_api": {
+    "artifact_id": "34db9fc5-40ac-4a03-8d0e-ea206be5e920",
+    "elapsed_s": 0.5664222630439326,
+    "content": "Paris",
+    "usage": {
+      "prompt_tokens": 42,
+      "total_tokens": 44,
+      "completion_tokens": 2,
+      "prompt_tokens_details": null
+    }
+  },
+  "rollback_api": {
+    "artifact_id": "72e62e08-acd9-4e80-b2d5-5f15e10c5bd4",
+    "elapsed_s": 0.491758905001916,
+    "content": "Paris.",
+    "usage": {
+      "prompt_tokens": 42,
+      "total_tokens": 45,
+      "completion_tokens": 3,
+      "prompt_tokens_details": null
+    }
+  },
+  "adapter_metadata_repair": {
+    "status": "PASS",
+    "field": "adapter_uri",
+    "before": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/merged",
+    "after": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/runtime/lab/b13b68bc-1496-4172-bd44-b4779c469c77/artifacts/adapter-latest",
+    "checkpoint_sha256": "dadc1ab918a2e3b780f80e78f16bdfe713239fb856e54d43a0bbe38896a4c9a8",
+    "adapter_sha256": "af16add588a0259fb63151d47035942b16814a53d15414f6d7d316e1bb0fc064",
+    "training_run_id": "b13b68bc-1496-4172-bd44-b4779c469c77",
+    "identity_and_bytes_unchanged": true,
+    "reason": "Original registration linked merged directory as adapter; correction preserves raw registration receipt.",
+    "audit_event_id": "58715027-bbc3-4b68-87ab-03f37bac9bcc"
+  },
+  "first_benchmark_failed": true,
+  "fixed_benchmark_passed": true,
+  "approval_scope": "separate development service principals, not independent human production approval"
+}

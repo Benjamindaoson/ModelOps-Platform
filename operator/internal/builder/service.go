@@ -21,7 +21,7 @@ func buildLabels(name, engine string) map[string]string {
 
 // BuildService creates a ClusterIP Service for a ModelDeployment.
 func BuildService(md *v1alpha1.ModelDeployment, engine string) *corev1.Service {
-	port := EnginePort(engine)
+	port := DeploymentPort(md, engine)
 	labels := buildLabels(md.Name, engine)
 
 	return &corev1.Service{

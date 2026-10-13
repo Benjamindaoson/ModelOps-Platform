@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "completed_requests": 40,
+  "unsuccessful_planned_requests": 0,
+  "wall_s": 6.216247880016454,
+  "requests_per_s": 6.434749831741608,
+  "output_tokens_per_s": 183.7121076962229,
+  "latency_ms": {
+    "p50_ttft_ms": 32.404251978732646,
+    "p95_ttft_ms": 34.76252979016863,
+    "p99_ttft_ms": 36.67590213182847,
+    "p50_tpot_ms": 17.389447564416898,
+    "p95_tpot_ms": 17.659872181285472,
+    "p99_tpot_ms": 17.75646223655341,
+    "p50_itl_ms": 17.167412996059284,
+    "p95_itl_ms": 18.41896103869658,
+    "p99_itl_ms": 20.33576231973711,
+    "p50_e2el_ms": 565.2363605040591,
+    "p95_e2el_ms": 579.02749950008,
+    "p99_e2el_ms": 581.458618453471
+  },
+  "gpu": {
+    "samples": 58,
+    "peak_used_mib": 10075.0,
+    "mean_utilization_percent": 6.896551724137931,
+    "peak_utilization_percent": 24.0,
+    "sample_interval_s": 0.25,
+    "scope": "whole GPU during benchmark subprocess, includes client initialization"
+  },
+  "interpretation": "40 synthetic requests, C4, 64 input/32 max output tokens; not production SLO"
+}

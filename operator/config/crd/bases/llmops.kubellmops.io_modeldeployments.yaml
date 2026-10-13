@@ -67,10 +67,84 @@ spec:
                 - amd
                 - gaudi
                 type: string
+              autoScaling:
+                description: AutoScaling configures automatic scaling for this model.
+                properties:
+                  enabled:
+                    description: Enabled enables automatic scaling.
+                    type: boolean
+                  kedaTriggers:
+                    description: KEDATriggers defines KEDA-specific trigger configuration.
+                    properties:
+                      queueDepthEnabled:
+                        description: QueueDepthEnabled enables scaling based on vLLM
+                          queue depth.
+                        type: boolean
+                      queueDepthMetric:
+                        description: QueueDepthMetric is the Prometheus metric name
+                          for queue depth.
+                        type: string
+                      queueDepthThreshold:
+                        description: QueueDepthThreshold is the threshold for queue
+                          depth scaling.
+                        format: int32
+                        type: integer
+                      tpotEnabled:
+                        description: TPOTEnabled enables scaling based on TPOT P95
+                          latency.
+                        type: boolean
+                      tpotThreshold:
+                        description: TPOTThreshold is the TPOT P95 threshold in seconds.
+                        type: number
+                      ttftEnabled:
+                        description: TTFTEnabled enables scaling based on TTFT P95
+                          latency.
+                        type: boolean
+                      ttftThreshold:
+                        description: TTFTThreshold is the TTFT P95 threshold in seconds.
+                        type: number
+                    type: object
+                  maxReplicas:
+                    description: MaxReplicas is the maximum number of replicas.
+                    format: int32
+                    type: integer
+                  minReplicas:
+                    description: MinReplicas is the minimum number of replicas.
+                    format: int32
+                    type: integer
+                  scaleTargetCPUUtilizationPercentage:
+                    description: ScaleTargetCPUUtilizationPercentage is the target
+                      CPU utilization for HPA.
+                    format: int32
+                    type: integer
+                  scaleTargetMemoryUtilizationPercentage:
+                    description: ScaleTargetMemoryUtilizationPercentage is the target
+                      memory utilization for HPA.
+                    format: int32
+                    type: integer
+                  useKEDA:
+                    description: UseKEDA enables KEDA-based autoscaling instead of
+                      HPA.
+                    type: boolean
+                type: object
+              cache:
+                description: Cache preserves legacy prefixCaching while exposing unified
+                  settings.
+                properties:
+                  prefixCaching:
+                    type: boolean
+                required:
+                - prefixCaching
+                type: object
               canary:
                 description: Canary configures a canary deployment for A/B traffic
                   splitting.
                 properties:
+                  digest:
+                    description: Digest is the verified SHA-256 of the candidate checkpoint
+                      tree.
+                    pattern: ^[a-f0-9]{64}$
+                    type: string
                   resources:
                     description: Resources for the canary deployment.
                     properties:
@@ -89,16 +163,14 @@ spec:
                         description: Memory is the memory limit (e.g. "16Gi").
                         type: string
                     type: object
-                  source:
-                    description: Source is the HuggingFace model ID or S3 candidate path.
-                    type: string
                   revision:
-                    description: Pinned candidate model revision.
+                    description: Revision identifies a pinned model snapshot. For
+                      HF this is the commit SHA.
                     minLength: 7
                     type: string
-                  digest:
-                    description: SHA-256 of the complete independently verified candidate artifact.
-                    pattern: ^[a-f0-9]{64}$
+                  source:
+                    description: Source is the HuggingFace model ID for the canary
+                      model.
                     type: string
                   weight:
                     description: Weight is the percentage of traffic routed to the
@@ -108,10 +180,42 @@ spec:
                     minimum: 0
                     type: integer
                 required:
-                - source
-                - revision
                 - digest
+                - revision
+                - source
                 - weight
+                type: object
+              custom:
+                description: Custom declares a continuous-action server; never a Chat
+                  Completion adapter.
+                properties:
+                  args:
+                    items:
+                      type: string
+                    type: array
+                  command:
+                    items:
+                      type: string
+                    minItems: 1
+                    type: array
+                  healthPath:
+                    enum:
+                    - /health
+                    - /readyz
+                    type: string
+                  image:
+                    pattern: ^.+@sha256:[a-f0-9]{64}$
+                    type: string
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 1024
+                    type: integer
+                required:
+                - command
+                - healthPath
+                - image
+                - port
                 type: object
               engine:
                 default: auto
@@ -120,9 +224,10 @@ spec:
                 enum:
                 - auto
                 - vllm
+                - sglang
                 - tei
                 - llamacpp
-                - sglang
+                - custom
                 type: string
               engineArgs:
                 additionalProperties:
@@ -134,6 +239,34 @@ spec:
                 description: MIGDevice specifies an NVIDIA MIG device resource name,
                   overriding the gpu field.
                 type: string
+              model:
+                description: Model links this workload to a unified immutable Registry
+                  artifact.
+                properties:
+                  artifactURI:
+                    description: ArtifactURI points to an authenticated immutable
+                      S3 bundle when used.
+                    type: string
+                  digest:
+                    pattern: ^[a-f0-9]{64}$
+                    type: string
+                  id:
+                    type: string
+                  modelType:
+                    enum:
+                    - llm
+                    - vlm
+                    - vla
+                    - embedding
+                    type: string
+                  revision:
+                    type: string
+                required:
+                - digest
+                - id
+                - modelType
+                - revision
+                type: object
               modelStore:
                 description: ModelStore overrides the platform-level model store configuration.
                 properties:
@@ -147,6 +280,15 @@ spec:
               prefixCaching:
                 description: PrefixCaching enables vLLM automatic prefix caching.
                 type: boolean
+              quantization:
+                description: Quantization is explicit and validated against the selected
+                  engine.
+                enum:
+                - none
+                - awq
+                - gptq
+                - bitsandbytes
+                type: string
               replicas:
                 default: 1
                 description: Replicas is the desired number of model serving pods.
@@ -270,12 +412,47 @@ spec:
                   - type
                   type: object
                 type: array
+              downloadProgress:
+                description: DownloadProgress holds download progress information.
+                properties:
+                  bytesDownloaded:
+                    description: BytesDownloaded is the number of bytes downloaded.
+                    format: int64
+                    type: integer
+                  completionTime:
+                    description: CompletionTime is when the download completed.
+                    format: date-time
+                    type: string
+                  percentage:
+                    description: Percentage is the download progress percentage.
+                    format: int32
+                    type: integer
+                  startTime:
+                    description: StartTime is when the download started.
+                    format: date-time
+                    type: string
+                  totalBytes:
+                    description: TotalBytes is the total size in bytes.
+                    format: int64
+                    type: integer
+                type: object
               endpoint:
                 description: Endpoint is the in-cluster URL for the model's API.
                 type: string
               engine:
                 description: Engine is the resolved engine after auto-detection.
                 type: string
+              initContainerStatus:
+                description: InitContainerStatus holds the init container state.
+                properties:
+                  message:
+                    description: Message contains progress message.
+                    type: string
+                  phase:
+                    description: Phase is the init container phase (Pending, Running,
+                      Terminated).
+                    type: string
+                type: object
               modelSize:
                 description: ModelSize is the discovered model size after download.
                 type: string

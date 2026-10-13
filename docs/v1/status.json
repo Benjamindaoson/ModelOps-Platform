@@ -1,0 +1,40 @@
+{
+  "product": "ModelOps Platform",
+  "version": "1.0.0-rc.1",
+  "native_lifecycle": "VALIDATED",
+  "software": "PASS",
+  "production_readiness": "NOT_FULLY_VALIDATED",
+  "phases": [
+    {
+      "phase": "01",
+      "result": "Integrated main and published M06/SmolVLA ancestry; local merge 4a1df727. No force push. GitHub publication is recorded separately."
+    },
+    {
+      "phase": "02",
+      "result": "Unified four model types and ten requested metadata fields; reversible Alembic 0004/0005/0006; legacy VLA versions imported by verified references. Deployment status derives from actual owned backend readiness."
+    },
+    {
+      "phase": "03",
+      "result": "Observed six-state jobs, receipt hashing, pause/resume and retry/cancel guards. Real GPU paused at step 2 and recovered to 64 unique updates. SmolVLA uses the retained Flow Matching CLI adapter; REST text jobs reject VLA."
+    },
+    {
+      "phase": "04",
+      "result": "Three new 32-step training runs: broad LoRA, broad NF4 QLoRA, short-answer LoRA. Broad baseline F1 0.2476; candidates fail 0.55. Short-answer base/candidate F1 0.5605/0.5605; passes fixed gate without observed improvement."
+    },
+    {
+      "phase": "05",
+      "result": "Real vLLM trained-version API, deployment generations 1/2/3 and rollback; 384D CPU embedding; 50x7 frozen VLA action response. Go custom-policy protocol and Helm contracts tested. GPU Kubernetes/TEI/SGLang deployments not executed."
+    },
+    {
+      "phase": "06",
+      "result": "Official vLLM 0.10.2 benchmark: 40/40, 6.435 req/s, 183.712 output tokens/s, TTFT P95 34.763 ms. N=40 synthetic C4 workload; no production SLO claim."
+    },
+    {
+      "phase": "07",
+      "result": "Protected tenant metrics, existing OIDC/RBAC/Ed25519 production gates retained, actual SQLite backup/restore and identities verified. Kubernetes envtest passed. Real enterprise OIDC, PostgreSQL runtime, remote object-store restore and GPU cluster release remain unvalidated."
+    }
+  ],
+  "next": "Review public source and receipts; provide already-authorized production infrastructure for remaining gates.",
+  "no_new_gpu_jobs_required_for_this_acceptance": true,
+  "raw_evidence": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1"
+}

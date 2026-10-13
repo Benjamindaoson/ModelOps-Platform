@@ -64,20 +64,24 @@ spec:
               job.
             properties:
               baseDigest:
-                description: Immutable SHA-256 of declared base model artifact.
-                pattern: ^[a-f0-9]{64}$
-                type: string
-              baseRevision:
-                description: Immutable upstream base model revision.
-                minLength: 7
+                description: BaseDigest is the SHA-256 of the independently attested
+                  base artifact.
                 type: string
               baseModel:
                 description: BaseModel is the HuggingFace model ID to fine-tune.
                 minLength: 1
                 type: string
+              baseRevision:
+                description: BaseRevision must be a pinned upstream model revision
+                  for dynamic workflows.
+                type: string
               dataSource:
                 description: DataSource configures where training data comes from.
                 properties:
+                  digest:
+                    description: Digest is the immutable SHA-256 dataset manifest
+                      checksum.
+                    type: string
                   format:
                     default: alpaca
                     description: Format is the data format.
@@ -85,10 +89,6 @@ spec:
                     - alpaca
                     - sharegpt
                     - custom
-                    type: string
-                  digest:
-                    description: SHA-256 of dataset_manifest.json.
-                    pattern: ^[a-f0-9]{64}$
                     type: string
                   path:
                     description: Path is the data location (e.g. "s3://datasets/my-data/"
@@ -117,13 +117,14 @@ spec:
               evaluation:
                 description: Evaluation configures post-training evaluation.
                 properties:
-                  minTokenF1:
-                    description: Independent heldout token F1 threshold.
-                    type: string
                   dataset:
                     type: string
                   enabled:
                     type: boolean
+                  minTokenF1:
+                    description: MinTokenF1 is the minimum independent held-out quality
+                      score.
+                    type: string
                 type: object
               method:
                 default: lora

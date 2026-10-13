@@ -1,0 +1,2 @@
+# SmolVLA Linux adapter v1
+Add a single-host subprocess job lifecycle, immutable version registry, structured metrics and optional MLflow bridge. Bind versioned VLA-Forge trainer and simulator-only action serving. Do not modify inherited text SFT, Helm or Operator contracts. Validate native/managed real-GPU equivalence, pause/resume, artifact integrity and development rollback. K8s remains unverified for this adapter.

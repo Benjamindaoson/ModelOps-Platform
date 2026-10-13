@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 
-TERMINAL = frozenset(("Succeeded", "Failed", "Error", "Terminated"))
+TERMINAL = frozenset(("Succeeded", "Failed", "Error", "Terminated", "COMPLETED", "FAILED", "CANCELLED"))
 
 
 def terminal_job_phase(phase: str) -> bool:

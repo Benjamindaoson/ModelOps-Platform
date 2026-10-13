@@ -1,0 +1,37 @@
+{
+  "samples_per_condition": 24,
+  "metrics": {
+    "broad_lora": {
+      "base_exact_match": 0.0,
+      "base_token_f1": 0.24764854861501087,
+      "candidate_exact_match": 0.0,
+      "candidate_token_f1": 0.2540083208172141,
+      "delta_exact_match": 0.0,
+      "delta_token_f1": 0.006359772202203212
+    },
+    "broad_qlora": {
+      "base_exact_match": 0.0,
+      "base_token_f1": 0.24764854861501087,
+      "candidate_exact_match": 0.0,
+      "candidate_token_f1": 0.26679324787844744,
+      "delta_exact_match": 0.0,
+      "delta_token_f1": 0.019144699263436565
+    },
+    "shortqa_lora": {
+      "base_exact_match": 0.4166666666666667,
+      "base_token_f1": 0.5605387667887668,
+      "candidate_exact_match": 0.4166666666666667,
+      "candidate_token_f1": 0.5605387667887668,
+      "delta_exact_match": 0.0,
+      "delta_token_f1": 0.0
+    }
+  },
+  "release_threshold": {
+    "candidate_token_f1": 0.55,
+    "delta_floor": -0.02
+  },
+  "broad_conditions_passed": false,
+  "shortqa_passed": true,
+  "shortqa_improvement_observed": false,
+  "selection_note": "One pre-frozen short-answer task after broad-task rejection; not a best-seed search."
+}

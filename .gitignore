@@ -66,3 +66,12 @@ dashboard/dashboard
 
 # Never commit measured inference outputs or request logs
 benchmarks/results/
+
+# Local v1 runtime and private evidence
+.tools/
+.gpu-venv/
+Evidence/
+
+.codegraph/
+*.egg-info/
+*.db

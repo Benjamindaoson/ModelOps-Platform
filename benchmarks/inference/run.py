@@ -8,6 +8,7 @@ Never fabricates latency numbers or stores API secrets in manifests.
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import csv
 import json
 import math
@@ -37,6 +38,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--run-id", default=None)
     p.add_argument("--output-root", type=Path, default=Path("benchmarks/results"))
+    p.add_argument("--tokenizer", default=None, help="Frozen tokenizer path for registry model aliases")
+    p.add_argument("--cli-profile", choices=("auto", "v0.10", "v0.19"), default="auto")
     p.add_argument("--dry-run", action="store_true", help="Print command without invoking a server")
     p.add_argument("--timeout-s", type=int, default=1800, help="Kill overlong benchmarks")
     p.add_argument("--gpu-poll-s", type=float, default=1.0, help="Live GPU telemetry interval (seconds)")
@@ -75,6 +78,10 @@ def validate(a: argparse.Namespace) -> None:
 
 
 def build_command(a: argparse.Namespace, result_dir: Path) -> list[str]:
+    profile = a.cli_profile
+    if profile == "auto":
+        try: profile = "v0.10" if importlib.metadata.version("vllm").startswith("0.10.") else "v0.19"
+        except importlib.metadata.PackageNotFoundError: profile = "v0.19"
     endpoints = {
         "openai-chat": "/v1/chat/completions",
         "openai": "/v1/completions",
@@ -85,14 +92,20 @@ def build_command(a: argparse.Namespace, result_dir: Path) -> list[str]:
         "--base-url", a.base_url.rstrip("/"), "--endpoint", endpoints[a.backend],
         "--model", a.model, "--dataset-name", "random",
         "--num-prompts", str(a.prompts), "--max-concurrency", str(a.concurrency),
-        "--request-rate", str(a.request_rate), "--input-len", str(a.input_len),
-        "--num-warmups", str(a.warmups), "--seed", str(a.seed),
+        "--request-rate", str(a.request_rate),
+        "--random-input-len" if profile == "v0.10" else "--input-len", str(a.input_len),
+        "--seed", str(a.seed),
         "--save-result", "--result-dir", str(result_dir),
         "--result-filename", "raw-benchmark.json",
         "--metric-percentiles", "50,95,99",
     ]
+    if profile == "v0.10": cmd += ["--endpoint-type", a.backend, "--ready-check-timeout-sec", "30"]
+    if profile != "v0.10": cmd += ["--num-warmups", str(a.warmups)]
+    elif a.warmups:
+        raise ValueError("vLLM 0.10 uses its own probe; perform external warmups then pass --warmups 0")
+    if a.tokenizer: cmd += ["--tokenizer", a.tokenizer]
     if a.backend != "openai-embeddings":
-        cmd += ["--output-len", str(a.output_len), "--percentile-metrics", "ttft,tpot,itl,e2el"]
+        cmd += ["--random-output-len" if profile == "v0.10" else "--output-len", str(a.output_len), "--percentile-metrics", "ttft,tpot,itl,e2el"]
     else:
         cmd += ["--percentile-metrics", "e2el"]
     return cmd

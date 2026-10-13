@@ -1,5 +1,6 @@
 """Real Kubernetes CustomObjects runtime. There is deliberately NO production fake fallback."""
 from __future__ import annotations
+import json
 
 from dataclasses import dataclass
 from typing import Any
@@ -46,6 +47,12 @@ def deployment_body(dep, artifact) -> dict:
         },
         "spec": {
             "source": artifact.source, "engine": dep.engine,
+            "model": {"id":artifact.id,"modelType":getattr(artifact,"model_type",None) or getattr(artifact,"family","llm"),
+                      "digest":artifact.digest,"revision":artifact.revision,
+                      **({"artifactURI":artifact.artifact_uri} if getattr(artifact,"artifact_uri",None) else {})},
+            "quantization":getattr(dep,"quantization","none"),
+            "cache":{"prefixCaching":getattr(dep,"cache",False)},
+            **({"custom":json.loads(dep.custom_json)} if getattr(dep,"custom_json",None) else {}),
             "replicas": dep.replicas, "resources": {
                 "gpu": dep.gpu, "cpu": "4", "memory": "16Gi",
             }, "engineArgs": args,

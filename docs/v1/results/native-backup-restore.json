@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "schema": "modelops.native-metadata-backup.v1",
+  "source": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/modelops.sqlite",
+  "backup": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/backups/metadata.sqlite",
+  "restored": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1/backups/restored.sqlite",
+  "row_counts": {
+    "alembic_version": 1,
+    "audit_events": 69,
+    "dataset_versions": 3,
+    "deployment_revisions": 18,
+    "deployments": 8,
+    "evaluation_records": 1,
+    "finetune_jobs": 4,
+    "model_artifacts": 7,
+    "release_approvals": 1,
+    "tenants": 1
+  },
+  "ids_preserved": true,
+  "integrity": "ok",
+  "foreign_key_errors": [],
+  "hashes": {
+    "backups/metadata.sqlite": "3aa725eaeaa61400b6c44931aae23fff799b09eb6e3fbea143fe7952f0c60179",
+    "backups/restored.sqlite": "3aa725eaeaa61400b6c44931aae23fff799b09eb6e3fbea143fe7952f0c60179"
+  },
+  "scope": "Real SQLite metadata restore; checkpoint binaries remain in original private owned storage; not full DR"
+}

@@ -1,0 +1,7 @@
+protocol: heldout_text_generation
+source_disjoint: true
+heldout_count: 24
+decode: greedy
+max_new_tokens: 64
+metrics: [token_f1, exact_match, finite_outputs]
+release_scope: development
