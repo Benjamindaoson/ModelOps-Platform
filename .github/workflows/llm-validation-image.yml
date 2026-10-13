@@ -1,0 +1,54 @@
+name: LLM validation image
+on:
+  push:
+    branches: [codex/llm-production-validation]
+    paths: [ops/vllm_start.py, deploy/llm-validation/**, .github/workflows/llm-validation-image.yml]
+  pull_request:
+    paths: [ops/vllm_start.py, deploy/llm-validation/**, .github/workflows/llm-validation-image.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free build space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish exact inference image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/llm-validation/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: |
+            ghcr.io/benjamindaoson/modelops-platform/llm-validation:${{ github.sha }}
+          provenance: true
+      - name: Image provenance receipt
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          mkdir -p image-evidence
+          python - <<'PY'
+          import json,os
+          json.dump({"source_revision":os.environ["SOURCE_REVISION"],"image_digest":os.environ["IMAGE_DIGEST"],"gpu_container_execution":"not executed on CPU runner","base_image":"vllm/vllm-openai:v0.10.2@sha256:607442e407b0fea97f8a132a78b787c121a996dd4de181fa08e8da06e71ec2db"},open("image-evidence/result.json","w"),indent=2)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llm-image-evidence
+          path: image-evidence/result.json

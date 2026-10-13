@@ -1,0 +1,5 @@
+# Installed by the immutable upstream image, not by an unconstrained pip upgrade.
+vllm==0.10.2
+torch==2.8.0
+# CPU tracking service uses the project-local version captured in evidence.
+mlflow==3.17.0

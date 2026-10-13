@@ -1,0 +1,26 @@
+services:
+  inference:
+    build:
+      context: ../..
+      dockerfile: deploy/llm-validation/Dockerfile
+    image: modelops-llm-validation:local
+    gpus: all
+    ports:
+      - "127.0.0.1:18000:8000"
+    environment:
+      MODEL_PATH: /model
+      MODEL_SHA256: ${MODEL_SHA256:?set the measured trained checkpoint SHA256}
+      SERVED_MODEL_NAME: ${SERVED_MODEL_NAME:-modelops-qwen3b-qlora}
+      GPU_MEMORY_UTILIZATION: ${GPU_MEMORY_UTILIZATION:-0.90}
+      MAX_MODEL_LEN: "2048"
+    volumes:
+      - "${MODEL_DIR:?set verified merged checkpoint directory}:/model:ro"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777,size=8g
+    shm_size: 2gb
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
