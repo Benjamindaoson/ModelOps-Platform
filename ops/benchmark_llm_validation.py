@@ -16,6 +16,29 @@ def stop(record):
     except psutil.TimeoutExpired:os.killpg(p.pid,signal.SIGKILL);p.wait(15)
     time.sleep(2)
 
+
+def read_trial(path):
+    import csv,math
+    path=Path(path)
+    status=json.loads((path/"status.json").read_text())
+    raw=json.loads((path/"raw-benchmark.json").read_text())
+    manifest=json.loads((path/"manifest.json").read_text())
+    if status.get("status")!="PASS" or raw.get("completed")!=manifest["prompts"]:raise ValueError("Incomplete official benchmark")
+    if len(raw.get("output_lens",[]))!=raw["completed"] or any(x!=manifest["output_len_tokens"] for x in raw["output_lens"]):
+        raise ValueError("Fixed output protocol not satisfied")
+    if raw["total_output_tokens"]!=raw["completed"]*manifest["output_len_tokens"]:raise ValueError("Output accounting mismatch")
+    rows=list(csv.DictReader((path/"gpu-telemetry.csv").open()))
+    values=lambda key:[float(x[key]) for x in rows if x.get(key) not in (None,"","N/A")]
+    util=values("utilization_percent");memory=values("memory_used_mib");power=values("power_w")
+    gpu={"samples":len(rows),"mean_utilization_percent":sum(util)/len(util) if util else None,
+         "peak_utilization_percent":max(util) if util else None,"peak_used_mib":max(memory) if memory else None,
+         "mean_power_w":sum(power)/len(power) if power else None,"peak_power_w":max(power) if power else None,
+         "scope":"Whole GPU sampled during official CLI subprocess, including client initialization"}
+    return {"status":"PASS","completed_requests":raw["completed"],"output_tokens":raw["total_output_tokens"],
+        "wall_s":raw["duration"],"requests_per_s":raw["request_throughput"],"output_tokens_per_s":raw["output_throughput"],
+        "latency_ms":{k:raw[k] for k in raw if k.startswith(("p50_","p95_","p99_"))},"gpu":gpu,
+        "raw_sha256":sha256(path/"raw-benchmark.json"),"status_sha256":sha256(path/"status.json")}
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument("--prompts",type=int,default=128);parser.add_argument("--repeats",type=int,default=3);args=parser.parse_args()
     if args.prompts!=128 or args.repeats!=3:raise ValueError("Frozen protocol requires 128 requests and three repeats")
@@ -41,6 +64,7 @@ def main():
             SERVING_HOST="127.0.0.1",SERVING_PORT=str(port),HF_HUB_OFFLINE="1",TOKENIZERS_PARALLELISM="false",
             PATH=str(ROOT/".gpu-venv/bin")+os.pathsep+env.get("PATH",""),PYTHONPATH=str(ROOT))
         env.pop("LD_LIBRARY_PATH",None);env.update(extra)
+        env.update(VLLM_CACHE_ROOT=str(ROOT/".tools/vllm-cache"),XDG_CACHE_HOME=str(ROOT/".tools/cache"))
         log=(folder/(name+"-server.log")).open("ab")
         cmd=[str(ROOT/".gpu-venv/bin/python"),"-m","ops.locked_exec","--",str(ROOT/".gpu-venv/bin/python"),"-m","ops.vllm_start"]
         began=time.perf_counter();p=subprocess.Popen(cmd,cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
@@ -74,7 +98,7 @@ def main():
               "--seed",str(8100+rep),"--gpu-poll-s","0.25","--timeout-s","600","--output-root",str(folder),"--run-id",run_id]
             with (folder/(run_id+"-controller.log")).open("wb") as output:
                 result=subprocess.run(bench,cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT,timeout=650)
-            normalized=json.loads((path/"result.json").read_text()) if (path/"result.json").exists() else {"status":"FAIL"}
+            normalized=read_trial(path) if (path/"status.json").exists() else {"status":"FAIL"}
             item={"profile":name,"repeat":rep,"concurrency":c,"run_id":run_id,"status":normalized.get("status"),"exit":result.returncode,
                   "result":normalized,"artifact_root":str(path),"cache_reset_status":cache_reset.status_code,"model_load_wall_s":owned["model_load_wall_s"]}
             records["trials"].append(item);write_json(folder/"progress.json",records)
