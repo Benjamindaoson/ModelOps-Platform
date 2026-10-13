@@ -41,6 +41,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--tokenizer", default=None, help="Frozen tokenizer path for registry model aliases")
     p.add_argument("--cli-profile", choices=("auto", "v0.10", "v0.19"), default="auto")
     p.add_argument("--dry-run", action="store_true", help="Print command without invoking a server")
+    p.add_argument("--fixed-lengths",action="store_true",help="Freeze random length ratio at zero (v0.10)")
+    p.add_argument("--ignore-eos",action="store_true",help="Require the requested output budget for matched trials")
+    p.add_argument("--save-detailed",action="store_true",help="Persist actual per-request timing and errors")
     p.add_argument("--timeout-s", type=int, default=1800, help="Kill overlong benchmarks")
     p.add_argument("--gpu-poll-s", type=float, default=1.0, help="Live GPU telemetry interval (seconds)")
     p.add_argument("--no-gpu-profile", action="store_true", help="Disable nvidia-smi polling")
@@ -103,6 +106,11 @@ def build_command(a: argparse.Namespace, result_dir: Path) -> list[str]:
     if profile != "v0.10": cmd += ["--num-warmups", str(a.warmups)]
     elif a.warmups:
         raise ValueError("vLLM 0.10 uses its own probe; perform external warmups then pass --warmups 0")
+    if getattr(a,"fixed_lengths",False):
+        if profile!="v0.10":raise ValueError("Fixed length contract currently validated for v0.10")
+        cmd += ["--random-range-ratio","0.0"]
+    if getattr(a,"ignore_eos",False):cmd += ["--ignore-eos"]
+    if getattr(a,"save_detailed",False):cmd += ["--save-detailed"]
     if a.tokenizer: cmd += ["--tokenizer", a.tokenizer]
     if a.backend != "openai-embeddings":
         cmd += ["--random-output-len" if profile == "v0.10" else "--output-len", str(a.output_len), "--percentile-metrics", "ttft,tpot,itl,e2el"]
