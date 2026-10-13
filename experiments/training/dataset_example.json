@@ -1,0 +1,28 @@
+{
+  "source": "databricks/databricks-dolly-15k",
+  "license": "CC-BY-SA-3.0",
+  "source_manifest_sha256": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+  "examples": [
+    {
+      "id": "dolly-355",
+      "prompt": "Answer with one short phrase. Return only the answer, with no explanation.\nWhich river can you hike in Utah?\nContext:\nHiking The Narrows is arguably the quintessential Zion experience. The Narrows can be hiked either as a top-down through-hike from Chamberlain Ranch to the Temple of Sinawava, or as an up-and-back bottom-up hike from the Temple of Sinawava. Hiking is done largely in the river as, for a third of the route, the river runs canyon wall to canyon wall. Water levels change from season to season; most hikers will wade at least waist-deep and many will swim a few short sections. \n\nThe Narrows is the narrowest section of Zion Canyon in Zion National Park, Utah, United States.",
+      "reference": "The Narrows at Zion National Park",
+      "source_index": 355,
+      "category": "closed_qa"
+    },
+    {
+      "id": "dolly-7571",
+      "prompt": "Answer with one short phrase. Return only the answer, with no explanation.\nGiven this paragraph about stainless steel, which of the two series contains the most nickel content?\nContext:\nThere are two subgroups of austenitic stainless steel. 300 series stainless steels achieve their austenitic structure primarily by a nickel addition while 200 series stainless steels substitute manganese and nitrogen for nickel, though there is still a small nickel content.",
+      "reference": "The 300 series contains the most nickel content.",
+      "source_index": 7571,
+      "category": "closed_qa"
+    },
+    {
+      "id": "dolly-5773",
+      "prompt": "Answer with one short phrase. Return only the answer, with no explanation.\nGiven this paragraph on the Persian language, which are the 2 sub groups of the Western Iranian language?\nContext:\nThe Western Iranian languages themselves are divided into two subgroups: Southwestern Iranian languages, of which Persian is the most widely spoken, and Northwestern Iranian languages, of which Kurdish and Balochi are the most widely spoken",
+      "reference": "Southwestern and Northwestern Iranian language",
+      "source_index": 5773,
+      "category": "closed_qa"
+    }
+  ]
+}

@@ -10,7 +10,7 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from .data_contract import sha256, validate_manifest, encode_sample, write_json
+from .data_contract import sha256, validate_manifest, encode_sample, write_json, verify_model_bundle
 
 _STOP=False
 def stop(signum,frame):
@@ -25,8 +25,7 @@ def train(config,resume=False):
     output=Path(config["output"]).resolve()
     output.mkdir(parents=True,exist_ok=True)
     if not torch.cuda.is_available():raise RuntimeError("A real CUDA GPU is required")
-    if sha256(Path(config["base_model"])/"model.safetensors")!=config["base_sha256"]:
-        raise ValueError("Frozen base checkpoint changed")
+    verify_model_bundle(config["base_model"],config["base_sha256"])
     rows,_=validate_manifest(config["dataset_manifest"],config["dataset_sha256"])
     seed=config["seed"]
     random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed_all(seed)
@@ -131,9 +130,9 @@ def train(config,resume=False):
                                             torch_dtype=dtype,trust_remote_code=False,use_safetensors=True)
     merged=PeftModel.from_pretrained(base,str(adapter)).merge_and_unload(safe_merge=True)
     directory=output/"merged"
-    merged.save_pretrained(directory,safe_serialization=True);tokenizer.save_pretrained(directory)
+    merged.save_pretrained(directory,safe_serialization=True,max_shard_size="10GB");tokenizer.save_pretrained(directory)
     checkpoint=directory/"model.safetensors"
-    if not checkpoint.is_file():raise RuntimeError("Expected single-file 0.5B checkpoint export")
+    if not checkpoint.is_file():raise RuntimeError("Expected bounded single-file checkpoint export")
     identity.update(checkpoint=str(checkpoint),checkpoint_sha256=sha256(checkpoint),
                     status="COMPLETED",wall_s=time.perf_counter()-start)
     write_json(output/"result.json",identity)
