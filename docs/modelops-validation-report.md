@@ -178,4 +178,4 @@ GitHub receives code, bounded public examples, real metrics, hash manifests and 
 
 ## Final verification evidence
 
-[Final acceptance and hashes](evidence/llm-validation/validation.json) records the software check results separately from actual GPU experiments. The feature PR preserves public ancestry and a private local/public source correspondence receipt; it is left for review, not automatically merged.
+[Final acceptance and hashes](evidence/llm-validation/validation.json) and [checked code-snapshot CI](evidence/llm-validation/ci.json) record the software check results separately from actual GPU experiments. The feature PR preserves public ancestry and a private local/public source correspondence receipt; it is left for review, not automatically merged.

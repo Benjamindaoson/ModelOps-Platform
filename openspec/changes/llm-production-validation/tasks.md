@@ -6,7 +6,7 @@
 - [x] Complete and audit 45 benchmark points / 5,760 requests; retain exclusions/controller errors.
 - [x] Build a real immutable Docker image and execute CPU container startup smoke; keep GPU container unvalidated.
 - [x] Generate English/Chinese README, architecture, experiment report, measured chart and final hash/link audit.
-- [x] Relevant CPU verification: 169 passed, 2 optional runtime skips; author review and existing feature-head CI checked.
-- [ ] Publish final report/code snapshot, verify final feature-head CI, update requested PR and leave it ready for review.
+- [x] Relevant CPU verification: 169 passed, 2 optional runtime skips; author review complete.
+- [x] Publish code/evidence snapshot with identical local/public tree and no force-push; verify all 11 code-head GitHub checks; update requested PR. Leave merging for user review.
 
-Kubernetes GPU deployment, AWQ inference comparison and new larger training are outside the latest explicit user scope. GPU Docker execution is documented but not a passed runtime gate.
+Final live PR checks are verified before handoff and recorded in private final GitHub status. Kubernetes GPU deployment, AWQ inference comparison and new larger training are outside the latest explicit user scope. GPU Docker execution is documented but not a passed runtime gate.

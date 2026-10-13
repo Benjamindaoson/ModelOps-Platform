@@ -48,7 +48,7 @@
   },
   "software_passed_total": 169,
   "optional_skips": 2,
-  "documentation_links_checked": 73,
+  "documentation_links_checked": 74,
   "screenshots_and_chart_decoded": true,
   "review": "Author review plus CI; no independent reviewer agents",
   "public_evidence_file_hashes": [
@@ -84,8 +84,8 @@
     },
     {
       "file": "docs/evidence/llm-validation/PHASE_06.md",
-      "bytes": 711,
-      "sha256": "28f5dddaa2144b22ca0fc2f8ac8ff2adc8f8a56970d52902b8a3dbd17aa75ed0"
+      "bytes": 1373,
+      "sha256": "e2a5605b5965b8682f90ddd9e2dcbd045eb86cee5ba125669cfb5f19605d4426"
     },
     {
       "file": "docs/evidence/llm-validation/PHASE_DOCKER.md",
@@ -111,6 +111,11 @@
       "file": "docs/evidence/llm-validation/benchmark/validation.json",
       "bytes": 46651,
       "sha256": "cb71d1556f852b95a6f27cae52185e529323e8df8f0943f93e2d6c84c5e68743"
+    },
+    {
+      "file": "docs/evidence/llm-validation/ci.json",
+      "bytes": 2573,
+      "sha256": "84735ba9cb5a95197ee6af5736741f646e143a3058423795a10751b59f6bd61f"
     },
     {
       "file": "docs/evidence/llm-validation/docker-container-smoke.json",
