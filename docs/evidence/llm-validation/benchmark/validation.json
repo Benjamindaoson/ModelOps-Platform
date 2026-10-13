@@ -1,0 +1,1088 @@
+{
+  "status": "PASS",
+  "points": 45,
+  "requests": 5760,
+  "unique_keys": 45,
+  "file_hashes": [
+    {
+      "trial": "baseline-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c1/raw-benchmark.json",
+      "sha256": "e5635e5eae2ad8b74baf11ed02146bb3e93a57fcf6df5d9e565827972893ae49",
+      "bytes": 235255
+    },
+    {
+      "trial": "baseline-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c1/status.json",
+      "sha256": "e246af3005ad3f0b66b92f2765427fdfe2c1fa2bc695288ed595a11dbee1c8c2",
+      "bytes": 311
+    },
+    {
+      "trial": "baseline-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c1/manifest.json",
+      "sha256": "ac64f930343badf57ee0c0eec20faa127b1e6775907be2354057b22a9c4b7b16",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c1/gpu-telemetry.csv",
+      "sha256": "1542b740c0c152a275331b8ba2b9b6e32f305b0631af49e5ee3cb20270773966",
+      "bytes": 21905
+    },
+    {
+      "trial": "baseline-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c4/raw-benchmark.json",
+      "sha256": "4d1b97081c27f29dcabb39a0d0e404aea002b6d4872c25403c07230d02c87a0e",
+      "bytes": 235121
+    },
+    {
+      "trial": "baseline-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c4/status.json",
+      "sha256": "cadc4e8c5811c5a9efc9fdffa977d6258c363db062503b7224cde3b45586c3ff",
+      "bytes": 311
+    },
+    {
+      "trial": "baseline-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c4/manifest.json",
+      "sha256": "aea2e3103caf0685e6d3691cdbf4bbb31a326c31df581aad3f4b11ad48471256",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c4/gpu-telemetry.csv",
+      "sha256": "123564a89561e3bc9097e7cbd5683c77049c94397649e00001ff3499e0d868a0",
+      "bytes": 8486
+    },
+    {
+      "trial": "baseline-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c8/raw-benchmark.json",
+      "sha256": "b97486c3bc9bb0f0db589c59e39444a615b3e9132a0605b4a7568e9de98c472e",
+      "bytes": 235242
+    },
+    {
+      "trial": "baseline-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c8/status.json",
+      "sha256": "e47cfafe760c0bb6c9e3cb12b75b085ff1aece290a0686fa12b2f203dc27dd39",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c8/manifest.json",
+      "sha256": "7e85b3ccf46c89b7666b6096d57242a6b83c80253f5eba8f8490645fdb0f585f",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c8/gpu-telemetry.csv",
+      "sha256": "b17cf5e0334afe7daff010cacebf59c34fbed3d707bfe3426700470b7b38bc47",
+      "bytes": 5190
+    },
+    {
+      "trial": "baseline-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c16/raw-benchmark.json",
+      "sha256": "dd1c08f413576c2f94bd12f2bdc8ed3d3bc8c8f1d30723655ff8fc22ab173b96",
+      "bytes": 235183
+    },
+    {
+      "trial": "baseline-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c16/status.json",
+      "sha256": "86f2df8517621725f1e042c7a29d62b0ade25a537067184bfc5e478f6356da0e",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c16/manifest.json",
+      "sha256": "47106d271c472a4c4672ce24ec71fe1db911e48ae568fe66c3afd22b8e5b51c6",
+      "bytes": 1949
+    },
+    {
+      "trial": "baseline-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c16/gpu-telemetry.csv",
+      "sha256": "3d5b1c7fea2dab88692205cdd0e4c784a2f1a9e12d6cc8a13d196f201bc3a623",
+      "bytes": 3971
+    },
+    {
+      "trial": "baseline-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c32/raw-benchmark.json",
+      "sha256": "a18c52583a2f6fd13165131a63b5849f3591188a96aeecddc2b66eb536d5db64",
+      "bytes": 234953
+    },
+    {
+      "trial": "baseline-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c32/status.json",
+      "sha256": "2ad0e1e4e6513e317a72513ebcf63e4191220999d183e0fbe79dfbb8afd96aae",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c32/manifest.json",
+      "sha256": "48318e8b9607b06eb4b58fc9193fd8cbaa9e2308c01c0e10fcac0d857cf2632a",
+      "bytes": 1949
+    },
+    {
+      "trial": "baseline-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r0-c32/gpu-telemetry.csv",
+      "sha256": "7adfadc14feada547fea5e4bd44531b3a0ceb406a06885b345f3433a37fb5af5",
+      "bytes": 3240
+    },
+    {
+      "trial": "baseline-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c1/raw-benchmark.json",
+      "sha256": "6d5e2ac10736bbb79d34bb18a93b683d3f83296133072267613b67db6d0bef10",
+      "bytes": 234375
+    },
+    {
+      "trial": "baseline-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c1/status.json",
+      "sha256": "470968c6ffcbdb847decf5fde0ef29f2900ace7141e6d41e40a985ce9798da56",
+      "bytes": 311
+    },
+    {
+      "trial": "baseline-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c1/manifest.json",
+      "sha256": "beab39bf0fc4ed471e705b10d1a86d1517101149fa1b03b1c7763cedf0587d7f",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c1/gpu-telemetry.csv",
+      "sha256": "d89989685479b2e24e940549a7c376d1f9995b1ab00ca99e023eb400eb5fd9b7",
+      "bytes": 22638
+    },
+    {
+      "trial": "baseline-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c4/raw-benchmark.json",
+      "sha256": "c0f77d408dc70403128234d0df7b78dbd3e121553a35ff872bf1ee0dd2a0e2db",
+      "bytes": 234655
+    },
+    {
+      "trial": "baseline-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c4/status.json",
+      "sha256": "240660591d673c236ab2551393f2a5d1f1f3363f3d765b8f301668aaff668350",
+      "bytes": 311
+    },
+    {
+      "trial": "baseline-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c4/manifest.json",
+      "sha256": "e009a3fbc871d8265bf7948b88b2c5dd25086097203af3dc5a506712588a9dc8",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c4/gpu-telemetry.csv",
+      "sha256": "562f6665bd3db284c35551342040deb276120731d76eb5cd98124b29c1606b57",
+      "bytes": 7933
+    },
+    {
+      "trial": "baseline-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c8/raw-benchmark.json",
+      "sha256": "3181187045043ec93fcc3b1fa04afcf1b230861a218f36c017fca8127e7c5d8b",
+      "bytes": 234453
+    },
+    {
+      "trial": "baseline-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c8/status.json",
+      "sha256": "494dff33973304512f307e73c7114039f0cabef0187e1ed02f1233e7c1f54e39",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c8/manifest.json",
+      "sha256": "72b15f34c45b0e3e1c4e0f6e415c10561bce5e25bef581f77376c28ecc65e0fb",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c8/gpu-telemetry.csv",
+      "sha256": "293d8ca71bb7f263ff708c834114f30f312f44a07addd7188f3cee14a4182996",
+      "bytes": 5558
+    },
+    {
+      "trial": "baseline-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c16/raw-benchmark.json",
+      "sha256": "fbc735ed5c73131b86410def6d8b8b978574ef3893dd927dec37acd4f725af14",
+      "bytes": 234256
+    },
+    {
+      "trial": "baseline-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c16/status.json",
+      "sha256": "4731252740a157d1cfae06514e861ee8858c0cc9979c7c135d1834176e665c33",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c16/manifest.json",
+      "sha256": "161ca857491fe78f3e5a9e60b65689f2a4ee983810393f4edf1b55d4f1923dab",
+      "bytes": 1949
+    },
+    {
+      "trial": "baseline-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c16/gpu-telemetry.csv",
+      "sha256": "f79903912b1ba4d11447b540fe2133f1a119033ba0064110a958c8d98b8db407",
+      "bytes": 3908
+    },
+    {
+      "trial": "baseline-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c32/raw-benchmark.json",
+      "sha256": "5ee2f1b297f5e158e2d0b73e88c987ddd48fb7fda43cca42f2852bf4212417b4",
+      "bytes": 234053
+    },
+    {
+      "trial": "baseline-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c32/status.json",
+      "sha256": "814b564480f79d5a9b51027f9c51259d404e3f4135ccd920623e5259c138ab3f",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c32/manifest.json",
+      "sha256": "d739b3d754fef42a7f6ae741f52161a8f8165d8bcf5485b2f0f9f6a54e3f7966",
+      "bytes": 1949
+    },
+    {
+      "trial": "baseline-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r1-c32/gpu-telemetry.csv",
+      "sha256": "eb43c8af0d770bf2eaeca2a52134d1f277b63c64513d1258d6490b4a481dd36e",
+      "bytes": 3181
+    },
+    {
+      "trial": "baseline-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c1/raw-benchmark.json",
+      "sha256": "7f0dfa0b01ad709fc12a67a11594f207a56d5c6adea3db75ba14c44cf384ec31",
+      "bytes": 234426
+    },
+    {
+      "trial": "baseline-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c1/status.json",
+      "sha256": "522c5e2dc1682c32a5567953ced82a66d2fd6641dd0a4a92889ac64df346eb02",
+      "bytes": 311
+    },
+    {
+      "trial": "baseline-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c1/manifest.json",
+      "sha256": "40d5f3737656a9aaa03d9d3c4911d17ccd4c9c17098adc75eba8344a3cf7f71d",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c1/gpu-telemetry.csv",
+      "sha256": "15350cfd48d79d9ec4be9eeb253d68a02b03e26eaa1fc19f3028a26261a10aa3",
+      "bytes": 22022
+    },
+    {
+      "trial": "baseline-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c4/raw-benchmark.json",
+      "sha256": "8f85ca4ebbdd67fac69805339636a665d5e8c3dba3ced239ade1917fca8ba8a7",
+      "bytes": 234844
+    },
+    {
+      "trial": "baseline-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c4/status.json",
+      "sha256": "31d86c3d4ae68d9988818bdc91086ef4188fedf9264bf8b61914d65d5571ffc3",
+      "bytes": 311
+    },
+    {
+      "trial": "baseline-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c4/manifest.json",
+      "sha256": "f9714eba222bde0ef2027624026fce06ed750802b4d94a867ecc7424e5f3f24f",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c4/gpu-telemetry.csv",
+      "sha256": "64226986ecabf9611620e658348b90f0b72c38323ac96ae3bd570cd081dc573e",
+      "bytes": 7872
+    },
+    {
+      "trial": "baseline-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c8/raw-benchmark.json",
+      "sha256": "5f951f8aa38f541c2c7ad3f1d72791aaa8f6f99394fc4897da0386e053aaa775",
+      "bytes": 234919
+    },
+    {
+      "trial": "baseline-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c8/status.json",
+      "sha256": "15c9367d6d3aadbc91c8b82e43eebf0b0a93c50cfb1e17afcb9143fa0261f4a2",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c8/manifest.json",
+      "sha256": "19b5d1de4fe9b71ef2108974153a719dd4e21d8c3a12e20b7cf2c053b22b6afc",
+      "bytes": 1946
+    },
+    {
+      "trial": "baseline-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c8/gpu-telemetry.csv",
+      "sha256": "9514c27b53de8c7061253672c9ed9d5c3c3e6a4d1bcd114ce0ff2987e11bcd9c",
+      "bytes": 5310
+    },
+    {
+      "trial": "baseline-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c16/raw-benchmark.json",
+      "sha256": "f90128b3992c492d52142b94dc873d08f6f98ec311aff22cec41cd079f644473",
+      "bytes": 234262
+    },
+    {
+      "trial": "baseline-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c16/status.json",
+      "sha256": "86f2df8517621725f1e042c7a29d62b0ade25a537067184bfc5e478f6356da0e",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c16/manifest.json",
+      "sha256": "a2428eec4bab367efc8307085405ef300941f03f2919c71f0f97d57f4167509e",
+      "bytes": 1949
+    },
+    {
+      "trial": "baseline-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c16/gpu-telemetry.csv",
+      "sha256": "585f1eae22a7cbf402b7f09a6e78f2867a9831f0a8c2fe70af8a0f90c385f45a",
+      "bytes": 3972
+    },
+    {
+      "trial": "baseline-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c32/raw-benchmark.json",
+      "sha256": "00298161cf4ba894e064605578b39b17e872d7e40a964a066872488c08e57c42",
+      "bytes": 234172
+    },
+    {
+      "trial": "baseline-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c32/status.json",
+      "sha256": "2ad0e1e4e6513e317a72513ebcf63e4191220999d183e0fbe79dfbb8afd96aae",
+      "bytes": 310
+    },
+    {
+      "trial": "baseline-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c32/manifest.json",
+      "sha256": "51baac822fb12a99f585131492e8dd6061d42adda72f4457f9cac767d10d0727",
+      "bytes": 1949
+    },
+    {
+      "trial": "baseline-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/baseline-r2-c32/gpu-telemetry.csv",
+      "sha256": "b12ffa5733a78f873bf2c9fa831c69aec1c7f1862c14b3c314d05625f452a60b",
+      "bytes": 3237
+    },
+    {
+      "trial": "batching-token-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c1/raw-benchmark.json",
+      "sha256": "4a4e4e204d01aad5e9edeac35bcfb14bd8b036a417305fc7b796036d62ed9b24",
+      "bytes": 235260
+    },
+    {
+      "trial": "batching-token-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c1/status.json",
+      "sha256": "8c6a88fb38e379bd4391e80d36063329904b846ee0b268a976617168f68c2756",
+      "bytes": 311
+    },
+    {
+      "trial": "batching-token-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c1/manifest.json",
+      "sha256": "2fe58d0ec9fc754eeaf6402e5fac86c2b80f938e19e69513a86d3762d56d07f0",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c1/gpu-telemetry.csv",
+      "sha256": "5cc1af6dd7927d6ec149e526263f0753b330e81e5babf825c1611b1a0e1d2898",
+      "bytes": 22328
+    },
+    {
+      "trial": "batching-token-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c4/raw-benchmark.json",
+      "sha256": "97e61c4a521300fdaa67ec94c5c9f2e8526bdbf79d3a9f65c4a1531b82b462a4",
+      "bytes": 235346
+    },
+    {
+      "trial": "batching-token-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c4/status.json",
+      "sha256": "5da011b9494caad7efbecc36de78af9f743a1b7e0a39492d70679ce793b502bf",
+      "bytes": 311
+    },
+    {
+      "trial": "batching-token-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c4/manifest.json",
+      "sha256": "d9e266e0c1a1ed55dc44a7ebd6bdcfccc5a4f4352453d73332239fa19ad86996",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c4/gpu-telemetry.csv",
+      "sha256": "ba6fd7568d158fdfce6cb30c5c86d533947941e925a6bf804d1fe418d6afbba2",
+      "bytes": 8055
+    },
+    {
+      "trial": "batching-token-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c8/raw-benchmark.json",
+      "sha256": "c132fe944fa5cf8481c0787264112a16170826478fb30b8b512c08edb2b2d5f3",
+      "bytes": 235114
+    },
+    {
+      "trial": "batching-token-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c8/status.json",
+      "sha256": "4b42a42e6209c115fabc81e55e2a3a76eddac81631783b971dda9793f12e42b1",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c8/manifest.json",
+      "sha256": "160d3dd73d9529984b6e1e93a271d34ca616ddacd37d6e1e7d01184bfe061b70",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c8/gpu-telemetry.csv",
+      "sha256": "17cffabaac121499f8003dd9daedc4cd4551110b5e3353b9d29f198a2f810690",
+      "bytes": 5067
+    },
+    {
+      "trial": "batching-token-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c16/raw-benchmark.json",
+      "sha256": "b21147ebb5589e0bf6cde41935adc5b98bcca114306dad89695168098d7a1c54",
+      "bytes": 235194
+    },
+    {
+      "trial": "batching-token-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c16/status.json",
+      "sha256": "875d849ccb106813d171708a0e9e04b8dbe53d836d6001f0a118d7b7574726f8",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c16/manifest.json",
+      "sha256": "4a48747981cf5aa98b3947cd09b28555c1460caf248b9dfa7d14d72e0d1a6afd",
+      "bytes": 1962
+    },
+    {
+      "trial": "batching-token-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c16/gpu-telemetry.csv",
+      "sha256": "312e3ce65fedf3015ee25b7354f16c9bbcf0b76d16bbb6eaeb503992f80c32b3",
+      "bytes": 3785
+    },
+    {
+      "trial": "batching-token-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c32/raw-benchmark.json",
+      "sha256": "8c909394a456d74b95c364f238f9ab63bcc6b5c04ef0d02d891d376193c080f8",
+      "bytes": 235003
+    },
+    {
+      "trial": "batching-token-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c32/status.json",
+      "sha256": "814b564480f79d5a9b51027f9c51259d404e3f4135ccd920623e5259c138ab3f",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c32/manifest.json",
+      "sha256": "1b916bebb2a462955733cc0568a22c1076a743abbdb536555af7b499e19986fa",
+      "bytes": 1962
+    },
+    {
+      "trial": "batching-token-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r0-c32/gpu-telemetry.csv",
+      "sha256": "91e06d31111acf7b7ae0f31fe2c8da42844cda946331d4d640d6005e2f0b1ce7",
+      "bytes": 3176
+    },
+    {
+      "trial": "batching-token-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c1/raw-benchmark.json",
+      "sha256": "672389c2dbcd412112020cafd5430e41d6aff7f6598696b9dbf405452ac6bbf6",
+      "bytes": 234344
+    },
+    {
+      "trial": "batching-token-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c1/status.json",
+      "sha256": "d915a77d09185e5a6dbc4bd8ebcb1d8d8b252a6fbb9a22998a4debe4f41f0b29",
+      "bytes": 311
+    },
+    {
+      "trial": "batching-token-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c1/manifest.json",
+      "sha256": "545ac1dcbf53fec843b0dd80ee0d6b9bc5508cc2f4e2a8a7e11ce3a04236fe08",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c1/gpu-telemetry.csv",
+      "sha256": "5e3d0d043aaebc1f6990fce3333e2ea8a57ecfe8a73fbf5417af97b8870f54a6",
+      "bytes": 22146
+    },
+    {
+      "trial": "batching-token-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c4/raw-benchmark.json",
+      "sha256": "14b7be2a21db5b7dfc8e3c1a881076e997790ba2ebd9603cb8e73601e1e0ab24",
+      "bytes": 234597
+    },
+    {
+      "trial": "batching-token-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c4/status.json",
+      "sha256": "4e95681197aa7ea3ce0ed6045cfd89416cb6c30b0538e916191bef3fbd35c4a8",
+      "bytes": 311
+    },
+    {
+      "trial": "batching-token-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c4/manifest.json",
+      "sha256": "8e733de35c35553ea863a6babbd6d49c0ad196e8c6fd5de5ff69c5affbfc4cac",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c4/gpu-telemetry.csv",
+      "sha256": "49ae2f00522326ad498761be18801eea4f5e2f316b4c65baba8274a0de3c0676",
+      "bytes": 7751
+    },
+    {
+      "trial": "batching-token-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c8/raw-benchmark.json",
+      "sha256": "8866c9e8f0efa7c4538b44f0170484ed40f148e469de06c3abb7ff663c57f99d",
+      "bytes": 234661
+    },
+    {
+      "trial": "batching-token-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c8/status.json",
+      "sha256": "3138e5e321848dadb4dbb50be6361c29abf01c9fef04e0cda31c2e1c6537a5f9",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c8/manifest.json",
+      "sha256": "507c7554a5177187eae4fbe02d6822c0707c599bf693f94939e2ea6241afa156",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c8/gpu-telemetry.csv",
+      "sha256": "2e5e2b2641b2dd7c095b6d866b95565413c15e5804b1aa5a7d921cde0eda8ba6",
+      "bytes": 5131
+    },
+    {
+      "trial": "batching-token-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c32/raw-benchmark.json",
+      "sha256": "208f75459b877dd31a379eed422952472baf8ab5555580ed0f1b1b4d2dc8fd9d",
+      "bytes": 234278
+    },
+    {
+      "trial": "batching-token-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c32/status.json",
+      "sha256": "814b564480f79d5a9b51027f9c51259d404e3f4135ccd920623e5259c138ab3f",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c32/manifest.json",
+      "sha256": "e22e0688a3b8c9f1082d753890b5f09f80bbc598357cfeeac93cbea68172240d",
+      "bytes": 1962
+    },
+    {
+      "trial": "batching-token-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c32/gpu-telemetry.csv",
+      "sha256": "9f4b6bbb6e12105fba967938fa7018b5814719fd19b19d32196f1429e4255efa",
+      "bytes": 3175
+    },
+    {
+      "trial": "batching-token-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c1/raw-benchmark.json",
+      "sha256": "356538792b4826fb849ef9db2353fab0ac00ebac385a1cc17025224699029378",
+      "bytes": 234358
+    },
+    {
+      "trial": "batching-token-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c1/status.json",
+      "sha256": "05428baa3bf40a5167460a30ab2c0767bf279aacc4d6e7f01ea15762817b66bd",
+      "bytes": 311
+    },
+    {
+      "trial": "batching-token-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c1/manifest.json",
+      "sha256": "0ddb37ac934cd08e3c137413a3b5881c5b7d99748eef6fe454bbf4c40ac5cc4e",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c1/gpu-telemetry.csv",
+      "sha256": "8d13ac3ec1107abcfa89d411894ddf0f5008e16223d4658d0f6075ee38e9aded",
+      "bytes": 22271
+    },
+    {
+      "trial": "batching-token-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c4/raw-benchmark.json",
+      "sha256": "5af60189a49a9c93c35d5db15417eb5677996e8e67819a17dc2f717c68ab65bc",
+      "bytes": 234856
+    },
+    {
+      "trial": "batching-token-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c4/status.json",
+      "sha256": "4e95681197aa7ea3ce0ed6045cfd89416cb6c30b0538e916191bef3fbd35c4a8",
+      "bytes": 311
+    },
+    {
+      "trial": "batching-token-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c4/manifest.json",
+      "sha256": "f569c2e07183b060214087036f5bceb8497a437594f23a17c6b2ee87c829cf2f",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c4/gpu-telemetry.csv",
+      "sha256": "14d5cef87fc471ba54b2dda1d3b03d69927d700d508c12f612dfe49efb773dca",
+      "bytes": 7751
+    },
+    {
+      "trial": "batching-token-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c8/raw-benchmark.json",
+      "sha256": "10b0952bb7fb4c5a02c57eb8af1af3bb2dcdf691ce1500472ea2c83115ecde55",
+      "bytes": 234410
+    },
+    {
+      "trial": "batching-token-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c8/status.json",
+      "sha256": "3138e5e321848dadb4dbb50be6361c29abf01c9fef04e0cda31c2e1c6537a5f9",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c8/manifest.json",
+      "sha256": "9da0d20f4185444874fb3f4b2b9b6e7aae8b61e31746e9c22c221e44b43073ff",
+      "bytes": 1959
+    },
+    {
+      "trial": "batching-token-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c8/gpu-telemetry.csv",
+      "sha256": "726b983e21fc01e59e3e7dae86aa5549ce92fbf695f5653873a99778b9dbdf2d",
+      "bytes": 5127
+    },
+    {
+      "trial": "batching-token-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c16/raw-benchmark.json",
+      "sha256": "f23f5b7d6f6df95914bdd83b89115bdb16c683a0c5f3e20800d266c9a079c34c",
+      "bytes": 234312
+    },
+    {
+      "trial": "batching-token-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c16/status.json",
+      "sha256": "f64d123d8ba17237352338457cb84ac9edb38d9b069a9526be10e218a7d91006",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c16/manifest.json",
+      "sha256": "3c9ef2b49642eb7e487d743ae00a556f3887efbe2fb654544b957f16ea67d2a7",
+      "bytes": 1962
+    },
+    {
+      "trial": "batching-token-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c16/gpu-telemetry.csv",
+      "sha256": "40d5ae3a93e0276ac34f1e4d9360c0f031b3b51cd960925b1c411fbe80ff423d",
+      "bytes": 3847
+    },
+    {
+      "trial": "batching-token-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c32/raw-benchmark.json",
+      "sha256": "b87c1abb3d81d8e67c98829ae5f20a3e9f2a01e62b680e90fdb0db61f85d0245",
+      "bytes": 234231
+    },
+    {
+      "trial": "batching-token-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c32/status.json",
+      "sha256": "814b564480f79d5a9b51027f9c51259d404e3f4135ccd920623e5259c138ab3f",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c32/manifest.json",
+      "sha256": "f8088ab04ff80a0ae872e5d1da903c4992eb5602496b53e81e34f708efc4aa0b",
+      "bytes": 1962
+    },
+    {
+      "trial": "batching-token-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r2-c32/gpu-telemetry.csv",
+      "sha256": "bb66659af9d44a7ef9474f19676304946de1f109e75c02fb3772879350820ca7",
+      "bytes": 3179
+    },
+    {
+      "trial": "kv-memory-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c1/raw-benchmark.json",
+      "sha256": "ef490952a89c23e86086e1880e9b3acf17ef5db92b371ce32042fe505abb0ce5",
+      "bytes": 235174
+    },
+    {
+      "trial": "kv-memory-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c1/status.json",
+      "sha256": "470968c6ffcbdb847decf5fde0ef29f2900ace7141e6d41e40a985ce9798da56",
+      "bytes": 311
+    },
+    {
+      "trial": "kv-memory-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c1/manifest.json",
+      "sha256": "0d590c9a5282f7c739df7e2276316ce47b20227edbd28946c0e7e7ed042746a6",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r0-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c1/gpu-telemetry.csv",
+      "sha256": "971f3ef6ccc95d4427cab8c90fcea4c0cfadd02e2288db243c1ebf0446a99ef5",
+      "bytes": 22638
+    },
+    {
+      "trial": "kv-memory-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c4/raw-benchmark.json",
+      "sha256": "454f7e5cd3ae5ab94780d26807fb54838ff27f2607942eb7d6879d62a1a2e25e",
+      "bytes": 235050
+    },
+    {
+      "trial": "kv-memory-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c4/status.json",
+      "sha256": "31d86c3d4ae68d9988818bdc91086ef4188fedf9264bf8b61914d65d5571ffc3",
+      "bytes": 311
+    },
+    {
+      "trial": "kv-memory-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c4/manifest.json",
+      "sha256": "2298ebf2390c598d7f4df3e92305407ff037e310f1c97917aadb4b6a9c19d6df",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r0-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c4/gpu-telemetry.csv",
+      "sha256": "99e9d210a1c75f8e0cb6540ee9887b499ff4ca7b907da7164d03120558117115",
+      "bytes": 7876
+    },
+    {
+      "trial": "kv-memory-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c8/raw-benchmark.json",
+      "sha256": "b4eedfaa97f5b51d28ce0693ee17c9506763fe95d9693b5e6f17f0733bad469d",
+      "bytes": 235071
+    },
+    {
+      "trial": "kv-memory-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c8/status.json",
+      "sha256": "15c9367d6d3aadbc91c8b82e43eebf0b0a93c50cfb1e17afcb9143fa0261f4a2",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c8/manifest.json",
+      "sha256": "75902e7468d7488a2f46e4974b827f71f69003a23bc8a87eed2b96da15d6fcf2",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r0-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c8/gpu-telemetry.csv",
+      "sha256": "171d089f0e1deaa1863662dc35b795e4ad54b22ec395bb70ab4852e919ad7f50",
+      "bytes": 5310
+    },
+    {
+      "trial": "kv-memory-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c16/raw-benchmark.json",
+      "sha256": "fd373de622af9d248796e03c06c5e2286547fe77b452b050e0c19061993fc63b",
+      "bytes": 235116
+    },
+    {
+      "trial": "kv-memory-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c16/status.json",
+      "sha256": "4731252740a157d1cfae06514e861ee8858c0cc9979c7c135d1834176e665c33",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c16/manifest.json",
+      "sha256": "c9332624b8fcd468f94b948dcc06a13a28389e456e54af50374864a609e3c6ea",
+      "bytes": 1957
+    },
+    {
+      "trial": "kv-memory-budget-r0-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c16/gpu-telemetry.csv",
+      "sha256": "6a08c1c5eb6b6c87ecdd19b798ba5121b91fcd6a26eba8138421403beb0bdcb6",
+      "bytes": 3911
+    },
+    {
+      "trial": "kv-memory-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c32/raw-benchmark.json",
+      "sha256": "98827b89a2cdb4aec3b59beb4aae214412a82b57b1c49dddb48ea503f80a16f2",
+      "bytes": 235077
+    },
+    {
+      "trial": "kv-memory-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c32/status.json",
+      "sha256": "2ad0e1e4e6513e317a72513ebcf63e4191220999d183e0fbe79dfbb8afd96aae",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c32/manifest.json",
+      "sha256": "c707a56cc301be4cd065b02c80c6d9fbce3043d2ea9c958ce98a8d39da8be553",
+      "bytes": 1957
+    },
+    {
+      "trial": "kv-memory-budget-r0-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r0-c32/gpu-telemetry.csv",
+      "sha256": "7dbf7cc3cd134c7c74862a0ff8b4738130cd132adf6f0f5031352ec0970be8df",
+      "bytes": 3237
+    },
+    {
+      "trial": "kv-memory-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c1/raw-benchmark.json",
+      "sha256": "7d489825fa98882178985cc7d5dcdf7d83bdb1a50aa211bcf5933a9aa8f31e77",
+      "bytes": 234422
+    },
+    {
+      "trial": "kv-memory-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c1/status.json",
+      "sha256": "05428baa3bf40a5167460a30ab2c0767bf279aacc4d6e7f01ea15762817b66bd",
+      "bytes": 311
+    },
+    {
+      "trial": "kv-memory-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c1/manifest.json",
+      "sha256": "1cd044178b94d9a3bc3e055667ca8aafaffa42cdd5062bf6e5a25e279da16957",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r1-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c1/gpu-telemetry.csv",
+      "sha256": "99979afa972d6ed0a6013c508f8a152a93b85c0cbc51ecc584eaf0438b3915cb",
+      "bytes": 22269
+    },
+    {
+      "trial": "kv-memory-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c4/raw-benchmark.json",
+      "sha256": "4b4d8f2e0da346f493a228511d0a66604ee4c503d1702b9d8d5fa739fd73707f",
+      "bytes": 234567
+    },
+    {
+      "trial": "kv-memory-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c4/status.json",
+      "sha256": "240660591d673c236ab2551393f2a5d1f1f3363f3d765b8f301668aaff668350",
+      "bytes": 311
+    },
+    {
+      "trial": "kv-memory-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c4/manifest.json",
+      "sha256": "4b48d0cabfd834130cb99cc4cefa943fcb1401bcabe9bd524e06cb747e124457",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r1-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c4/gpu-telemetry.csv",
+      "sha256": "758dbdc43f33cc7a92c1ba3feba1f83c3e47a676c3e4753261eaeb62ed5cec36",
+      "bytes": 7932
+    },
+    {
+      "trial": "kv-memory-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c8/raw-benchmark.json",
+      "sha256": "b78aec7041305ff26d26a310161ac9ec84009871d7ae1f9bb5de0be6a3c56355",
+      "bytes": 234344
+    },
+    {
+      "trial": "kv-memory-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c8/status.json",
+      "sha256": "4b42a42e6209c115fabc81e55e2a3a76eddac81631783b971dda9793f12e42b1",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c8/manifest.json",
+      "sha256": "98315305a3a0253bc4e9cc07c40d1f1f6c0c57edabde179e18d154f1b2c7dbcc",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r1-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c8/gpu-telemetry.csv",
+      "sha256": "bd1c8f1cd3aa80651a8ce172f99773863edf79e5109d95a5f1991b6cfd238b3a",
+      "bytes": 5068
+    },
+    {
+      "trial": "kv-memory-budget-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c16/raw-benchmark.json",
+      "sha256": "1102eae634d7b241fad4e6298af556b75007bb3bd936be94c99afa286916012a",
+      "bytes": 234259
+    },
+    {
+      "trial": "kv-memory-budget-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c16/status.json",
+      "sha256": "f64d123d8ba17237352338457cb84ac9edb38d9b069a9526be10e218a7d91006",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c16/manifest.json",
+      "sha256": "2ee46b9aa17e1746091acc239d6c2138b96cfa06bace70d080008130e48ad31b",
+      "bytes": 1957
+    },
+    {
+      "trial": "kv-memory-budget-r1-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c16/gpu-telemetry.csv",
+      "sha256": "5d72e81d6e31c55d3452a421f258b3177ff9c4884088020886e66a8fbef66799",
+      "bytes": 3847
+    },
+    {
+      "trial": "kv-memory-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c32/raw-benchmark.json",
+      "sha256": "2917e08ff28f92330809f5a4aa7ad59dcd671ae688a84ea936c4990d13a8ef45",
+      "bytes": 234306
+    },
+    {
+      "trial": "kv-memory-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c32/status.json",
+      "sha256": "814c9bc91126be19e79b86c6413e8d17294e8a2c44ae63c7cd78105d81101717",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c32/manifest.json",
+      "sha256": "994427ba6f2fcb1ee882a60799eaa697a8a730ef2a359639bb3e66950c75b5da",
+      "bytes": 1957
+    },
+    {
+      "trial": "kv-memory-budget-r1-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r1-c32/gpu-telemetry.csv",
+      "sha256": "6bfcd22444f5c39c20b9cc992312f8773100903099bc573a1b5fe60beb0f2655",
+      "bytes": 3115
+    },
+    {
+      "trial": "kv-memory-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c1/raw-benchmark.json",
+      "sha256": "31418674624fa51113cd4986bf22c634b6dd070a9e2f7984b7e73e98237bb4d3",
+      "bytes": 234393
+    },
+    {
+      "trial": "kv-memory-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c1/status.json",
+      "sha256": "e8ce4ad7852a8ad60dcc5c9940c750a885b70389a85a71e1b11f5146bab15c48",
+      "bytes": 311
+    },
+    {
+      "trial": "kv-memory-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c1/manifest.json",
+      "sha256": "184126953fb92d8c5b0533559f872faa914a7c7e70e73ff130cd0a6452d211a1",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r2-c1",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c1/gpu-telemetry.csv",
+      "sha256": "6e603db2d34641d8a72b55ba6057beb78a53f66f1796455813afc0e44f40146e",
+      "bytes": 21658
+    },
+    {
+      "trial": "kv-memory-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c4/raw-benchmark.json",
+      "sha256": "491b9c96ac57548406eb463d3ac2e9309020e08b7137bf3aa7f67eb485ab6612",
+      "bytes": 234914
+    },
+    {
+      "trial": "kv-memory-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c4/status.json",
+      "sha256": "fce5a344f534cdf426737cde824324ee5a1068bf118d268567113af77d574b0f",
+      "bytes": 311
+    },
+    {
+      "trial": "kv-memory-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c4/manifest.json",
+      "sha256": "02aaea621af9ce3bcda3d9bbac213d22ebe6d8f8c4630dcb23ebccec0111c50a",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r2-c4",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c4/gpu-telemetry.csv",
+      "sha256": "aa5ac97ffe6fa3a2d9578f0015b1e6f17d6eade20d68a16e7c1b94b073d3aa1f",
+      "bytes": 7813
+    },
+    {
+      "trial": "kv-memory-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c8/raw-benchmark.json",
+      "sha256": "c7e3ed9307e54d77c07e73031c89534f695f9001b89b0e456d0d3f43e11f5e9f",
+      "bytes": 234383
+    },
+    {
+      "trial": "kv-memory-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c8/status.json",
+      "sha256": "3138e5e321848dadb4dbb50be6361c29abf01c9fef04e0cda31c2e1c6537a5f9",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c8/manifest.json",
+      "sha256": "8ee85305d8f35567c9f2d8d24d4c3491689d7e66d9fb2b7344b92d4f4c475a19",
+      "bytes": 1954
+    },
+    {
+      "trial": "kv-memory-budget-r2-c8",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c8/gpu-telemetry.csv",
+      "sha256": "ae6f46d2940ea880eaa5c06ba568eb97dca1c7766ca9bed4528061e83f31eb5d",
+      "bytes": 5128
+    },
+    {
+      "trial": "kv-memory-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c16/raw-benchmark.json",
+      "sha256": "93fd534a7078551baff137a67733b360e406ae9d68f6e465446c0ed434dc543c",
+      "bytes": 234340
+    },
+    {
+      "trial": "kv-memory-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c16/status.json",
+      "sha256": "4731252740a157d1cfae06514e861ee8858c0cc9979c7c135d1834176e665c33",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c16/manifest.json",
+      "sha256": "23395e5896de04494ec442c0ce8678bc1054d664b9ae120593ef5f38a94e618f",
+      "bytes": 1957
+    },
+    {
+      "trial": "kv-memory-budget-r2-c16",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c16/gpu-telemetry.csv",
+      "sha256": "5e82479c53ccebca97a42f345402c8548db0d86916a44812f68b348e9effb2d4",
+      "bytes": 3907
+    },
+    {
+      "trial": "kv-memory-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c32/raw-benchmark.json",
+      "sha256": "d377bd4821834336d8f1918b95f9a2d5b2b10aab72472d8949d0db2417fa810c",
+      "bytes": 234078
+    },
+    {
+      "trial": "kv-memory-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c32/status.json",
+      "sha256": "2ad0e1e4e6513e317a72513ebcf63e4191220999d183e0fbe79dfbb8afd96aae",
+      "bytes": 310
+    },
+    {
+      "trial": "kv-memory-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c32/manifest.json",
+      "sha256": "1de69354e8062199012e562582f9c369a54b58dd3d1376c80ff8a4621e70304d",
+      "bytes": 1957
+    },
+    {
+      "trial": "kv-memory-budget-r2-c32",
+      "file": "Evidence/llm-production-validation/benchmark/kv-memory-budget-r2-c32/gpu-telemetry.csv",
+      "sha256": "ec44e8b656815c27aa32a05ba34505ac9ba42e34693d11a5dabe26cc6f786e0c",
+      "bytes": 3239
+    },
+    {
+      "trial": "batching-token-budget-r1-c16-retry-1791874332",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c16-retry-1791874332/raw-benchmark.json",
+      "sha256": "9a3bc337a5d1d72d2a2c596698d511ddcf756bf09695d75825b8be769ad92b26",
+      "bytes": 234237
+    },
+    {
+      "trial": "batching-token-budget-r1-c16-retry-1791874332",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c16-retry-1791874332/status.json",
+      "sha256": "20f5457293717789512fb888496308e9eb7747a23b7beee73b9df764b17815d4",
+      "bytes": 310
+    },
+    {
+      "trial": "batching-token-budget-r1-c16-retry-1791874332",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c16-retry-1791874332/manifest.json",
+      "sha256": "33b23692d5d423ed0c9bb876ee4bc3b1e55e4c14a2f314128396390f6484a1a1",
+      "bytes": 1979
+    },
+    {
+      "trial": "batching-token-budget-r1-c16-retry-1791874332",
+      "file": "Evidence/llm-production-validation/benchmark/batching-token-budget-r1-c16-retry-1791874332/gpu-telemetry.csv",
+      "sha256": "b9e85eedd579fa8de817b91ce4013c0b201c18a02013ea0cc85f2d7e96711e83",
+      "bytes": 4340
+    }
+  ]
+}

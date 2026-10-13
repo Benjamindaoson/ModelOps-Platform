@@ -6,6 +6,59 @@ A Kubernetes-native, open-source engineering platform for managing the lifecycle
 
 > **Engineering preview, not independently certified production infrastructure.** The repository contains a real FastAPI control plane, Next.js operator console, Kubernetes Operator, Argo training orchestration, gateway and monitoring integrations, and automation tests. A passing CPU test **does not prove** GPU-serving performance, model quality, multizone high availability or deployment into an enterprise production environment. See [evidence and gaps](#validation-and-evidence).
 
+## LLM Production Validation Sprint
+
+**Real Qwen2.5-3B QLoRA → MLflow → quality gate → vLLM API → benchmark → rollback.** This bounded RTX 3090 run extends the existing ModelOps lifecycle; it does not replace the platform with a standalone training demo.
+
+```mermaid
+flowchart LR
+  D["Frozen dataset"] --> T["Managed QLoRA GPU job"]
+  T --> M["MLflow Tracking / Registry"]
+  T --> C["Private checkpoint"]
+  C --> E["Independent evaluation gate"]
+  E --> S["vLLM API / version rollback"]
+  S --> B["Streamed benchmark / GPU telemetry"]
+  B --> R["Evidence report"]
+  I["Real Docker image build"] -. "GPU-host execution not yet validated" .-> S
+```
+
+| Delivery | Actual evidence |
+|---|---|
+| Training | 32 optimizer updates, 14,966,784 trainable parameters; training-only 14.084 s, worker 53.605 s; 7.655 GiB Torch peak allocation |
+| Tracking / Registry | MLflow Run b127f8d1474b414db0025df3a611d5c7; ModelOps Run 7859def0-8be7-4931-a099-1193b790e709; ModelOps-Qwen2.5-3B version 1 READY |
+| Evaluation | 24 source-disjoint heldout examples; F1 0.763198 → 0.749309; **quality declined**, unchanged gate passed |
+| Serving | Real base → trained → rollback API responses; trained curl response answered Paris |
+| Benchmark | 45 valid trials / 5,760 requests, three FP16 profiles, three repeats, concurrency 1/4/8/16/32 |
+| Docker | Real digest-pinned image build and CPU startup smoke in Actions; **GPU Docker execution unvalidated** |
+
+| Profile | Concurrency | Requests/s | Output tokens/s | TTFT P50/P95/P99 ms | E2E P95 ms | Peak GPU MiB |
+|---|---:|---:|---:|---|---:|---:|
+| baseline | 1 | 1.394 | 89.21 | 46.48/48.13/48.86 | 771.07 | 22841 |
+| baseline | 4 | 4.880 | 312.34 | 61.01/66.42/67.86 | 855.51 | 22743 |
+| baseline | 8 | 9.375 | 600.02 | 28.21/45.38/55.22 | 905.05 | 22743 |
+| baseline | 16 | 17.670 | 1130.88 | 43.86/81.44/85.15 | 959.97 | 22743 |
+| baseline | 32 | 31.105 | 1990.70 | 96.89/140.26/146.11 | 1053.81 | 22743 |
+| batching-token-budget | 32 | 32.534 | 2082.17 | 74.56/141.77/147.89 | 1026.04 | 22669 |
+| kv-memory-budget | 32 | 31.654 | 2025.88 | 84.48/138.69/144.40 | 1061.67 | 23895 |
+
+Percentiles are means of three trial percentiles; traffic is synthetic. Default vLLM continuous batching was already active. Full trials include unfavorable tuning results; no production SLO, AWQ speedup, quality improvement or monetary savings is claimed. Kubernetes GPU deployment is out of the revised sprint scope.
+
+![Actual MLflow training run](docs/evidence/llm-validation/screenshots/mlflow-training.png)
+![Actual MLflow model version](docs/evidence/llm-validation/screenshots/mlflow-registry.png)
+![Measured performance](docs/evidence/llm-validation/benchmark/throughput_latency.png)
+
+Start with [training script/config/example](experiments/training/README.md), [full evidence report](docs/modelops-validation-report.md), [benchmark report](benchmark/report.md), [raw-result hash audit](docs/evidence/llm-validation/benchmark/validation.json), [Docker recipe](deploy/llm-validation/docker-compose.yml) and [actual image build receipt](docs/evidence/llm-validation/docker-image-result.json). Source revision and file hashes are linked in the report. Qwen research-license weights stay private; the repository code license does not grant commercial rights to the model.
+
+```bash
+# Run from the project with frozen private inputs and its isolated environments.
+.venv/bin/python experiments/training/train.py
+.venv/bin/python benchmarks/llm-serving/run.py
+# Example against a running validated service; use the actual /v1/models ID:
+curl --fail http://127.0.0.1:18000/v1/chat/completions   -H 'Content-Type: application/json'   -d '{"model":"modelops-qwen3b-qlora","messages":[{"role":"user","content":"What is the capital of France?"}],"max_tokens":16,"temperature":0}'
+```
+
+On a GPU Docker host, build the image and use the [Compose recipe](deploy/llm-validation/docker-compose.yml) with a read-only private MODEL_DIR and measured MODEL_SHA256. A CPU image build is not a GPU container performance test. The previous v1.0 RC evidence below is a separate earlier experiment, not the denominator for this sprint.
+
 ## v1.0 RC: implemented, validated, not yet validated
 
 Model-owning teams need to know which dataset produced a checkpoint, whether that version passed the right evaluation, and how to load or roll it back. This repository proves that lifecycle with bounded real GPU jobs and keeps infrastructure acceptance separate from model-quality claims.

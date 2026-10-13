@@ -8,6 +8,46 @@
 
 > **当前为 Engineering Preview，不是已完成生产验收的商业平台。** 真实 FastAPI 控制面、Next.js 管理后台、Go Kubernetes Operator、Argo 训练编排、网关及监控基础设施已有代码与部分 CI 证据，但不能凭这些宣称已经完成真实 GPU 推理加速、LoRA/QLoRA 训练效果、多节点高可用或企业生产部署。
 
+## LLM Production Validation Sprint
+
+本轮证明的是可追溯的模型生命周期：真实 GPU 微调、独立评测、版本登记、推理 API、性能测量与回滚。沿用原有 ModelOps 控制面和执行器，模型与数据留在私有云端目录。
+
+- **真实训练：** Qwen2.5-3B-Instruct，NF4 QLoRA、BF16 计算；32 次更新、batch 2、rank 8、alpha 16，14,966,784 个可训练参数。训练段 14.084 秒；含加载/导出的 worker 总耗时 53.605 秒；Torch 峰值分配 7.655 GiB。替换抽样不等于完整遍历一个 epoch。
+- **模型追踪：** ModelOps Run 7859def0-8be7-4931-a099-1193b790e709，MLflow Run b127f8d1474b414db0025df3a611d5c7；实际注册 ModelOps-Qwen2.5-3B version 1 READY，关联 Adapter、Checkpoint、参数和评测。
+- **质量证据：** 64 个训练样本，24 个来源隔离的开发验证样本；F1 0.763198 → 0.749309。结果略降，未修改原有准入门槛，不能写成质量提升。
+- **服务闭环：** 实际完成 base → 微调模型 → rollback 三次 vLLM 加载和 OpenAI-compatible API 调用。
+- **性能：** 45 个有效测量点、5,760 次真实流式请求；3 种 FP16 配置、每组 3 次重复、并发 1/4/8/16/32。
+- **容器：** GitHub Actions 实际构建镜像并执行 CPU 启动合同检查；GPU 容器推理尚未验证。本轮按用户调整不做 Kubernetes。
+
+| Profile | Concurrency | Requests/s | Output tokens/s | TTFT P50/P95/P99 ms | E2E P95 ms | Peak GPU MiB |
+|---|---:|---:|---:|---|---:|---:|
+| baseline | 1 | 1.394 | 89.21 | 46.48/48.13/48.86 | 771.07 | 22841 |
+| baseline | 4 | 4.880 | 312.34 | 61.01/66.42/67.86 | 855.51 | 22743 |
+| baseline | 8 | 9.375 | 600.02 | 28.21/45.38/55.22 | 905.05 | 22743 |
+| baseline | 16 | 17.670 | 1130.88 | 43.86/81.44/85.15 | 959.97 | 22743 |
+| baseline | 32 | 31.105 | 1990.70 | 96.89/140.26/146.11 | 1053.81 | 22743 |
+| batching-token-budget | 32 | 32.534 | 2082.17 | 74.56/141.77/147.89 | 1026.04 | 22669 |
+| kv-memory-budget | 32 | 31.654 | 2025.88 | 84.48/138.69/144.40 | 1061.67 | 23895 |
+
+表中延迟是三次试验分位数的均值，不是合并请求后的分位数。默认 vLLM 已启用连续批处理；调整的是 token 预算和显存预留。完整报告保留性能变差的配置与被排除的干扰测量，不声称生产 SLO、通用加速倍数或费用节省。
+
+```mermaid
+flowchart LR
+  D["冻结数据"] --> T["ModelOps QLoRA GPU 作业"]
+  T --> R["MLflow / 模型版本"]
+  T --> C["私有 Checkpoint"]
+  C --> E["独立评测准入"]
+  E --> S["vLLM API / 回滚"]
+  S --> B["流式 Benchmark / GPU 监控"]
+  B --> P["真实证据报告"]
+```
+
+![实际 MLflow 训练记录](docs/evidence/llm-validation/screenshots/mlflow-training.png)
+![实际 MLflow 模型版本](docs/evidence/llm-validation/screenshots/mlflow-registry.png)
+![实测吞吐与延迟](docs/evidence/llm-validation/benchmark/throughput_latency.png)
+
+查看 [完整实验报告](docs/modelops-validation-report.md)、[训练入口](experiments/training/README.md)、[全部性能数据](benchmark/report.md)、[证据与 Hash](docs/evidence/llm-validation/benchmark/validation.json)、[真实镜像构建记录](docs/evidence/llm-validation/docker-image-result.json) 和 [GPU 主机 Compose 启动方式](deploy/llm-validation/docker-compose.yml)。权重未上传到 GitHub；Qwen 模型研究许可证与平台 Apache-2.0 源码许可分别适用，不能据此声称可无限制商用。
+
 ## 五大功能模块
 
 | 模块 | 已建设的主要软件能力 | 还需要的独立验收 |

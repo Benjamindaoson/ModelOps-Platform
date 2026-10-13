@@ -1,3 +1,2 @@
 # LLM Production Validation
-
-Complete the user-specified Qwen2.5-3B LLaMA-Factory QLoRA lifecycle and matched vLLM optimization evidence using the existing ModelOps architecture. Preserve prior evidence, isolate owned runs, and retain actual deployment/quality boundaries.
+Complete the user's revised Training → MLflow Registry → vLLM Serving → Benchmark → Evidence Report scope using the existing ModelOps platform and authorized RTX 3090. Use Hugging Face Transformers and PEFT, preserve historical VLA/v1 evidence, and isolate owned runs. Kubernetes GPU deployment is explicitly out of scope; do not retry it. This is bounded engineering validation, not enterprise production certification.

@@ -1,0 +1,30 @@
+{
+  "container-smoke.json": {
+    "argv": [
+      "-m",
+      "vllm.entrypoints.openai.api_server",
+      "--model",
+      "/model",
+      "--served-model-name",
+      "modelops-qwen3b-qlora",
+      "--dtype",
+      "half",
+      "--max-model-len",
+      "2048",
+      "--gpu-memory-utilization",
+      "0.9",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8000"
+    ],
+    "weights_in_image": false,
+    "checkpoint_verification_required": true
+  },
+  "result.json": {
+    "source_revision": "a2c887d084a4346ed1815b4df898c4aef11bd77e",
+    "image_digest": "sha256:0498185fe4cad3ab838009f83d5ec04a58c3ba88542e2161170330c80c9eae48",
+    "gpu_container_execution": "not executed on CPU runner",
+    "base_image": "vllm/vllm-openai:v0.10.2@sha256:607442e407b0fea97f8a132a78b787c121a996dd4de181fa08e8da06e71ec2db"
+  }
+}
