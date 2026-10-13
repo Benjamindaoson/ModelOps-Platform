@@ -5,7 +5,7 @@ Authority: user attached Complete Delivery Task; OpenSpec change llm-production-
 1. Freeze official 3B model and factory versions; add managed factory selection, real worker receipt and recipe through RED/GREEN tests; run 32 bounded QLoRA updates on frozen 64/24 short-answer split (one epoch-equivalent, batch two).
 2. Register true adapter/merged checkpoint automatically with training/evaluation lineage; verify all shard identities.
 3. Evaluate frozen heldout, unchanged F1>=0.55 and delta>=-0.02; retain failures; no unbounded training or sample search.
-4. Reuse native deployment controller, call actual chat API and rollback. Inspect authorized Kubernetes path; record actual external blocker if absent. Never remount cgroups or invent Pod evidence.
+4. Reuse native deployment controller, call actual chat API and rollback. Inspect authorized latest scope: Kubernetes is cancelled. Build Docker image in GitHub CPU CI; never imply a native process is a GPU Pod.
 5. Reuse official vLLM benchmark and add resumable matrix 1/4/8/16/32, 128 requests per point, 3 repeats, fixed 256-input/64-output token workload. Persist GPU memory/utilization/power and per-request results.
 6. Four matched profiles: FP16 default scheduling/KV settings (common loopback/model-context bounds), batching-budget tuning, GPU KV budget tuning, AWQ of the same trained checkpoint. Verify quantized outputs on heldout. No max-capacity/SLO claims from finite samples.
 7. Generate public evidence reports and private full receipts with config/seed/version/hash; each phase independently committed.

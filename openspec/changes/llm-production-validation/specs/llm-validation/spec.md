@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: Real factory training
-The existing ModelOps TrainingJob MUST execute official LLaMA-Factory QLoRA against pinned Qwen2.5-3B-Instruct weights, NF4, rank 8 and alpha 16. Dataset/source IDs, immutable weight hashes, optimizer updates, Adapter and Trainer state MUST be real and persisted. Existing VLA and v1 results MUST remain unchanged.
+The existing ModelOps TrainingJob MUST execute official Transformers/PEFT QLoRA against pinned Qwen2.5-3B-Instruct weights, NF4, rank 8 and alpha 16. Dataset/source IDs, immutable weight hashes, optimizer updates, Adapter and Trainer state MUST be real and persisted. Existing VLA and v1 results MUST remain unchanged.
 
 #### Scenario: Managed factory job
-- **WHEN** an owned LLM QLoRA job selects framework llamafactory
-- **THEN** its observed process runs the pinned CLI and completed state requires a verified real adapter receipt
+- **WHEN** an owned LLM QLoRA job selects framework transformers
+- **THEN** its observed process runs the pinned GPU worker and completed state requires a verified real adapter receipt
 
 ### Requirement: Quality and deployment gates
 Only a candidate passing the unchanged Token-F1 and baseline-delta gates MUST become a release candidate. A true Kubernetes deployment MUST have live cluster/Pod/CRD evidence. Native loopback serving MUST NOT be called a GPU Kubernetes deployment.

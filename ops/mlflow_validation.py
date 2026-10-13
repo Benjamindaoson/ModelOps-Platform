@@ -55,7 +55,7 @@ def register_training(result,tracking):
     client.set_tag(run_id,"modelops.training_run_id",result["run_id"])
     client.set_tag(run_id,"adapter_sha256",result["adapter_sha256"])
     client.set_tag(run_id,"checkpoint_sha256",result["checkpoint_sha256"])
-    name="ModelOps-Qwen2.5-3B-QLoRA"
+    name="ModelOps-Qwen2.5-3B"
     registered=client.get_registered_model(name) if client.search_registered_models(filter_string="name='"+name+"'") else client.create_registered_model(name)
     versions=client.search_model_versions("name='"+name+"'")
     matches=[v for v in versions if v.run_id==run_id]
