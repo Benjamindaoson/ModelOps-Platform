@@ -17,6 +17,7 @@ def main():
     groups += [(name,[python,"-m","unittest","discover","-s",folder,"-p","test_*.py","-v"],ROOT)
         for name,folder in [("training","pipelines/training"),("evaluation","pipelines/evaluation"),
             ("benchmark","benchmarks/inference"),("ops","ops")]]
+    groups += [("dynamic-training",[python,"-m","pytest","-q","pipelines/training/test_dynamic_contracts.py"],ROOT)]
     groups += [("model-loader",[python,"-m","pytest","-q","test_loader.py"],ROOT/"images/model-loader")]
     go=str(ROOT/".tools/go/bin/go")
     packages=subprocess.run([go,"list","./..."],cwd=ROOT/"operator",env=env,capture_output=True,text=True,check=True).stdout.splitlines()

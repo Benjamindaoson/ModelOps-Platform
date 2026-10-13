@@ -169,6 +169,20 @@
       "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
       "exit": 0,
       "wall_s": 0.11440136801684275
+    },
+    {
+      "group": "dynamic-training",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "pipelines/training/test_dynamic_contracts.py"
+      ],
+      "cwd": "/data/ModelOps-Platform/tmp/v1-production-readiness",
+      "exit": 0,
+      "wall_s": null,
+      "recheck_log": "verify-dynamic-training.log"
     }
   ],
   "test_counts": {
@@ -178,7 +192,8 @@
     "evaluation": 12,
     "benchmark": 18,
     "ops": 25,
-    "model-loader": 6
+    "model-loader": 6,
+    "dynamic-training": 6
   },
   "software_passed": true,
   "native_llm": "PASS",

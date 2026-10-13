@@ -31,7 +31,7 @@ An audited provenance repair corrected the adapter URI from the merged directory
 The trained QA checkpoint was registered, independently evaluated by the saved heldout evaluator, accepted using separate development service principals, loaded into vLLM, invoked, promoted, and rolled back to the base identity. Development HMAC identities are not independent human production sign-off.
 
 ## Software and runtime verification
-Python test counts by executed group: {"core": 104, "data-contract": 4, "training": 5, "evaluation": 12, "benchmark": 18, "ops": 25, "model-loader": 6}. Two optional live-runtime tests were skipped in core pytest. Operator unit/envtest packages passed with an actual temporary API server; full Docker/kind suite failed before tests because Docker is unavailable. Console typecheck and production compilation passed; this does not validate enterprise OIDC browser sessions.
+Python test counts by executed group: {"core": 104, "data-contract": 4, "training": 5, "evaluation": 12, "benchmark": 18, "ops": 25, "model-loader": 6, "dynamic-training": 6}. Two optional live-runtime tests were skipped in core pytest. Operator unit/envtest packages passed with an actual temporary API server; full Docker/kind suite failed before tests because Docker is unavailable. Console typecheck and production compilation passed; this does not validate enterprise OIDC browser sessions.
 
 All GPU training uses the published frozen source with SHA 6d69cd48a9804d4de4d28615ad1fd9f3a9ce6b06e849a3b236e7813d4b281b38. The final worker only refactors GPU lease handling; the training function AST is identical, with a saved proof.
 

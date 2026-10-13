@@ -7,9 +7,9 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from prepare_dynamic import PreparationError, verify_dataset
-from train_dynamic import TrainingConfigError, config_from_env
-from publish_dynamic import PublicationError, publication_contract
+from pipelines.training.prepare_dynamic import PreparationError, verify_dataset
+from pipelines.training.train_dynamic import TrainingConfigError, config_from_env
+from pipelines.training.publish_dynamic import PublicationError, publication_contract
 
 
 def params(method="qlora"):
