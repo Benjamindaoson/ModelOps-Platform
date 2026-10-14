@@ -1,5 +1,6 @@
 """Real local GPTQ/AWQ W4A16 conversion using a frozen private calibration set."""
-import argparse,json,os,time,hashlib
+import argparse,json,os,time,hashlib,random
+import numpy as np
 from pathlib import Path
 import torch
 from transformers import AutoModelForCausalLM,AutoTokenizer
@@ -28,7 +29,7 @@ def main():
         text=tokenizer.apply_chat_template(messages,tokenize=False)
         processed.append(tokenizer(text,truncation=True,max_length=512,add_special_tokens=False))
     calibration=Dataset.from_list(processed)
-    torch.manual_seed(8901);torch.cuda.reset_peak_memory_stats();start=time.perf_counter()
+    random.seed(8901);np.random.seed(8901);torch.manual_seed(8901);torch.cuda.reset_peak_memory_stats();start=time.perf_counter()
     model=AutoModelForCausalLM.from_pretrained(base,torch_dtype=torch.float16,device_map="auto",local_files_only=True,trust_remote_code=False)
     cls=GPTQModifier if a.method=="gptq" else AWQModifier
     modifier=cls(targets="Linear",scheme="W4A16",ignore=["lm_head"],sequential_targets=["Qwen2DecoderLayer"])

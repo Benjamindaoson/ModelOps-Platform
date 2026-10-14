@@ -1,0 +1,6 @@
+sglang[srt]==0.4.10
+torch==2.7.1
+transformers==4.54.1
+sgl-kernel==0.2.8
+flashinfer_python==0.2.9rc2
+ninja==1.13.2

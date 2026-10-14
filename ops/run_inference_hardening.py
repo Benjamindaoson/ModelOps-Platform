@@ -52,14 +52,39 @@ def run_engines(engines):
     progress.write_text(json.dumps(records,indent=2)+"\n")
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument("--stage",choices=["engines","profiling","faults","quantization","training"],default="engines");p.add_argument("--engines",nargs="+",choices=["vllm","sglang"],default=["vllm","sglang"])
+    p=argparse.ArgumentParser();p.add_argument("--stage",choices=["engines","tuning","profiling","faults","quantization","training","release","report","all"],default="engines");p.add_argument("--engines",nargs="+",choices=["vllm","sglang"],default=["vllm","sglang"]);p.add_argument("--wait-pid",type=int)
     a=p.parse_args();E.mkdir(exist_ok=True)
+    queue=(E/"all-queue.lock").open("a") if a.stage=="all" else None
+    if queue:fcntl.flock(queue,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    if a.wait_pid:
+        import psutil
+        try:
+            active=psutil.Process(a.wait_pid);created=active.create_time()
+            if "ops.run_inference_hardening" not in " ".join(active.cmdline()):raise ValueError("Wait target is not an owned hardening controller")
+        except psutil.NoSuchProcess:created=None
+        while created is not None:
+            try:
+                active=psutil.Process(a.wait_pid)
+                if active.create_time()!=created or active.status()==psutil.STATUS_ZOMBIE:break
+            except psutil.NoSuchProcess:break
+            time.sleep(5)
+    stages=["engines","tuning","profiling","faults","quantization","training","release","report"] if a.stage=="all" else [a.stage]
     with (E/"controller.lock").open("a") as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        if a.stage=="engines":run_engines(a.engines)
-        else:
-            from importlib import import_module
-            modules={"profiling":"profiling_stage","faults":"fault_stage","quantization":"quantization_stage","training":"training_stage"}
-            import_module("ops.inference_hardening."+modules[a.stage]).main()
+        overall=[]
+        from importlib import import_module
+        modules={"tuning":"tuning_stage","profiling":"profiling_stage","faults":"fault_stage","quantization":"quantization_stage","training":"training_stage","release":"release_stage","report":"report"}
+        for stage in stages:
+            start=time.time()
+            try:
+                if stage=="engines":run_engines(a.engines)
+                else:import_module("ops.inference_hardening."+modules[stage]).main()
+                row={"stage":stage,"process":"FINISHED","wall_s":time.time()-start}
+            except Exception as ex:
+                row={"stage":stage,"process":"FAILED","error":type(ex).__name__+": "+str(ex),"wall_s":time.time()-start}
+                (E/("stage-"+stage+"-failure.log")).write_text(traceback.format_exc())
+            overall.append(row);(E/"all-progress.json").write_text(json.dumps(overall,indent=2)+"\n")
+            print(json.dumps(row),flush=True)
+    if queue:queue.close()
 
 if __name__=="__main__":main()

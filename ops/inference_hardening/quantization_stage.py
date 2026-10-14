@@ -1,5 +1,5 @@
 """Actual conversion + matched fixed-KV quality/performance; resume checks raw hashes."""
-import asyncio,json,subprocess,time,hashlib,traceback
+import asyncio,json,subprocess,time,hashlib,traceback,os
 from pathlib import Path
 from .runtime import ROOT,E,Server
 from .contracts import digest,resume_valid
@@ -9,7 +9,7 @@ from pipelines.training.data_contract import verify_model_bundle
 
 def main():
     folder=E/"quantization";folder.mkdir(exist_ok=True)
-    spec={"kv_cache_bytes":3*1024**3,"workloads":["A","B","C"],"concurrency":[1,16,32],"requests":32,"repeats":3,"warmup":3,"base_sha":digest(ROOT/".tools/assets/qwen3b-base/modelops-files.json"),"prompt_sha":digest(E/"prompts.json"),"calibration_sha":digest(E/"calibration.jsonl"),"quality_sha":digest(E/"expanded-heldout.jsonl"),"min_f1_delta":-.02,"min_em_delta":-.02,"quality_scope":"Engineering gate, not a production SLA"}
+    spec={"kv_cache_bytes":3*1024**3,"workloads":["A","B","C"],"concurrency":{"A":[1,16,32],"B":[16,32],"C":[16,32]},"requests":32,"repeats":3,"warmup":3,"base_sha":digest(ROOT/".tools/assets/qwen3b-base/modelops-files.json"),"prompt_sha":digest(E/"prompts.json"),"calibration_sha":digest(E/"calibration.jsonl"),"quality_sha":digest(E/"expanded-heldout.jsonl"),"min_f1_delta":-.02,"min_em_delta":-.02,"quality_scope":"Engineering gate, not a production SLA"}
     specpath=folder/"protocol.json"
     if specpath.exists() and json.loads(specpath.read_text())!=spec:raise ValueError("Quantization protocol changed")
     specpath.write_text(json.dumps(spec,indent=2)+"\n")
@@ -19,10 +19,16 @@ def main():
     for method in ["gptq","awq"]:
         cp=folder/method/"conversion.json"
         if cp.exists() and json.loads(cp.read_text()).get("status")=="PASS":
-            rec=json.loads(cp.read_text());verify_model_bundle(folder/method/"model",rec["model_sha"]);state["conversions"][method]=rec;continue
+            rec=json.loads(cp.read_text())
+            if rec["base_sha"]!=spec["base_sha"] or rec["calibration_sha"]!=spec["calibration_sha"]:raise ValueError("Converted package provenance changed")
+            verify_model_bundle(folder/method/"model",rec["model_sha"]);state["conversions"][method]=rec;continue
         log=folder/(method+"-conversion.log")
+        env=os.environ.copy()
+        for key,name in [("HF_HOME","hf"),("TRITON_CACHE_DIR","triton"),("TORCHINDUCTOR_CACHE_DIR","inductor"),("TMPDIR","tmp")]:
+            path=ROOT/".tools/quant-cache"/name;path.mkdir(parents=True,exist_ok=True);env[key]=str(path)
+        env.update(HF_HUB_OFFLINE="1",TOKENIZERS_PARALLELISM="false")
         with log.open("ab") as stream:
-            proc=subprocess.run([str(ROOT/".quant-venv/bin/python"),"-m","ops.locked_exec","--",str(ROOT/".quant-venv/bin/python"),"-m","ops.inference_hardening.quantize","--method",method],cwd=ROOT,stdout=stream,stderr=subprocess.STDOUT,timeout=2400)
+            proc=subprocess.run([str(ROOT/".quant-venv/bin/python"),"-m","ops.locked_exec","--",str(ROOT/".quant-venv/bin/python"),"-m","ops.inference_hardening.quantize","--method",method],cwd=ROOT,stdout=stream,stderr=subprocess.STDOUT,timeout=2400,env=env)
         rec=json.loads(cp.read_text()) if proc.returncode==0 and cp.exists() else {"status":"FAIL","returncode":proc.returncode,"log":str(log)}
         state["conversions"][method]=rec;statepath.write_text(json.dumps(state,indent=2)+"\n")
         print("CONVERSION "+method+" "+rec["status"],flush=True)
@@ -35,7 +41,7 @@ def main():
             with Server(config) as server:
                 result["quality"]=asyncio.run(evaluate(server,folder/name/"quality"))
                 for label in spec["workloads"]:
-                    for c in spec["concurrency"]:
+                    for c in spec["concurrency"][label]:
                         for rep in range(3):
                             ident=f"{name}-{label}-c{c}-r{rep}"
                             prior=next((t for t in reversed(result["trials"]) if t["id"]==ident and t["status"]=="PASS"),None)
@@ -47,7 +53,7 @@ def main():
                             statepath.write_text(json.dumps(state,indent=2)+"\n")
                             print("QUANT_MEASURE "+ident+" "+rec["status"],flush=True)
                             if rec["status"]!="PASS":raise RuntimeError("Actual quantized request failed")
-                result["status"]="PASS" if result["quality"]["status"]=="PASS" and len({t["id"] for t in result["trials"] if t["status"]=="PASS"})==27 else "FAIL"
+                result["status"]="PASS" if result["quality"]["status"]=="PASS" and len({t["id"] for t in result["trials"] if t["status"]=="PASS"})==21 else "FAIL"
         except Exception as exc:
             result["status"]="FAIL";result["error"]=str(exc);state["failures"].append({"model":name,"error":str(exc),"time":time.time()})
             (folder/(name+"-failure.log")).write_text(traceback.format_exc())

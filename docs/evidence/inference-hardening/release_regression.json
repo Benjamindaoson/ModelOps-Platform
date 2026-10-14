@@ -1,0 +1,1130 @@
+{
+  "gpu_faults": {
+    "identity": {
+      "source_sha": "0f9904de3e09947868b31abd43204a9752d6309d0cfcadd825995ab6739442ba",
+      "base_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c"
+    },
+    "status": "PASS",
+    "faults": [
+      {
+        "fault": "model-version-mismatch",
+        "status": "PASS",
+        "http_status": 404
+      },
+      {
+        "fault": "invalid-token-budget",
+        "status": "PASS",
+        "http_status": 400
+      },
+      {
+        "fault": "request-timeout",
+        "status": "PASS",
+        "observed": "ReadTimeout"
+      },
+      {
+        "fault": "client-stream-disconnect",
+        "status": "PASS",
+        "recovery_http_status": 200
+      },
+      {
+        "fault": "owned-worker-crash",
+        "status": "PASS"
+      },
+      {
+        "fault": "same-version-restart",
+        "status": "PASS",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c"
+      },
+      {
+        "fault": "isolated-real-CUDA-OOM",
+        "status": "PASS",
+        "observed": "CUDA OutOfMemoryError",
+        "recovered": true
+      }
+    ],
+    "scope": "Actual isolated GPU faults; digest/rollback predicates tested separately on CPU, no business HA claim"
+  },
+  "scope": "Engineering regression/fault predicates; rejected candidate quality is retained",
+  "measured_trial_gates": [
+    {
+      "id": "vllm-A-c1-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c1-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c1-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c4-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c4-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c4-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c8-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c8-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c8-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c16-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c16-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c16-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c32-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c32-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-A-c32-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c1-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c1-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c1-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c4-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c4-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c4-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c8-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c8-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c8-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c16-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c16-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c16-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c32-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c32-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-B-c32-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c1-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c1-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c1-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c4-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c4-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c4-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c8-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c8-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c8-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c16-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c16-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c16-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c32-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c32-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "vllm-C-c32-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c1-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c1-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c1-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c4-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c4-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c4-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c8-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c8-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c8-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c16-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c16-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c16-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c32-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c32-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-A-c32-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c1-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c1-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c1-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c4-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c4-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c4-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c8-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c8-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c8-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c16-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c16-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c16-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c32-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c32-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-B-c32-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c1-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c1-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c1-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c4-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c4-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c4-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c8-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c8-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c8-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c16-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c16-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c16-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c32-r0",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c32-r1",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    },
+    {
+      "id": "sglang-C-c32-r2",
+      "status": "PASS",
+      "checks": {
+        "version": true,
+        "requests": true,
+        "telemetry": true,
+        "latency": true,
+        "throughput": true
+      },
+      "scope": "Engineering regression predicate only; no business SLO certified"
+    }
+  ]
+}

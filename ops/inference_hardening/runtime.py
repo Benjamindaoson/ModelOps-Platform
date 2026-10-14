@@ -32,6 +32,9 @@ class Server:
         env={k:v for k,v in os.environ.items() if not any(x in k.upper() for x in ("TOKEN","PASSWORD","SECRET","API_KEY","PRIVATE_KEY"))}
         env.update(PYTHONPATH=str(ROOT),HF_HUB_OFFLINE="1",TOKENIZERS_PARALLELISM="false",XDG_CACHE_HOME=str(ROOT/".tools/hardening-cache"),
                    VLLM_CACHE_ROOT=str(ROOT/".tools/hardening-cache/vllm"))
+        cache=ROOT/".tools/hardening-cache"
+        for key,name in [("TRITON_CACHE_DIR","triton"),("TORCHINDUCTOR_CACHE_DIR","inductor"),("HF_HOME","hf"),("TMPDIR","tmp")]:
+            path=cache/name;path.mkdir(parents=True,exist_ok=True);env[key]=str(path)
         env.pop("LD_LIBRARY_PATH",None)
         env["TORCH_EXTENSIONS_DIR"]=str(ROOT/".tools/hardening-cache/torch");env["MAX_JOBS"]="2"
         if self.config.get("profile"):env["VLLM_TORCH_PROFILER_DIR"]=str(E/"profiling"/ident)

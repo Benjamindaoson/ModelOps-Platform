@@ -27,3 +27,11 @@ def quality_decision(base,candidate,min_delta=-.02):
         except (KeyError,TypeError):checks[group]=False
     checks["frozen_data"]=base.get("spec",{}).get("data_sha")==candidate.get("spec",{}).get("data_sha") and bool(base.get("spec",{}).get("data_sha"))
     return {"status":"PASS" if all(checks.values()) else "FAIL","checks":checks,"threshold_delta":min_delta,"scope":"Bounded QA engineering admission; not broad model-quality proof"}
+
+
+def version_decision(registry,online):
+    keys=("model_name","version","run_id","checkpoint_sha")
+    expected={"model_name":registry.get("name"),**{k:registry.get(k) for k in keys[1:]}}
+    checks={k:bool(expected[k]) and online.get(k)==expected[k] for k in keys}
+    checks.update(ready=online.get("ready") is True,owned=online.get("owned") is True)
+    return {"status":"PASS" if all(checks.values()) else "FAIL","checks":checks,"scope":"Verified artifact/owned native process binding; no provider endpoint attestation claimed"}

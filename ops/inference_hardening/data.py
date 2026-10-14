@@ -7,8 +7,9 @@ ROOT=Path(__file__).resolve().parents[2];E=ROOT/"Evidence/inference-hardening"
 
 def main():
     os.environ["HF_HOME"]=str(ROOT/".tools/hf-hardening")
-    old=ROOT/"Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/config.json"
-    config=json.loads(old.read_text());rows,_=validate_manifest(config["dataset_manifest"],config["dataset_sha256"])
+    manifest=ROOT/"Evidence/v1/datasets/public/dolly-shortqa-v1/manifest.json"
+    expected_manifest="71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687"
+    rows,_=validate_manifest(manifest,expected_manifest)
     cal=E/"calibration.jsonl";cal.write_text("".join(json.dumps(r)+"\n" for r in rows))
     source=E/"squad-validation.parquet"; receipt=json.loads(source.with_suffix(".parquet.receipt.json").read_text())
     revision="7b6d24c440a36b6815f21b70d25016731768db1f"
@@ -33,7 +34,7 @@ def main():
     result={"status":"PASS","repo":"rajpurkar/squad","revision":revision,"license":"CC-BY-SA-4.0","url":"https://huggingface.co/datasets/rajpurkar/squad",
         "selection":"Seed8801 round-robin across shuffled validation article titles;128 rows","samples":128,"source_groups":len(set(r["source_id"] for r in expanded)),
         "heldout_sha256":hashlib.sha256(path.read_bytes()).hexdigest(),"calibration_sha256":hashlib.sha256(cal.read_bytes()).hexdigest(),
-        "calibration_samples":len(rows),"calibration_source_manifest":config["dataset_sha256"],"source_overlap_count":0,"source_sha256":expected,"semantic_overlap":"Not asserted; namespaces differ, no shared source records",
+        "calibration_samples":len(rows),"calibration_source_manifest":expected_manifest,"source_record_namespace_overlap_count":0,"source_sha256":expected,"semantic_overlap":"Not asserted; namespaces differ, no shared source records",
         "scope":"Bounded extractive-QA quality comparison, not broad quality certification","raw_text_publication":False}
     (E/"data-manifest.json").write_text(json.dumps(result,indent=2)+"\n")
     print(json.dumps({k:result[k] for k in ["status","revision","samples","source_groups","calibration_samples"]}))

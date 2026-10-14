@@ -1,0 +1,7 @@
+torch==2.8.0
+transformers==4.54.1
+llmcompressor==0.6.0
+numpy==1.26.4
+datasets==3.6.0
+pyarrow==20.0.0
+safetensors==0.8.0

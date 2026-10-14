@@ -35,8 +35,10 @@ def train(config,resume=False):
     torch.backends.cuda.matmul.allow_tf32=False
     start=time.perf_counter()
     dtype=torch.bfloat16
+    preprocess_start=time.perf_counter()
     tokenizer=AutoTokenizer.from_pretrained(config["base_model"],local_files_only=True,trust_remote_code=False)
     encoded=[encode_sample(tokenizer,row,config["max_seq_length"]) for row in rows]
+    data_preprocess_s=time.perf_counter()-preprocess_start
     kwargs={"local_files_only":True,"trust_remote_code":False,"use_safetensors":True,
             "torch_dtype":dtype,"attn_implementation":"sdpa"}
     quantized=config["method"]=="qlora"
@@ -54,6 +56,7 @@ def train(config,resume=False):
         model.enable_input_require_grads()
         model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant":False})
     model.config.use_cache=False
+    trainable_count,total_count=model.get_nb_trainable_parameters()
     parameters={name:p for name,p in model.named_parameters() if p.requires_grad}
     initial={name:p.detach().cpu().clone() for name,p in parameters.items()}
     optimizer=torch.optim.AdamW(parameters.values(),lr=config["lr"],weight_decay=0.01)
@@ -127,7 +130,9 @@ def train(config,resume=False):
     identity={"run_id":config["run_id"],"method":config["method"],"steps":step,
               "config_sha":semantic_sha(config),**options,
               "base_sha256":config["base_sha256"],"dataset_sha256":config["dataset_sha256"],
-              "model_load_s":model_load_s,"training_wall_s":time.perf_counter()-train_start,
+              "model_load_s":model_load_s,"data_preprocess_s":data_preprocess_s,"data_preprocess_samples_s":len(rows)/data_preprocess_s,
+              "total_parameters":total_count,"trainable_fraction":trainable_count/total_count,
+              "training_wall_s":time.perf_counter()-train_start,
               "trainable_parameters":sum(p.numel() for p in parameters.values()),
               "parameter_delta_linf":change,"adapter":str(adapter),
               "adapter_sha256":sha256(adapter/"adapter_model.safetensors"),

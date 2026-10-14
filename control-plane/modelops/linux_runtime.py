@@ -110,6 +110,8 @@ class LinuxRuntime:
         env = {k: v for k, v in os.environ.items()
                if not any(word in k.upper() for word in ("TOKEN", "PASSWORD", "SECRET"))}
         env.update(HF_HUB_OFFLINE="1", TOKENIZERS_PARALLELISM="false")
+        for key,name in [("HF_HOME","hf"),("TRITON_CACHE_DIR","triton"),("TORCHINDUCTOR_CACHE_DIR","inductor"),("TMPDIR","tmp")]:
+            path=self.repo/".tools/training-cache"/name;path.mkdir(parents=True,exist_ok=True);env[key]=str(path)
         args = [str(self.python), "-m", "pipelines.training.sft_worker",
                 "--config", str(directory / "config.json")]
         if resume:

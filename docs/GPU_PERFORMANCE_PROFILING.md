@@ -1,0 +1,176 @@
+# Real GPU profiling
+
+{
+  "failures": [
+    {
+      "cache": true,
+      "error": "[Errno 98] Address already in use"
+    }
+  ],
+  "trace": {
+    "status": "PASS",
+    "traces": [
+      {
+        "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/profiling/profile-fp16/pytorch-2522_13219.1791939108022938581.pt.trace.json.gz",
+        "sha256": "e360071f2430f889a25e487adc59894b0426e8fda2904b8d13210bb4b05fbeac",
+        "bytes": 79577161
+      },
+      {
+        "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/profiling/profile-fp16/pytorch-2522_13131.async_llm.1791939095541978214.pt.trace.json.gz",
+        "sha256": "a512dd0a8f4271007190d71b31bd3cf67c6941be63d8deed342ea37badd096c1",
+        "bytes": 14681392
+      }
+    ],
+    "kernel_duration_us": [
+      [
+        "void cutlass::Kernel2<cutlass_80_tensorop_f16_s16816gemm_relu_f16_256x128_32x3_tn_align8>(cutlass_80_tensorop_f16_s16816gemm_relu_f16_256x128_32x3_tn_align8::Params)",
+        2749124.719999991
+      ],
+      [
+        "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, true, false, 6, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+        2584085.2310000192
+      ],
+      [
+        "void cutlass::Kernel2<cutlass_80_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8>(cutlass_80_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8::Params)",
+        2029494.3550000144
+      ],
+      [
+        "ampere_fp16_s16816gemm_fp16_256x128_ldg8_f2f_stages_32x3_tn",
+        1120392.8219999995
+      ],
+      [
+        "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, true, false, 7, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+        946663.6590000015
+      ],
+      [
+        "void flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::half_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::half_t> >, false, false, false, false, true, false, true, false>(flash::Flash_fwd_params)",
+        598059.5219999998
+      ],
+      [
+        "void flash::flash_fwd_splitkv_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::half_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::half_t> >, true, false, false, false, true, false, false, false>(flash::Flash_fwd_params)",
+        519292.9069999997
+      ],
+      [
+        "triton_poi_fused_mul_silu_1",
+        271323.8090000155
+      ],
+      [
+        "void cutlass::Kernel2<cutlass_80_wmma_tensorop_f16_s161616gemm_f16_16x16_128x1_tn_align8>(cutlass_80_wmma_tensorop_f16_s161616gemm_f16_16x16_128x1_tn_align8::Params)",
+        233314.87200000003
+      ],
+      [
+        "void flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::half_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::half_t> >, 4, 5, true>(flash::Flash_fwd_params)",
+        67083.3110000055
+      ],
+      [
+        "triton_red_fused__to_copy_add_mean_mul_pow_rsqrt_2",
+        66329.63400000897
+      ],
+      [
+        "triton_red_fused__to_copy_add_mean_mul_pow_rsqrt_0",
+        53766.021999995515
+      ],
+      [
+        "void vllm::reshape_and_cache_flash_kernel<unsigned short, unsigned short, (vllm::Fp8KVCacheDataType)0>(unsigned short const*, unsigned short const*, unsigned short*, unsigned short*, long const*, long, long, long, long, long, int, int, int, float const*, float const*)",
+        49546.6739999961
+      ],
+      [
+        "triton_poi_fused_cat_3",
+        35333.05000000109
+      ],
+      [
+        "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1})",
+        32164.57300000258
+      ],
+      [
+        "void flash::flash_fwd_splitkv_combine_kernel<Flash_fwd_kernel_traits<128, 64, 128, 4, false, false, cutlass::half_t, Flash_kernel_traits<128, 64, 128, 4, cutlass::half_t> >, 4, 3, true>(flash::Flash_fwd_params)",
+        28867.45500000012
+      ],
+      [
+        "triton_poi_fused_cat_4",
+        27255.66699999783
+      ],
+      [
+        "triton_poi_fused_view_5",
+        21678.47100000438
+      ],
+      [
+        "ampere_fp16_s16816gemm_fp16_128x128_ldg8_f2f_stages_64x3_tn",
+        12858.687000000002
+      ],
+      [
+        "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::operator()() const::{lambda(float)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::operator()() const::{lambda(float)#1} const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::operator()() const::{lambda(float)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::operator()() const::{lambda(float)#1} const&)::{lambda(int)#1})",
+        12132.83099999968
+      ],
+      [
+        "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})",
+        8321.02700000001
+      ],
+      [
+        "void at::native::vectorized_elementwise_kernel<2, at::native::FillFunctor<long>, std::array<char*, 1ul> >(int, at::native::FillFunctor<long>, std::array<char*, 1ul>)",
+        7278.095000000019
+      ],
+      [
+        "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul>)",
+        6199.716999999994
+      ],
+      [
+        "void vllm::apply_repetition_penalties_kernel<float>(float*, bool const*, bool const*, float const*, int, int, int)",
+        5588.444000000004
+      ],
+      [
+        "void at::native::_scatter_gather_elementwise_kernel<128, 8, at::native::_cuda_scatter_gather_internal_kernel<true, long, long>::operator()<at::native::ReduceAdd>(at::TensorIterator&, long, long, long, at::native::ReduceAdd const&)::{lambda(int)#1}>(int, at::native::_cuda_scatter_gather_internal_kernel<true, long, long>::operator()<at::native::ReduceAdd>(at::TensorIterator&, long, long, long, at::native::ReduceAdd const&)::{lambda(int)#1})",
+        4917.458000000009
+      ]
+    ],
+    "category_sum_us": {
+      "cpu_op": 11802663.523001133,
+      "python_function": 1187165779.442829,
+      "overhead": 156308.22400000005,
+      "gpu_memcpy": 16428.280999998944,
+      "cuda_runtime": 5351079.695999622,
+      "kernel": 11524235.462993538,
+      "cuda_driver": 77402.8290000003,
+      "gpu_memset": 1183.6000000000065,
+      "Trace": 26797821.242
+    },
+    "scope": "Sum of trace event durations; overlapping GPU kernels are not wall-clock attribution. HBM bandwidth is not measured."
+  },
+  "pairs": [
+    {
+      "repeat": 0,
+      "output_exact": true,
+      "ttft_p50_ratio": 0.13294569049712898,
+      "tpot_p50_ratio": 0.4870372340777855,
+      "output_tps_ratio": 2.280421461303854
+    },
+    {
+      "repeat": 1,
+      "output_exact": true,
+      "ttft_p50_ratio": 0.09033808767026545,
+      "tpot_p50_ratio": 0.4873669926929986,
+      "output_tps_ratio": 2.296439572776896
+    },
+    {
+      "repeat": 2,
+      "output_exact": true,
+      "ttft_p50_ratio": 0.09036308607209086,
+      "tpot_p50_ratio": 0.48661746339088224,
+      "output_tps_ratio": 2.303963948961993
+    }
+  ],
+  "nsight": {
+    "status": "SKIPPED",
+    "reason": "nsys/ncu not installed; no GPU counter permission bypass"
+  },
+  "status": "PASS",
+  "tuning": {
+    "status": "BLOCKED",
+    "groups": [],
+    "invalid": [],
+    "failures": []
+  },
+  "counter_boundary": "Nsight unavailable. No measured HBM bandwidth, occupancy or memory-bound certification."
+}
+
+Kernel names/durations are measured. GEMM/GEMV dominance motivates hypotheses, but memory bandwidth/occupancy remain unverified. Prefix A/B applies to repeated long contexts; negative and unique-context results are retained.

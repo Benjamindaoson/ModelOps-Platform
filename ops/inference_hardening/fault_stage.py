@@ -7,7 +7,10 @@ from .contracts import digest
 
 def main():
     folder=E/"faults";folder.mkdir(exist_ok=True);path=folder/"actual.json"
-    if path.exists() and json.loads(path.read_text()).get("status")=="PASS":return
+    identity={"source_sha":digest(Path(__file__)),"base_sha":digest(ROOT/".tools/assets/qwen3b-base/modelops-files.json")}
+    if path.exists():
+        old=json.loads(path.read_text())
+        if old.get("status")=="PASS" and old.get("identity")==identity:return
     records=[];cfg={"engine":"vllm","model":str(ROOT/".tools/assets/qwen3b-base"),"model_sha":digest(ROOT/".tools/assets/qwen3b-base/modelops-files.json"),"name":"modelops-frozen-qwen3b","label":"fault-owned","port":19801,"memory_fraction":.7,"max_context":4096,"max_sequences":64,"batch_tokens":2048,"prefix_cache":False,"kv_cache_bytes":3*1024**3}
     prompt={"model":cfg["name"],"prompt":"2 + 2 =","max_tokens":8,"temperature":0,"seed":9001}
     original=None
@@ -42,5 +45,5 @@ def main():
         records.append({"fault":"isolated-real-CUDA-OOM",**rec})
     except Exception as exc:
         records.append({"fault":"controller","status":"FAIL","error":str(exc)});(folder/"failure.log").write_text(traceback.format_exc())
-    path.write_text(json.dumps({"status":"PASS" if len(records)==7 and all(r["status"]=="PASS" for r in records) else "FAIL","faults":records,"scope":"Actual isolated GPU faults; digest/rollback predicates tested separately on CPU, no business HA claim"},indent=2))
+    path.write_text(json.dumps({"identity":identity,"status":"PASS" if len(records)==7 and all(r["status"]=="PASS" for r in records) else "FAIL","faults":records,"scope":"Actual isolated GPU faults; digest/rollback predicates tested separately on CPU, no business HA claim"},indent=2))
 if __name__=="__main__":main()

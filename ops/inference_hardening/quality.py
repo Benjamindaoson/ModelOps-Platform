@@ -10,18 +10,18 @@ from .contracts import digest
 def quality_rows():
     source=[json.loads(s) for s in (E/"expanded-heldout.jsonl").read_text().splitlines()]
     rows=[{"id":r["id"],"group":"squad128","prompt":"Answer the question using only the context. Return the shortest exact answer, without explanation.\nContext: "+r["context"]+"\nQuestion: "+r["question"],"references":r["answers"]} for r in source]
-    old=json.loads((ROOT/"Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/config.json").read_text())
-    _,heldout=validate_manifest(old["dataset_manifest"],old["dataset_sha256"])
+    manifest=ROOT/"Evidence/v1/datasets/public/dolly-shortqa-v1/manifest.json"
+    _,heldout=validate_manifest(manifest,"71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687")
     rows += [{"id":r["id"],"group":"dolly24","prompt":r["prompt"],"references":[r["reference"]]} for r in heldout]
     return rows
 
 async def evaluate(server,folder):
-    folder.mkdir(parents=True,exist_ok=True);path=folder/"outputs.jsonl";spec={"model_sha":server.config["model_sha"],"data_sha":digest(E/"expanded-heldout.jsonl"),"calibration_sha":digest(E/"calibration.jsonl"),"source_sha":digest(Path(__file__)),"temperature":0,"max_new_tokens":64}
+    folder.mkdir(parents=True,exist_ok=True);path=folder/"outputs.jsonl";spec={"model_sha":server.config["model_sha"],"data_sha":digest(E/"expanded-heldout.jsonl"),"calibration_sha":digest(E/"calibration.jsonl"),"source_sha":digest(Path(__file__)),"dolly_manifest_sha":digest(ROOT/"Evidence/v1/datasets/public/dolly-shortqa-v1/manifest.json"),"dolly_heldout_sha":digest(ROOT/"Evidence/v1/datasets/public/dolly-shortqa-v1/heldout.jsonl"),"temperature":0,"max_new_tokens":64}
     receipt=folder/"quality.json"
     if receipt.exists():
         old=json.loads(receipt.read_text())
         if old.get("spec")==spec and old.get("status")=="PASS" and old.get("raw_sha")==digest(path):return old
-    rows=[];sem=asyncio.Semaphore(4)
+    start=time.perf_counter();rows=[];sem=asyncio.Semaphore(4)
     async with httpx.AsyncClient(timeout=180) as client:
         async def one(row):
             async with sem:
@@ -39,5 +39,5 @@ async def evaluate(server,folder):
     for group in ("squad128","dolly24"):
         selected=[r for r in rows if r["group"]==group];good=[r for r in selected if not r["error"]]
         groups[group]={"samples":len(selected),"errors":len(selected)-len(good),"token_f1":statistics.mean(r["f1"] for r in good) if good else None,"exact_match":statistics.mean(r["em"] for r in good) if good else None}
-    result={"status":"PASS" if not any(r["error"] for r in rows) else "FAIL","spec":spec,"groups":groups,"raw_sha":digest(path),"scope":"Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO."}
+    result={"status":"PASS" if not any(r["error"] for r in rows) else "FAIL","wall_s":time.perf_counter()-start,"spec":spec,"groups":groups,"raw_sha":digest(path),"scope":"Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO."}
     receipt.write_text(json.dumps(result,indent=2)+"\n");return result
