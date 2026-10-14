@@ -75,3 +75,14 @@ Evidence/
 .codegraph/
 *.egg-info/
 *.db
+
+# Local browser test output
+console/playwright-report/
+console/test-results/
+
+# Pinned isolated hardening runtimes
+.sglang-venv/
+.quant-venv/
+
+# Third-party conversion logs are private Evidence, never publish
+sparse_logs/

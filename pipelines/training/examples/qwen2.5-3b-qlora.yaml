@@ -1,0 +1,17 @@
+model: Qwen/Qwen2.5-3B-Instruct
+revision: aa8e72537993ba99e69dfaafa59ed015b17504d1
+framework: transformers
+method: qlora
+dataset: dolly-shortqa-v1
+steps: 32
+batch_size: 2
+sampler: with_replacement
+seed: 9101
+lora_rank: 8
+lora_alpha: 16
+lr: 0.00001
+max_seq_length: 384
+gpu: 1
+quantization: nf4_double_quant
+precision: bf16
+scope: bounded_engineering_validation

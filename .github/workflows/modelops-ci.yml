@@ -155,10 +155,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install production preflight YAML validator
-        run: python -m pip install "PyYAML==6.0.2"
+      - name: Install isolated CPU operation contract dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -e 'control-plane[dev]' 'PyYAML==6.0.2'
       - name: Verify live HTTP protocol contracts and production preflight
-        run: python -m unittest discover -s ops -p "test_*.py" -v
+        run: .venv/bin/python -m unittest discover -s ops -p "test_*.py" -v
+      - name: Verify LLM pipeline integrity and startup contracts without GPU
+        run: .venv/bin/python -m pytest -q ops/test_llm_validation_assets.py ops/test_validation_control_paths.py ops/test_mlflow_validation.py ops/test_vllm_start.py ops/test_llm_matrix_results.py pipelines/training/test_model_bundle.py
+
       - name: Parse fail-closed recovery scripts before publishing artifacts
         run: |
           bash -n ops/backup.sh

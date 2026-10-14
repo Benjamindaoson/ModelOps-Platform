@@ -5,19 +5,25 @@ from datetime import datetime,timedelta,timezone
 import os,secrets,socket,threading,time,sys
 import httpx,jwt,uvicorn
 
+def owned_evidence_root(root,subdir=None):
+    root=Path(root).resolve(); path=(root/(subdir or "Evidence/v1")).resolve()
+    if not path.is_relative_to(root):raise ValueError("Evidence escaped project root")
+    return path
+
 @contextmanager
-def control_session(root: Path,subject="v1-runtime-validation"):
+def control_session(root: Path,subject="v1-runtime-validation",evidence_subdir=None):
+    evidence=owned_evidence_root(root,evidence_subdir);evidence.mkdir(parents=True,exist_ok=True)
     secret=secrets.token_urlsafe(48)
     previous={k:os.environ.get(k) for k in ["MODELOPS_AUTH_MODE","MODELOPS_ENV","MODELOPS_RUNTIME",
         "MODELOPS_JWT_SECRET","MODELOPS_DATABASE_URL"]}
     os.environ.update(MODELOPS_AUTH_MODE="dev",MODELOPS_ENV="development",MODELOPS_RUNTIME="disabled",
-        MODELOPS_JWT_SECRET=secret,MODELOPS_DATABASE_URL="sqlite:///"+str(root/"Evidence/v1/modelops.sqlite"))
+        MODELOPS_JWT_SECRET=secret,MODELOPS_DATABASE_URL="sqlite:///"+str(evidence/"modelops.sqlite"))
     sys.path.insert(0,str(root/"control-plane"))
     from modelops.config import Settings
     from modelops.main import create_app
     app=create_app(Settings(database_url=os.environ["MODELOPS_DATABASE_URL"],runtime="linux",
         environment="development",auth_mode="dev",jwt_secret=secret,
-        artifact_root=str(root/"Evidence/v1/runtime"),gpu_python=str(root/".gpu-venv/bin/python")))
+        artifact_root=str(evidence/"runtime"),gpu_python=str(root/".gpu-venv/bin/python")))
     with socket.socket() as s:s.bind(("127.0.0.1",0));port=s.getsockname()[1]
     server=uvicorn.Server(uvicorn.Config(app,host="127.0.0.1",port=port,log_level="warning",access_log=False))
     thread=threading.Thread(target=server.run,daemon=True);thread.start()

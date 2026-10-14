@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from merge import MergeError, merge_checkpoint, verify_checkpoint
+from pipelines.training.merge import MergeError, merge_checkpoint, verify_checkpoint
 
 class MergeTests(unittest.TestCase):
     def setUp(self):

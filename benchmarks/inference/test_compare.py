@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from compare import ComparisonError, compare, load_run, render_markdown
+from benchmarks.inference.compare import ComparisonError, compare, load_run, render_markdown
 
 class ComparisonContractTests(unittest.TestCase):
     def setUp(self):

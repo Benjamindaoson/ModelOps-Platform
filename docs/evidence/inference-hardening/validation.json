@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "phases": {
+    "environment": "PASS",
+    "engines": "PASS",
+    "tuning": "PASS",
+    "quantization": "PASS",
+    "profiling": "PASS",
+    "training": "PASS",
+    "faults": "PASS",
+    "release": "PASS",
+    "gpu_docker": "SKIPPED",
+    "nsight": "SKIPPED"
+  },
+  "tests": "493 passed, 2 skipped, 2 warnings, 4 subtests passed in 62.96s (0:01:02)",
+  "source_revision": "339be4e4816622349a8449144c26aa22351627ba",
+  "measured_sources": {
+    "ops/inference_hardening/benchmark.py": "c8ce877657fea78e1ee618a566e1ba0956e658ade9b7bf0c6547821f1e48f8ee",
+    "ops/inference_hardening/contracts.py": "41c146d28f4763fea44a1c2d28ea101305ab41aa46029d1d38fb15f74d90809a",
+    "ops/observability/stream_metrics.py": "55ea3c422795f48c62d9dd5b61f5bb1224622900d535cc3ad3675bf6980c7900"
+  },
+  "private_artifacts": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening",
+  "scope": "No business SLO, broad quality, Kubernetes GPU or FP8 claims. No main merge.",
+  "independent_audit": {
+    "status": "PASS",
+    "counts": {
+      "engine_trials": 90,
+      "fp16_quant_trials": 21,
+      "gptq_quant_trials": 21,
+      "awq_quant_trials": 21,
+      "tuning_trials": 18,
+      "prefix_trials": 6,
+      "training_updates": 192,
+      "formal_benchmark_requests": 5664,
+      "quality_requests": 1064
+    },
+    "failures": [],
+    "scope": "Separate reconstruction of private raw data, no new GPU experiment",
+    "source_sha": "600654a3c712fca61996a8c19b580e629080bf96ea53593eef5bebee98642858",
+    "same_merged_checkpoint_sha": true,
+    "quality_variation_note": "Identical checkpoint SHA still produced minor Dolly24 score differences. Cause not independently isolated; do not interpret as training improvement."
+  },
+  "public_source_revision": "bba717ec312a6ab43e87dddaef23f8227fbc82ce",
+  "source_tree_sha": "1f24aca64394f171dc926ccb83507f17d3fd1ce0",
+  "verification_review": "Self-review in side conversation; no independent agents"
+}

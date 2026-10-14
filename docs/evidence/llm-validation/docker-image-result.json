@@ -1,0 +1,17 @@
+{
+  "source_revision": "48cfe84a381fa43b9095fad8f356b91a3954ec87",
+  "image_digest": "sha256:6fcc8e50887595c0e01e73566b2330c35c6353665ab4872508f0a402998af7e3",
+  "gpu_container_execution": "not executed on CPU runner",
+  "base_image": "vllm/vllm-openai:v0.10.2@sha256:607442e407b0fea97f8a132a78b787c121a996dd4de181fa08e8da06e71ec2db",
+  "github_run_id": 38358254178,
+  "github_run_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38358254178",
+  "build_status": "PASS",
+  "registry": "ghcr.io/benjamindaoson/modelops-platform/llm-validation",
+  "published_tag": "48cfe84a381fa43b9095fad8f356b91a3954ec87",
+  "cpu_startup_smoke": {
+    "status": "PASS",
+    "github_run_id": 38358258753,
+    "github_run_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38358258753",
+    "scope": "Actual CPU container --describe; no model loading or CUDA inference"
+  }
+}

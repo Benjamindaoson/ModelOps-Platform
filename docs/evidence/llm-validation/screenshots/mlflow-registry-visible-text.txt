@@ -1,0 +1,96 @@
+3.17.0
+GenAI
+Model training
+ModelOps LLM Production Validation
+Overview
+Observability
+Traces
+Sessions
+Evaluation
+Judges
+Review
+Datasets
+Evaluation runs
+Prompts & versions
+Playground
+Prompts
+Agent versions
+AI Gateway
+New
+Docs
+Settings
+Registered Models
+ModelOps-Qwen2.5-3B
+Version 1
+Promote model
+Registered At
+:
+10/13/2026, 01:40:35 PM
+Last Modified
+:
+10/13/2026, 01:40:35 PM
+Source Run
+:
+Qwen2.5-3B true managed QLoRA
+Aliases
+:
+@ validated-candidate
+Stage (deprecated)
+:
+None
+New model registry UI
+Description 
+Edit
+Tags
+Name	Value	Actions
+ 
+	
+ 
+	
+ 
+
+adapter_sha256	
+2cbead2c5070ea3ff6d51c93aea8eefb1cd96e878c53599f74512046d94d44f2
+	
+
+artifact_kind	
+PEFT adapter and verified merged checkpoint reference
+	
+
+checkpoint_sha256	
+04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b
+	
+
+evaluation_passed	
+true
+	
+
+evaluation_status	
+pending
+	
+
+modelops.artifact_id	
+2a917120-7463-4a20-add2-bbbd7aab877f
+	
+
+modelops.serving_artifact_id	
+0b859c58-b519-4186-a8e4-3bd3d4f1499d
+	
+
+modelops.training_run_id	
+7859def0-8be7-4931-a099-1193b790e709
+	
+Add
+Schema
+Name
+Type
+Inputs (0)
+Outputs (0)
+MLflow Assistant
+Beta
+Ask questions about your experiments, traces, evaluations, and more.
+How do I get started with MLflow?
+What should I know about MLflow?
+Explain how MLflow Tracing works.
+ModelOps...
+Ollama

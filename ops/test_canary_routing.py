@@ -1,6 +1,6 @@
 import unittest
 
-from verify_canary_routing import CanaryCheckError, origin_only, owned_model_ids, verify
+from ops.verify_canary_routing import CanaryCheckError, origin_only, owned_model_ids, verify
 
 def metadata():
     return {"data":[

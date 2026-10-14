@@ -1,12 +1,85 @@
 # ModelOps Platform
 
-**企业级 AI 模型训练、托管与推理优化一体化平台**
+**企业级 LLM 全生命周期验证平台｜Enterprise LLM Production Lifecycle Platform**
 
-[English](README.md) | [项目架构](ARCHITECTURE.md) | [GitHub Actions](https://github.com/Benjamindaoson/ModelOps-Platform/actions)
+面向企业内部模型团队，将数据版本、QLoRA 训练、MLflow 追踪与注册、评估和发布准入、vLLM 服务、性能测试、监控及版本回滚串成可追溯流程。沿用现有 FastAPI 控制面与 Next.js 管理台，模型与原始记录留在私有云端，以 Run ID 和哈希关联。
 
-一个面向企业内部 AI 团队的 Kubernetes 原生模型基础设施平台，统一实现 **模型注册 → 微调训练 → 独立评估 → 部署托管 → 推理性能测试 → 监控 → 灰度发布与回滚**。它不是聊天机器人、Agent 应用或单纯的 API 中转服务；业务应用通过模型网关使用平台托管和外部供应商提供的模型。
+> **实测边界：** RTX3090 是历史生命周期证据；本轮独立验证当前 GPU 的双引擎、量化、训练与恢复。当前云容器没有 Docker GPU runtime，该项明确为 **SKIPPED**。尚未宣称企业生产高可用、安全部署或模型质量提升。实现、CPU 合同测试与真实 GPU 结果分别列明。
 
-> **当前为 Engineering Preview，不是已完成生产验收的商业平台。** 真实 FastAPI 控制面、Next.js 管理后台、Go Kubernetes Operator、Argo 训练编排、网关及监控基础设施已有代码与部分 CI 证据，但不能凭这些宣称已经完成真实 GPU 推理加速、LoRA/QLoRA 训练效果、多节点高可用或企业生产部署。
+[English](README.md) · [最终验收报告](docs/evidence/final-validation-report.md) · [分层架构](docs/FINAL_ARCHITECTURE.md) · [模型对照](benchmark/model-comparison.md)
+
+
+<!-- INFERENCE_HARDENING_BEGIN -->
+## 高级推理与训练实测｜2026-10-14
+
+本轮单机工程验收：**PASS**。当前驱动报告 RTX4080 SUPER、CC8.9；下方 RTX3090 数字保留为历史结果，不混算。
+
+- **双引擎对照：** vLLM0.10.2 与 SGLang0.4.10，90 个测量点、2,880 次真实请求；每个负载和并发均有三次重复，模型、Tokenizer、精度和请求协议冻结。
+- **真实量化：** 从原始权重转换 GPTQ/AWQ W4A16。固定3GiB KV Cache 后，GPTQ 长输出 C32 吞吐为 2988.09 tokens/s，FP16 为 1903.93，约 1.57 倍；整卡峰值显存 6163 vs 10161MiB，下降 39.3%。
+- **质量取舍：** GPTQ 在128条独立 QA 与24条 Smoke 上通过预设工程门槛；AWQ 未通过，保留负结果并拒绝发布。不能据此证明广泛质量不下降。
+- **GPU 分析：** 真实 PyTorch/CUDA Trace；重复长上下文的 Prefix Cache 三次对照吞吐约 2.28–2.30 倍，96条输出完全一致。没有声称原创 CUDA Kernel 或已测得显存带宽瓶颈。
+- **训练与恢复：** 两组64步 BF16/NF4 QLoRA 对照，检查点优化节省 51.5% 的 Torch 峰值分配，但也降低训练速度；另一次中断恢复与连续运行的权重、Loss、样本序列完全一致。
+- **交付可靠性：** Hash、模型版本、质量、性能和缺失监控准入；真实 OOM、超时、流中断、服务重启检查。保留 Prometheus/Grafana。
+- **尚未验证：** GPU Docker Runtime、Nsight 硬件计数器、生产业务 SLO 和多节点扩展。
+
+[本轮验收](docs/evidence/inference-hardening/validation_report.md) · [引擎对照](benchmark/engine-comparison.md) · [量化对照](benchmark/quantization-comparison.md) · [GPU 分析](docs/GPU_PERFORMANCE_PROFILING.md) · [训练与恢复](experiments/training/optimization-report.md) · [复现入口](deploy/llm-validation/native-hardening/README.md)
+
+<!-- INFERENCE_HARDENING_END -->
+
+## 本轮完善与真实结果｜2026-10-13
+
+![可追溯生命周期架构](docs/architecture/llm-platform-20261013.visual-check.1440x900.light.png)
+
+- **发布 Gate：** 解析实际 MLflow model version，核对 Checkpoint/Adapter SHA、训练来源、独立评估、在线模型身份及三次同配置性能记录；实际检查 PASS，保留事先冻结的阈值。
+- **模型对照：** 12 个试验点、1,536 次真实 GPU 请求；Base / Fine-tuned，C4/C16，各三次重复、每次 128 请求，同样关闭 prefix cache。
+- **推理结果：** 微调模型 C4 为 283.17 output tokens/s，TTFT P95 133.08 ms，E2E P95 945.47 ms；C16 为 804.54 tokens/s。Base 分别为 292.02 和 816.76 tokens/s。峰值整卡显存 22,743 MiB。微调模型吞吐略低，**不声称加速或质量提升**。
+- **真实监控：** 新增流式 TTFT、最终 token usage、请求/错误与 GPU 指标；真实模型请求、Prometheus 查询及 Grafana 面板均已验证。Docker Compose 的 CPU 测试使用明确标注的合成输入，不冒充 GPU 模型推理。
+- **工程质量：** 467 项 pytest、62 项 unittest、3 项浏览器测试通过；2 项可选测试跳过。完成 Next.js typecheck/生产构建及真实隔离 API 的浏览器流程。
+- **Docker 与 CI：** 新增固定基础镜像 digest、非 root 启动、GPU/CUDA/API 探针、自动构建与证据上传。实际 GPU 容器运行仍需已授权 NVIDIA Container Toolkit 主机，当前不具备。
+
+[实际发布决策](docs/evidence/llm-platform-finalization/release_decision.json) · [监控收据](docs/evidence/llm-platform-finalization/monitoring-validation.json) · [CI 收据](docs/evidence/llm-platform-finalization/ci-validation.json) · [GPU runtime 报告](docs/evidence/gpu-runtime-validation/validation-report.md)
+
+延迟是三次试验分位数的均值，不是全部请求合并后的分位数。下方保留的早期 45 点优化实验采用不同缓存和 profile 协议，不与本轮模型对照混算。复现方法、许可及未完成项见最终报告。
+
+## LLM Production Validation Sprint
+
+本轮证明的是可追溯的模型生命周期：真实 GPU 微调、独立评测、版本登记、推理 API、性能测量与回滚。沿用原有 ModelOps 控制面和执行器，模型与数据留在私有云端目录。
+
+- **真实训练：** Qwen2.5-3B-Instruct，NF4 QLoRA、BF16 计算；32 次更新、batch 2、rank 8、alpha 16，14,966,784 个可训练参数。训练段 14.084 秒；含加载/导出的 worker 总耗时 53.605 秒；Torch 峰值分配 7.655 GiB。替换抽样不等于完整遍历一个 epoch。
+- **模型追踪：** ModelOps Run 7859def0-8be7-4931-a099-1193b790e709，MLflow Run b127f8d1474b414db0025df3a611d5c7；实际注册 ModelOps-Qwen2.5-3B version 1 READY，关联 Adapter、Checkpoint、参数和评测。
+- **质量证据：** 64 个训练样本，24 个来源隔离的开发验证样本；F1 0.763198 → 0.749309。结果略降，未修改原有准入门槛，不能写成质量提升。
+- **服务闭环：** 实际完成 base → 微调模型 → rollback 三次 vLLM 加载和 OpenAI-compatible API 调用。
+- **性能：** 45 个有效测量点、5,760 次真实流式请求；3 种 FP16 配置、每组 3 次重复、并发 1/4/8/16/32。
+- **容器：** GitHub Actions 实际构建镜像并执行 CPU 启动合同检查；GPU 容器推理尚未验证。本轮按用户调整不做 Kubernetes。
+
+| Profile | Concurrency | Requests/s | Output tokens/s | TTFT P50/P95/P99 ms | E2E P95 ms | Peak GPU MiB |
+|---|---:|---:|---:|---|---:|---:|
+| baseline | 1 | 1.394 | 89.21 | 46.48/48.13/48.86 | 771.07 | 22841 |
+| baseline | 4 | 4.880 | 312.34 | 61.01/66.42/67.86 | 855.51 | 22743 |
+| baseline | 8 | 9.375 | 600.02 | 28.21/45.38/55.22 | 905.05 | 22743 |
+| baseline | 16 | 17.670 | 1130.88 | 43.86/81.44/85.15 | 959.97 | 22743 |
+| baseline | 32 | 31.105 | 1990.70 | 96.89/140.26/146.11 | 1053.81 | 22743 |
+| batching-token-budget | 32 | 32.534 | 2082.17 | 74.56/141.77/147.89 | 1026.04 | 22669 |
+| kv-memory-budget | 32 | 31.654 | 2025.88 | 84.48/138.69/144.40 | 1061.67 | 23895 |
+
+表中延迟是三次试验分位数的均值，不是合并请求后的分位数。默认 vLLM 已启用连续批处理；调整的是 token 预算和显存预留。完整报告保留性能变差的配置与被排除的干扰测量，不声称生产 SLO、通用加速倍数或费用节省。
+
+```mermaid
+flowchart LR
+  D["冻结数据"] --> T["ModelOps QLoRA GPU 作业"]
+  T --> R["MLflow / 模型版本"]
+  T --> C["私有 Checkpoint"]
+  C --> E["独立评测准入"]
+  E --> S["vLLM API / 回滚"]
+  S --> B["流式 Benchmark / GPU 监控"]
+  B --> P["真实证据报告"]
+```
+
+![实际 MLflow 训练记录](docs/evidence/llm-validation/screenshots/mlflow-training.png)
+![实际 MLflow 模型版本](docs/evidence/llm-validation/screenshots/mlflow-registry.png)
+![实测吞吐与延迟](docs/evidence/llm-validation/benchmark/throughput_latency.png)
+
+查看 [完整实验报告](docs/modelops-validation-report.md)、[训练入口](experiments/training/README.md)、[全部性能数据](benchmark/report.md)、[证据与 Hash](docs/evidence/llm-validation/benchmark/validation.json)、[真实镜像构建记录](docs/evidence/llm-validation/docker-image-result.json) 和 [GPU 主机 Compose 启动方式](deploy/llm-validation/docker-compose.yml)。权重未上传到 GitHub；Qwen 模型研究许可证与平台 Apache-2.0 源码许可分别适用，不能据此声称可无限制商用。
 
 ## 五大功能模块
 

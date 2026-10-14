@@ -1,0 +1,218 @@
+{
+  "artifact_sha256": "2654416af054e5c15e9ac26533ad405610da0e7f4497020280001e94575ee939",
+  "base_model_path": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+  "candidate_path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-production-validation/runtime/lab/7859def0-8be7-4931-a099-1193b790e709/artifacts/merged",
+  "evaluated_at_utc": "2026-10-13T05:43:52.854252+00:00",
+  "generation_success_rate": 1.0,
+  "heldout_sha256": "7bcda49c2eff03606d021024400a7bf225594ca6e259ebf166bb4e102d2f0e3e",
+  "max_new_tokens": 16,
+  "metrics": {
+    "base_exact_match": 0.5833333333333334,
+    "base_token_f1": 0.7631980628304157,
+    "candidate_exact_match": 0.5416666666666666,
+    "candidate_token_f1": 0.7493091739415269,
+    "delta_exact_match": -0.04166666666666674,
+    "delta_token_f1": -0.01388888888888884
+  },
+  "model_evaluator": "transformers_greedy",
+  "num_samples": 24,
+  "num_training_prompts": 64,
+  "proof_type": "real_checkpoint_holdout",
+  "samples": [
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.7777777777777778,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.7777777777777778,
+      "id": "dolly-4491",
+      "prompt_sha256": "5ec4877dfb08de2d3f535c2c9a9b76c6bc21bc0768810ac92156f8d11c906ab9"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-5248",
+      "prompt_sha256": "d71ef7f445c6125c39c731b4d59e74a4b5a2652077ab426d551d127379751ea1"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-4294",
+      "prompt_sha256": "bfa837423c31fcb7a06f31b83dc058a994a4912c312398a839259ffded806053"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-9783",
+      "prompt_sha256": "fe25a7eac85c3300748f11735603d560ddd4436b1617d2d9850fe069d352e3cc"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.0,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.0,
+      "id": "dolly-11640",
+      "prompt_sha256": "aeda0dfa2cd07308f6cc95bc4b153b4bed00f4ad1a23fb626010634c86a7e0ef"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-5565",
+      "prompt_sha256": "281353bb17a1c5cf76f221a2eb8804a9121e764ec705a5330d00346655b19f2d"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-7535",
+      "prompt_sha256": "44b96fe3f04c81071afd9e3447e2c71b674f0bf77ffa1daabb1ee3deff0e713d"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-13182",
+      "prompt_sha256": "c8a28c049e4d69331ec5a8c4c2e89b8115167b68b69ba1fdc3f1fdc880ac8a6d"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 0.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-2052",
+      "prompt_sha256": "9ccc3f316d5daafd9b180ee73ddd6fc37cbd6ddd4d3ea748288374f19150805a"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-12545",
+      "prompt_sha256": "72950d230d5e17f679553c7a11f32cd88108c33b2f8eaa777d6bcf3da983d2fc"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.75,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.75,
+      "id": "dolly-8325",
+      "prompt_sha256": "089679b6a1327ffa73c7e85aa1279a940f47c39d17789b995f58b04cd112af69"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-10111",
+      "prompt_sha256": "20ff5e269481789b586de49a3c114b5aa4a90bb0f11f31dc7e6bedf1ec734d45"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-3917",
+      "prompt_sha256": "64aa69bac5f9f6855a0b3a1bb81886a553e5a8543dca0b8ee8663c3e0e5b1097"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.0,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.0,
+      "id": "dolly-13749",
+      "prompt_sha256": "b06ed43f505d497e1aa34dadc37300f88f8856c47276946f76f1937e7488d9eb"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.6666666666666666,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.6666666666666666,
+      "id": "dolly-683",
+      "prompt_sha256": "b4b43cba0ba4aadbd2f4c1f84dd74a1ac2e2756ccd24a40287d9e7643096bda3"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.36363636363636365,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.36363636363636365,
+      "id": "dolly-118",
+      "prompt_sha256": "39e4aebcf0547887fdc3a50713523ed1a6f2018cbe846ed99e94aacb8c17c27f"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.6666666666666666,
+      "id": "dolly-8826",
+      "prompt_sha256": "c8fbfe6813d0655778c5e7dae4022ce98ea4c07eddde4d57ca5877ed07d938bc"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-6104",
+      "prompt_sha256": "2f2cfbdc1691a423f655241719130a7017f55c4b2ea41deb4bc077eaa50f41a4"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.3333333333333333,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.3333333333333333,
+      "id": "dolly-2655",
+      "prompt_sha256": "6403892707907e32fef99f919fc495a229cd2643afeb8f75d5381f075ca0b485"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-11328",
+      "prompt_sha256": "7a14385381b39e0b8b16e9ecc5a38c55f74c07cfd51d43e96800f63cb4843b86"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-2440",
+      "prompt_sha256": "b5128a888d67d959f89e5be7bd4cc7adbfb164446831753921a86b03ef453e96"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.11764705882352941,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.11764705882352941,
+      "id": "dolly-3491",
+      "prompt_sha256": "66c131461b41f2787515358aae9a1c2ae4b15ae6d2a3b467481f94f3cbe734f2"
+    },
+    {
+      "baseline_em": 1.0,
+      "baseline_f1": 1.0,
+      "candidate_em": 1.0,
+      "candidate_f1": 1.0,
+      "id": "dolly-8090",
+      "prompt_sha256": "f7cfe3d0f7532f4d3aab0eedcb080021cbe27c40d06288e2dc70c7497f63902f"
+    },
+    {
+      "baseline_em": 0.0,
+      "baseline_f1": 0.3076923076923077,
+      "candidate_em": 0.0,
+      "candidate_f1": 0.3076923076923077,
+      "id": "dolly-2555",
+      "prompt_sha256": "880eed14252afbcc764d162fd0e7dcfd3a710ad8d6b1ac9eb226306d1dc56164"
+    }
+  ],
+  "schema": "modelops.heldout.v1",
+  "train_overlap_count": 0,
+  "train_sha256": "de1866349b9e54ee920e0af3b8c5a76e77df8aacd26ff53171a5e6e3c3a8e943"
+}

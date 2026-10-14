@@ -1,0 +1,10 @@
+{
+  "os": "Linux-6.8.0-40-generic-x86_64-with-glibc2.35",
+  "host_logical_cpu": 12,
+  "affinity_cpu": 12,
+  "cpu_quota": null,
+  "memory_limit_bytes": null,
+  "host_memory_bytes": 50575044608,
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "gpu_memory_mib": 24576
+}

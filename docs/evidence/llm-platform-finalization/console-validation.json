@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "commands": {
+    "typecheck": 0,
+    "build": 0,
+    "e2e": 0
+  },
+  "scope": "Real Next.js production build + isolated FastAPI metadata API; not GPU deployment",
+  "auth": "Ephemeral identity only in child process environment"
+}

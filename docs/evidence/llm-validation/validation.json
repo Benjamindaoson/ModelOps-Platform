@@ -1,0 +1,211 @@
+{
+  "status": "PASS",
+  "scope": "Revised bounded LLM lifecycle sprint",
+  "training": {
+    "run_id": "7859def0-8be7-4931-a099-1193b790e709",
+    "steps": 32,
+    "actual_checkpoint_rehashed": true,
+    "actual_adapter_rehashed": true
+  },
+  "registry": {
+    "name": "ModelOps-Qwen2.5-3B",
+    "version": 1,
+    "status": "READY",
+    "run_id": "b127f8d1474b414db0025df3a611d5c7"
+  },
+  "evaluation": {
+    "examples": 24,
+    "overlap": 0,
+    "quality_improvement": false,
+    "unchanged_engineering_gate": "PASS"
+  },
+  "native_serving": {
+    "revisions": 3,
+    "actual_api_and_rollback": "PASS"
+  },
+  "benchmark": {
+    "points": 45,
+    "requests": 5760,
+    "raw_hashes_verified": 180
+  },
+  "docker_image_build": "PASS",
+  "gpu_docker_runtime": "NOT_VALIDATED",
+  "kubernetes": "OUT_OF_SCOPE",
+  "software_checks": {
+    "control": 0,
+    "operations": 0,
+    "llm-contracts": 0,
+    "benchmark": 0,
+    "evaluation": 0,
+    "diff": 0
+  },
+  "software_test_counts": {
+    "control": 92,
+    "operations": 25,
+    "llm-contracts": 20,
+    "benchmark": 20,
+    "evaluation": 12
+  },
+  "software_passed_total": 169,
+  "optional_skips": 2,
+  "documentation_links_checked": 74,
+  "screenshots_and_chart_decoded": true,
+  "review": "Author review plus CI; no independent reviewer agents",
+  "public_evidence_file_hashes": [
+    {
+      "file": "docs/evidence/llm-validation/AUTHOR_REVIEW.md",
+      "bytes": 1833,
+      "sha256": "df3a46f8abf575b6d0a3012a4c4472515ca3dd5178a49de374a2406ff58d2c1c"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_01.md",
+      "bytes": 434,
+      "sha256": "1ec7a9bfe57dca34c5d7760fc1229ddc63bbc2c89d003871f2307ccc0d23ad40"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_02.md",
+      "bytes": 348,
+      "sha256": "fa86d47e6b7e855c2e5c36379d5ddcbfd34464bbc47cc18bc441e2e68a2ca387"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_03.md",
+      "bytes": 384,
+      "sha256": "1d2277140bd4b3cba07c8f754352d5335a62a74b0094bb33e9d7e701e2f4a3cc"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_04.md",
+      "bytes": 482,
+      "sha256": "4d305659f00e558796a0729a1e0c761ea562b5447b0257fca3cb48453c41e06d"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_05.md",
+      "bytes": 365,
+      "sha256": "c901fa435e4411b4bf14d5f986ab73c0d3e8c97b3475b9a15d0a24cd2f89c6aa"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_06.md",
+      "bytes": 1373,
+      "sha256": "e2a5605b5965b8682f90ddd9e2dcbd045eb86cee5ba125669cfb5f19605d4426"
+    },
+    {
+      "file": "docs/evidence/llm-validation/PHASE_DOCKER.md",
+      "bytes": 341,
+      "sha256": "c5d4ca4b5cb2deb50aebf2f2b487e873a0891f2892c6534548f4d085332d3377"
+    },
+    {
+      "file": "docs/evidence/llm-validation/benchmark/report.md",
+      "bytes": 3010,
+      "sha256": "7b504b28c6eed182c1ba6d1aba7e329ee571cb9867cf0064efb10c7e323a061b"
+    },
+    {
+      "file": "docs/evidence/llm-validation/benchmark/result.json",
+      "bytes": 28418,
+      "sha256": "d9b653b0ae73cf304d3748a32a96ed7ab24b81085bcc45613ea3d18ce3fcac1f"
+    },
+    {
+      "file": "docs/evidence/llm-validation/benchmark/throughput_latency.png",
+      "bytes": 139679,
+      "sha256": "40ac48c9c9e0fc1228d2fab86f3c57a4efca8d6e3b532dfaa049d127909d4d04"
+    },
+    {
+      "file": "docs/evidence/llm-validation/benchmark/validation.json",
+      "bytes": 46651,
+      "sha256": "cb71d1556f852b95a6f27cae52185e529323e8df8f0943f93e2d6c84c5e68743"
+    },
+    {
+      "file": "docs/evidence/llm-validation/ci.json",
+      "bytes": 2573,
+      "sha256": "84735ba9cb5a95197ee6af5736741f646e143a3058423795a10751b59f6bd61f"
+    },
+    {
+      "file": "docs/evidence/llm-validation/docker-container-smoke.json",
+      "bytes": 825,
+      "sha256": "85ad36a75baac9c691775a255f732693d9953a0d4c48ee9259e93f4d9a6efbdf"
+    },
+    {
+      "file": "docs/evidence/llm-validation/docker-image-result.json",
+      "bytes": 901,
+      "sha256": "b1334d8dc3b5166d21a75af62bb2310f17ecb93e93d5a293ac94c450eca80b60"
+    },
+    {
+      "file": "docs/evidence/llm-validation/evaluation.json",
+      "bytes": 7014,
+      "sha256": "63e4c70163711d6571e35b2f7dd4fed11e43df744aebf088c576a7e0d7341b4e"
+    },
+    {
+      "file": "docs/evidence/llm-validation/hardware.json",
+      "bytes": 257,
+      "sha256": "c9cb4cc61cdbb27aa06b57511c3f71180ca7c8047838d7f67a8ba02a3ee9cbbd"
+    },
+    {
+      "file": "docs/evidence/llm-validation/registry/model_artifact.json",
+      "bytes": 1773,
+      "sha256": "79d57b453ed180b58b774b9f941a3052439d651ceb33b7647e48447680575de0"
+    },
+    {
+      "file": "docs/evidence/llm-validation/screenshots/mlflow-registry-visible-text.txt",
+      "bytes": 1307,
+      "sha256": "86f00a03fa2d90607ca977802eead5d0805cc59bf10bc036eb688d9fe9f5f793"
+    },
+    {
+      "file": "docs/evidence/llm-validation/screenshots/mlflow-registry.png",
+      "bytes": 189646,
+      "sha256": "fa635d9509a5894b3d64aa4f2b2aaa0a87091145107e957aac6b5a024a46c04e"
+    },
+    {
+      "file": "docs/evidence/llm-validation/screenshots/mlflow-training-visible-text.txt",
+      "bytes": 2457,
+      "sha256": "731e9a652884c1ab266be2629015c3c58b2c02974281e7c90303d721ee8fca69"
+    },
+    {
+      "file": "docs/evidence/llm-validation/screenshots/mlflow-training.png",
+      "bytes": 203060,
+      "sha256": "f8fd10ce8cfaaac227bc7b3bba6daaaed7b97d28ac974f9ca1178304e55b2195"
+    },
+    {
+      "file": "docs/evidence/llm-validation/screenshots/validation.json",
+      "bytes": 767,
+      "sha256": "1c5aa6c69f81ee70d00f9f73e0a13f076f479132a3a58f32ba8f10aa09c04e11"
+    },
+    {
+      "file": "docs/evidence/llm-validation/serving/api_response.json",
+      "bytes": 839,
+      "sha256": "1331a90469689a83652c6999181645f89dc03c06c9c755667978df49edc44dda"
+    },
+    {
+      "file": "docs/evidence/llm-validation/serving/curl_response.json",
+      "bytes": 839,
+      "sha256": "b82e2999d9e917127847d68ffb508d7a66c09b356f19c3d418973cbac26d3c1f"
+    },
+    {
+      "file": "docs/evidence/llm-validation/serving/lifecycle.json",
+      "bytes": 10151,
+      "sha256": "0a4c7ee9925465dd5c56604dcf74b7b44323dbccafbb8c1cfcf7bf835eb0f7be"
+    },
+    {
+      "file": "docs/evidence/llm-validation/training/checkpoint_info.json",
+      "bytes": 1305,
+      "sha256": "8aa4331ab4db360b6de43413e68bf4f8881bc5ce3cfeb784b35dc0460e16ed62"
+    },
+    {
+      "file": "docs/evidence/llm-validation/training/official-source.json",
+      "bytes": 1851,
+      "sha256": "82d1ad42e18dfcd2eec557d738c9e2a039bf46f7e1f52b4e61cc52c84db7eeb0"
+    },
+    {
+      "file": "docs/evidence/llm-validation/training/training_config.yaml",
+      "bytes": 360,
+      "sha256": "e951772111b7240fdbe4baf61db4b6c45c5c6895e792f6b3e2f0337ee71b4722"
+    },
+    {
+      "file": "docs/evidence/llm-validation/training/training_log.json",
+      "bytes": 16416,
+      "sha256": "7427632287544da4b4ae24450bba29d1d99832ddcb2330e62ba86b947cb42974"
+    },
+    {
+      "file": "docs/evidence/llm-validation/versions.json",
+      "bytes": 401,
+      "sha256": "59032299cd1ca3249d64ab07fea3c1f38d9762aaf45fadfd8ba1892184b6a827"
+    }
+  ]
+}

@@ -10,7 +10,8 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from .data_contract import sha256, validate_manifest, encode_sample, write_json
+from .options import training_options, semantic_sha, verify_resume_identity, microbatch_weights
+from .data_contract import sha256, validate_manifest, encode_sample, write_json, verify_model_bundle
 
 _STOP=False
 def stop(signum,frame):
@@ -22,19 +23,22 @@ def train(config,resume=False):
     import numpy as np
     from transformers import AutoModelForCausalLM,AutoTokenizer,BitsAndBytesConfig
     from peft import LoraConfig,TaskType,get_peft_model,prepare_model_for_kbit_training,PeftModel
+    options=training_options(config)
+    accum=options["gradient_accumulation_steps"]
     output=Path(config["output"]).resolve()
     output.mkdir(parents=True,exist_ok=True)
     if not torch.cuda.is_available():raise RuntimeError("A real CUDA GPU is required")
-    if sha256(Path(config["base_model"])/"model.safetensors")!=config["base_sha256"]:
-        raise ValueError("Frozen base checkpoint changed")
+    verify_model_bundle(config["base_model"],config["base_sha256"])
     rows,_=validate_manifest(config["dataset_manifest"],config["dataset_sha256"])
     seed=config["seed"]
     random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed_all(seed)
     torch.backends.cuda.matmul.allow_tf32=False
     start=time.perf_counter()
     dtype=torch.bfloat16
+    preprocess_start=time.perf_counter()
     tokenizer=AutoTokenizer.from_pretrained(config["base_model"],local_files_only=True,trust_remote_code=False)
     encoded=[encode_sample(tokenizer,row,config["max_seq_length"]) for row in rows]
+    data_preprocess_s=time.perf_counter()-preprocess_start
     kwargs={"local_files_only":True,"trust_remote_code":False,"use_safetensors":True,
             "torch_dtype":dtype,"attn_implementation":"sdpa"}
     quantized=config["method"]=="qlora"
@@ -43,12 +47,16 @@ def train(config,resume=False):
             load_in_4bit=True,bnb_4bit_quant_type="nf4",bnb_4bit_use_double_quant=True,
             bnb_4bit_compute_dtype=dtype))
     model=AutoModelForCausalLM.from_pretrained(config["base_model"],**kwargs)
-    if quantized:model=prepare_model_for_kbit_training(model,use_gradient_checkpointing=False)
+    if quantized:model=prepare_model_for_kbit_training(model,use_gradient_checkpointing=options["gradient_checkpointing"],gradient_checkpointing_kwargs={"use_reentrant":False})
     else:model=model.to("cuda")
     model=get_peft_model(model,LoraConfig(task_type=TaskType.CAUSAL_LM,r=config["lora_rank"],
         lora_alpha=config["lora_alpha"],lora_dropout=0.0,
         target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"]))
+    if options["gradient_checkpointing"] and not quantized:
+        model.enable_input_require_grads()
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant":False})
     model.config.use_cache=False
+    trainable_count,total_count=model.get_nb_trainable_parameters()
     parameters={name:p for name,p in model.named_parameters() if p.requires_grad}
     initial={name:p.detach().cpu().clone() for name,p in parameters.items()}
     optimizer=torch.optim.AdamW(parameters.values(),lr=config["lr"],weight_decay=0.01)
@@ -59,6 +67,7 @@ def train(config,resume=False):
         saved=torch.load(output/"resume.pt",map_location="cpu",weights_only=False)
         if saved["run_id"]!=config["run_id"] or saved["dataset_sha256"]!=config["dataset_sha256"]:
             raise ValueError("Resume identity mismatch")
+        verify_resume_identity(saved,config)
         # Restore the active default adapter, not a second trainable adapter.
         from peft import set_peft_model_state_dict
         from safetensors.torch import load_file
@@ -76,50 +85,61 @@ def train(config,resume=False):
     with log_path.open("a") as log:
         while step<config["steps"]:
             tick=time.perf_counter()
-            indices=[rng.randrange(len(encoded)) for _ in range(config["batch_size"])]
-            samples=[encoded[i] for i in indices];length=max(len(s["input_ids"]) for s in samples)
-            batch={key:torch.tensor([s[key]+([pad] if key=="input_ids" else [0] if key=="attention_mask" else [-100])*(length-len(s[key])) for s in samples],device="cuda")
-                   for key in ["input_ids","attention_mask","labels"]}
+            indices=[rng.randrange(len(encoded)) for _ in range(config["batch_size"]*accum)]
+            samples=[encoded[i] for i in indices]
+            weights=microbatch_weights([s["labels"] for s in samples])
             optimizer.zero_grad(set_to_none=True)
-            torch.cuda.synchronize();fwd=time.perf_counter()
-            loss=model(**batch).loss
-            torch.cuda.synchronize();fwd_s=time.perf_counter()-fwd
-            if not torch.isfinite(loss):raise RuntimeError("Nonfinite training loss")
-            backward=time.perf_counter();loss.backward();torch.cuda.synchronize()
-            bwd_s=time.perf_counter()-backward
+            fwd_s=0.0;bwd_s=0.0;loss_value=0.0
+            for offset in range(0,len(samples),config["batch_size"]):
+                micro=samples[offset:offset+config["batch_size"]]
+                length=max(len(s["input_ids"]) for s in micro)
+                batch={key:torch.tensor([s[key]+([pad] if key=="input_ids" else [0] if key=="attention_mask" else [-100])*(length-len(s[key])) for s in micro],device="cuda")
+                       for key in ["input_ids","attention_mask","labels"]}
+                torch.cuda.synchronize();fwd=time.perf_counter()
+                loss=model(**batch).loss*sum(weights[offset:offset+len(micro)])
+                torch.cuda.synchronize();fwd_s+=time.perf_counter()-fwd
+                if not torch.isfinite(loss):raise RuntimeError("Nonfinite training loss")
+                loss_value+=float(loss.detach());backward=time.perf_counter();loss.backward();torch.cuda.synchronize()
+                bwd_s+=time.perf_counter()-backward
             norm=torch.nn.utils.clip_grad_norm_(parameters.values(),1.0)
             if not torch.isfinite(norm):raise RuntimeError("Nonfinite gradients")
             opt=time.perf_counter();optimizer.step();scheduler.step();torch.cuda.synchronize()
             opt_s=time.perf_counter()-opt
             step+=1
-            event={"run_id":config["run_id"],"step":step,"loss":float(loss.detach()),
+            event={"run_id":config["run_id"],"step":step,"loss":loss_value,
                    "gradient_norm":float(norm),"lr":scheduler.get_last_lr()[0],
                    "sample_ids":[rows[i]["id"] for i in indices],
-                   "samples":len(indices),"forward_s":fwd_s,"backward_s":bwd_s,
+                   "samples":len(indices),"input_tokens":sum(len(s["input_ids"]) for s in samples),
+                   "supervised_tokens":sum(sum(x!=-100 for x in s["labels"][1:]) for s in samples),
+                   "gradient_accumulation_steps":accum,"gradient_checkpointing":options["gradient_checkpointing"],"forward_s":fwd_s,"backward_s":bwd_s,
                    "optimizer_s":opt_s,"wall_s":time.perf_counter()-tick,
                    "precision":"bf16","gpu_allocated_bytes":torch.cuda.max_memory_allocated(),
                    "gpu_reserved_bytes":torch.cuda.max_memory_reserved()}
             log.write(json.dumps(event)+"\n");log.flush()
             write_json(output/"progress.json",event)
+            if config.get("stop_after_step") and step>=config["stop_after_step"]:break
             if _STOP:break
     adapter=output/"adapter-latest";model.save_pretrained(adapter,safe_serialization=True)
     tokenizer.save_pretrained(adapter)
     torch.save({"run_id":config["run_id"],"dataset_sha256":config["dataset_sha256"],"step":step,
-                "optimizer":optimizer.state_dict(),"scheduler":scheduler.state_dict(),
+                "config_sha":semantic_sha(config),"optimizer":optimizer.state_dict(),"scheduler":scheduler.state_dict(),
                 "sampler_rng":rng.getstate(),"python_rng":random.getstate(),
                 "numpy_rng":np.random.get_state(),"torch_rng":torch.get_rng_state(),
                 "cuda_rng":torch.cuda.get_rng_state_all()},output/"resume.pt")
     change=max(float((p.detach().cpu()-initial[name]).abs().max()) for name,p in parameters.items())
     identity={"run_id":config["run_id"],"method":config["method"],"steps":step,
+              "config_sha":semantic_sha(config),**options,
               "base_sha256":config["base_sha256"],"dataset_sha256":config["dataset_sha256"],
-              "model_load_s":model_load_s,"training_wall_s":time.perf_counter()-train_start,
+              "model_load_s":model_load_s,"data_preprocess_s":data_preprocess_s,"data_preprocess_samples_s":len(rows)/data_preprocess_s,
+              "total_parameters":total_count,"trainable_fraction":trainable_count/total_count,
+              "training_wall_s":time.perf_counter()-train_start,
               "trainable_parameters":sum(p.numel() for p in parameters.values()),
               "parameter_delta_linf":change,"adapter":str(adapter),
               "adapter_sha256":sha256(adapter/"adapter_model.safetensors"),
               "resume_sha256":sha256(output/"resume.pt"),"gpu":torch.cuda.get_device_name(),
               "gpu_peak_allocated_bytes":torch.cuda.max_memory_allocated(),
               "source_sha256":sha256(__file__),"torch":torch.__version__}
-    if _STOP and step<config["steps"]:
+    if step<config["steps"]:
         write_json(output/"result.json",{**identity,"status":"PAUSED"})
         return
     if change<=0:raise RuntimeError("No parameter update measured")
@@ -131,9 +151,9 @@ def train(config,resume=False):
                                             torch_dtype=dtype,trust_remote_code=False,use_safetensors=True)
     merged=PeftModel.from_pretrained(base,str(adapter)).merge_and_unload(safe_merge=True)
     directory=output/"merged"
-    merged.save_pretrained(directory,safe_serialization=True);tokenizer.save_pretrained(directory)
+    merged.save_pretrained(directory,safe_serialization=True,max_shard_size="10GB");tokenizer.save_pretrained(directory)
     checkpoint=directory/"model.safetensors"
-    if not checkpoint.is_file():raise RuntimeError("Expected single-file 0.5B checkpoint export")
+    if not checkpoint.is_file():raise RuntimeError("Expected bounded single-file checkpoint export")
     identity.update(checkpoint=str(checkpoint),checkpoint_sha256=sha256(checkpoint),
                     status="COMPLETED",wall_s=time.perf_counter()-start)
     write_json(output/"result.json",identity)

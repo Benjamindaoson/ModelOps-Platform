@@ -81,3 +81,27 @@ def freeze_dolly(source,output,tokenizer,train_count=64,heldout_count=24,seed=17
     write_json(output/"manifest.json",body)
     validate_manifest(output/"manifest.json",sha256(output/"manifest.json"))
     return output/"manifest.json"
+
+def verify_model_bundle(root,expected):
+    """Verify all locked weight shards and tokenizer/config inputs before loading."""
+    root=Path(root).resolve(); single=root/"model.safetensors"; lock=root/"modelops-files.json"
+    if single.is_file() and not lock.exists():
+        if sha256(single)!=expected:raise ValueError("Frozen base checkpoint changed")
+        return {"kind":"single","sha256":expected}
+    if not lock.is_file() or sha256(lock)!=expected:raise ValueError("Frozen model manifest changed")
+    records=json.loads(lock.read_text()).get("files",[])
+    names=[]
+    for item in records:
+        name=item["name"]
+        if not isinstance(name,str) or "/" in name or "\\\\" in name or name in {"",".",".."}:
+            raise ValueError("Model file escaped owned root")
+        p=(root/name).resolve()
+        if not p.is_relative_to(root) or not p.is_file():raise ValueError("Frozen model file missing: "+name)
+        if p.stat().st_size!=item["bytes"] or sha256(p)!=item["sha256"]:raise ValueError("Frozen model file changed: "+name)
+        names.append(name)
+    if len(names)!=len(set(names)) or not any(n.endswith(".safetensors") for n in names):raise ValueError("Incomplete model weight lock")
+    index=root/"model.safetensors.index.json"
+    if index.exists():
+        shards=set(json.loads(index.read_text())["weight_map"].values())
+        if not shards.issubset(set(names)):raise ValueError("Unlocked model weight shard")
+    return {"kind":"bundle","sha256":expected,"files":len(names)}

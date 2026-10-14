@@ -7,6 +7,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Advanced inference and training — 2026-10-14
+
+- Added native dual-engine loading/identity adapters and90-point matched measurements.
+- Actually converted and evaluated GPTQ/AWQ; preserved AWQ quality rejection.
+- Captured CUDA/PyTorch traces and output-verified prefix/cache and configuration experiments.
+- Added token-weighted accumulation, checkpointing configuration, semantic resume identity and managed64-update comparisons.
+- Hardened Registry/online version, telemetry and quality/performance decisions with bounded real faults.
+- Fixed missing Registry revision and excessive Unix socket temp paths; retired an incorrect fault classification rather than claiming it as evidence.
+- Published safe summaries only; no raw weights/data, GPU Docker, Nsight, multi-node or business-SLO claims.
+
+## ModelOps LLM validation finalization — 2026-10-13
+
+### Added
+- Model-version release gate with independently verified artifact/evaluation/serving/benchmark evidence.
+- GPU Docker runtime probe and explicitly SKIPPED current-host receipt.
+- Streaming inference/GPU monitoring, Prometheus/Grafana Compose and actual native validation.
+- Hash-bound Base/fine-tuned comparison: 12 trials / 1,536 genuine requests.
+- CI software, actual Compose CPU contracts, GPU image build and evidence uploads.
+- English/Chinese documentation, source-pinned architecture and complete evidence matrix.
+
+### Fixed
+- Resume-safe TIME_WAIT port probe and GPU CLI PATH selection.
+- Qualified unittest imports under the existing importlib-mode default suite.
+- Invalid upstream response/stream option handling without hiding errors.
+- Monitoring bootstrap verifies installed executables instead of overwriting live binaries.
+
+### Evidence boundaries
+- Preserve actual quality decline and slightly lower fine-tuned throughput.
+- No new training or changed checkpoints; no GPU Docker or production HA claim.
+- Historical upstream changelog entries below are preserved, not newly validated ModelOps releases.
+
 ## [1.1.0] - 2026-05-27
 
 > **Multi-Engine:** Capability-based engine selection with SGLang + Chitu support.

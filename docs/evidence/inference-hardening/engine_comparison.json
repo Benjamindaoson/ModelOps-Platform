@@ -1,0 +1,2151 @@
+{
+  "status": "PASS",
+  "groups": [
+    {
+      "engine": "sglang",
+      "workload": "A",
+      "concurrency": 1,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 100.41883361915646,
+      "output_tokens_s_min": 100.39237480277971,
+      "output_tokens_s_max": 100.4348991298521,
+      "latency": {
+        "ttft_ms": {
+          "p50": 31.300750499895003,
+          "p95": 31.929378249742513,
+          "p99": 32.620491600073365
+        },
+        "tpot_ms": {
+          "p50": 9.618261753970843,
+          "p95": 9.623233503968246,
+          "p99": 9.626111061908656
+        },
+        "e2e_ms": {
+          "p50": 637.199404500052,
+          "p95": 638.0085947497491,
+          "p99": 639.025833849928
+        }
+      },
+      "peak_gpu_mib": 22925.0,
+      "mean_gpu_util_percent": 99.47863247863248,
+      "mean_power_w": 258.2674358974359,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c1-r0",
+          "raw_sha": "8652355927f52bfa264404ec65434ae6f9da6f51ab3903cc09cb9252ba06fc88",
+          "gpu_sha": "ae5d9560eebc7792f7b1d7ae7561df587750836ab65667f49266dd8d341fe344",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c1-r1",
+          "raw_sha": "70091a87361a54ad6f6be79a528d5e4b67a53c4dfc35eb558a76d61ad57f494f",
+          "gpu_sha": "a311e91668d34a969a87bd8cd457b2e6896e2fc21aa8c3326c5a8e9f1173bd2f",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c1-r2",
+          "raw_sha": "1e562959b346f75432316a018b4735eabded9d81bfd9a8fd69fb709b509523b2",
+          "gpu_sha": "31fdb78145e11e808034ef18498ba14e0e5d7f59f9db562990f47fd7b273aedf",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "A",
+      "concurrency": 4,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 367.1043397796284,
+      "output_tokens_s_min": 367.06533180690667,
+      "output_tokens_s_max": 367.16605998763754,
+      "latency": {
+        "ttft_ms": {
+          "p50": 75.36416500033738,
+          "p95": 76.77915075009878,
+          "p99": 76.92842444982944
+        },
+        "tpot_ms": {
+          "p50": 9.864178492065664,
+          "p95": 9.881065051587708,
+          "p99": 9.8856072142838
+        },
+        "e2e_ms": {
+          "p50": 696.9946909998725,
+          "p95": 697.7814499996384,
+          "p99": 698.4390645500071
+        }
+      },
+      "peak_gpu_mib": 22969.0,
+      "mean_gpu_util_percent": 99.57575757575758,
+      "mean_power_w": 240.76151515151514,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c4-r0",
+          "raw_sha": "ccf78411c8cad4098f03b7f33ec1d592a09ecaff7ed3d0f6a21c2d01c07efb1e",
+          "gpu_sha": "5b04ee0f8695cae7b765d61bf9830bde723f218ae5365b3438a8d95956133147",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c4-r1",
+          "raw_sha": "31ebf6cda15ff33bd7d86cd59057aa3472293e8b3c1092704c4023972541a233",
+          "gpu_sha": "4d897940a230b023ad37cb0023cffbed62fe96af0dd625cc58b48d57627aeffd",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c4-r2",
+          "raw_sha": "d0f3f8e282f45bed0755a0203fc22d32b16a92175b4862d422d7c17c17bb93de",
+          "gpu_sha": "a051193f5989f7727132b9045499d2e19e6c6ac7404998c2a60b1d1fcfec96db",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "A",
+      "concurrency": 8,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 658.1813117141234,
+      "output_tokens_s_min": 645.6852326460338,
+      "output_tokens_s_max": 664.6450934441859,
+      "latency": {
+        "ttft_ms": {
+          "p50": 133.9214355000422,
+          "p95": 225.28013449993978,
+          "p99": 226.09225710020837
+        },
+        "tpot_ms": {
+          "p50": 10.023755706351082,
+          "p95": 11.417553404760564,
+          "p99": 11.521738449205833
+        },
+        "e2e_ms": {
+          "p50": 771.266404500011,
+          "p95": 854.4074615001591,
+          "p99": 855.3935765000006
+        }
+      },
+      "peak_gpu_mib": 23113.0,
+      "mean_gpu_util_percent": 94.61904761904762,
+      "mean_power_w": 253.33833333333334,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c8-r0",
+          "raw_sha": "1b3603f7524d42fcc117af76e0fb8d108b908285e30b28dec5298e87d7e7cec0",
+          "gpu_sha": "8884e1126ca68210331759cd608af69e0d4d533b5a83056c13337441471dc11c",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c8-r1",
+          "raw_sha": "5a7ff3332e8f68cc9d69116cd77f8af61ee5fd6df60d901b3fcb9bcd524831bc",
+          "gpu_sha": "f0aed5133ca4f23b39dd37b4d6309a9620e4d3058bb2521a5d80f51bda8b9748",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c8-r2",
+          "raw_sha": "4d749159b6ad8d22617e7857efa2083572965f0c24021940cd8088baa24a31f9",
+          "gpu_sha": "13275cc6357c1e370890a33f8320a625964e0afe87ed775ac913b63529aa4555",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "A",
+      "concurrency": 16,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 759.132644346881,
+      "output_tokens_s_min": 707.4794361542516,
+      "output_tokens_s_max": 786.2599012187364,
+      "latency": {
+        "ttft_ms": {
+          "p50": 225.24224750009125,
+          "p95": 396.5923382496612,
+          "p99": 397.1892995002918
+        },
+        "tpot_ms": {
+          "p50": 17.952986682537755,
+          "p95": 22.140506031746554,
+          "p99": 22.20696598809672
+        },
+        "e2e_ms": {
+          "p50": 1311.4280004999728,
+          "p95": 1575.6397307501402,
+          "p99": 1578.1050925496857
+        }
+      },
+      "peak_gpu_mib": 23199.0,
+      "mean_gpu_util_percent": 80.06666666666666,
+      "mean_power_w": 230.05966666666666,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c16-r0",
+          "raw_sha": "f2b5bb08437334c2f0583a14f3e485d7b4501f98782fcbf3e620af97bd56395b",
+          "gpu_sha": "212095d4795a692c75141786b9461b66ef038d5989e1c32cd69357391b0cf4f4",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c16-r1",
+          "raw_sha": "cee5289f66a896e674a6cb925f7570a6ab0b80e9e0cdde3691e7edd6c27c9ac4",
+          "gpu_sha": "efa89508fa8c1fad9b2ea846a6c403673c7d0fd7e028b180df0aac553b4a5a1c",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c16-r2",
+          "raw_sha": "08d27d6b534b39fb552205c57551892b42d46da7e271f69cd2b17d17ddf8da21",
+          "gpu_sha": "5a803a9d34ff850788ad6d2428c009441bcf81ae2c4c3667988c4a381c0c707b",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "A",
+      "concurrency": 32,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 1285.2135224835179,
+      "output_tokens_s_min": 1278.0989117440117,
+      "output_tokens_s_max": 1290.903503488017,
+      "latency": {
+        "ttft_ms": {
+          "p50": 303.111317999992,
+          "p95": 514.772258999983,
+          "p99": 515.1736480498357
+        },
+        "tpot_ms": {
+          "p50": 20.179327801586275,
+          "p95": 22.30243048016125,
+          "p99": 24.206757984124454
+        },
+        "e2e_ms": {
+          "p50": 1578.9842275000865,
+          "p95": 1590.8486472500272,
+          "p99": 1591.2564411498806
+        }
+      },
+      "peak_gpu_mib": 23199.0,
+      "mean_gpu_util_percent": 92.83333333333333,
+      "mean_power_w": 254.5175,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c32-r0",
+          "raw_sha": "f9edc7caa4681785b21ad56ca32b471153a8a87c77d83ebb138a7386fcc066b0",
+          "gpu_sha": "46364d785f8e52696aa35e4ee556aa2103d69bdfa690a6f98a6aff4a5e6389c8",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c32-r1",
+          "raw_sha": "8f1bc8e51909e41827d083564fd7a4d1bbd6952213c689195863c8fc6fb70bd5",
+          "gpu_sha": "9adf7d69f1e2968d571da7a8af69c74f54039f7338ecec916932b06b57c29302",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-A-c32-r2",
+          "raw_sha": "db7b74bf396d8297d313c5a268dfba3789593af10e8e11b08ef43751e9f0f0f0",
+          "gpu_sha": "4a5dbea016bd01be36c7b48231b4f9a431b70c44be511fcc4465c57afca1e39a",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "B",
+      "concurrency": 1,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 91.02795709310726,
+      "output_tokens_s_min": 91.02100042508525,
+      "output_tokens_s_max": 91.03505528831067,
+      "latency": {
+        "ttft_ms": {
+          "p50": 144.48788549998426,
+          "p95": 145.20087449989205,
+          "p99": 146.25579469966394
+        },
+        "tpot_ms": {
+          "p50": 9.934634330708768,
+          "p95": 9.93984998818833,
+          "p99": 9.941272265352495
+        },
+        "e2e_ms": {
+          "p50": 1406.2486884999998,
+          "p95": 1406.8500552497198,
+          "p99": 1407.1624483000505
+        }
+      },
+      "peak_gpu_mib": 23219.0,
+      "mean_gpu_util_percent": 99.88372093023256,
+      "mean_power_w": 269.4889147286822,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c1-r0",
+          "raw_sha": "50cb2182055f5895ced0fcd29c0d7ea0a12ed1ea48b921f39a20fb7716262d38",
+          "gpu_sha": "b0477889330b41d3afb5c251d61d4e1cdd08460d8b34801952729fd81394a916",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c1-r1",
+          "raw_sha": "fb69c0b8b17c4f63db9fea4b3837db5cc3f96ee4454a3730d1caced2e9679932",
+          "gpu_sha": "cbb0d4a6c5daf5583e037fd0f20d988e773927980b5ebc538ab82de8abe0669f",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c1-r2",
+          "raw_sha": "b2fa5bc37ec3986e434a29031c8d6e35b1c4fb0a98130cb0e46e84ae2bcbed68",
+          "gpu_sha": "7f1483fed515971127c8219b8727fc0782d62a320e0b27606d2bb97169072e2a",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "B",
+      "concurrency": 4,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 277.0755716953821,
+      "output_tokens_s_min": 276.9477416596885,
+      "output_tokens_s_max": 277.1552595778081,
+      "latency": {
+        "ttft_ms": {
+          "p50": 359.10547000003135,
+          "p95": 541.7296124999211,
+          "p99": 543.7623356502627
+        },
+        "tpot_ms": {
+          "p50": 11.746713996063326,
+          "p95": 13.280311084648156,
+          "p99": 13.288963591731221
+        },
+        "e2e_ms": {
+          "p50": 1846.9570585002657,
+          "p95": 1849.2611407496042,
+          "p99": 1855.4879430501387
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 99.86206896551724,
+      "mean_power_w": 264.18574712643675,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c4-r0",
+          "raw_sha": "8b8044ff3b249ca060c4c3450c2a6a7359a7ddf949f68072b90d67e3e2441654",
+          "gpu_sha": "9a6d7aa85c2460141a1795bf71912310c00d0ccce8b38db8ede80ef370a264f3",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c4-r1",
+          "raw_sha": "92b669d0206e9b3b525f7ce1a43da1a375a977f0f9e186d70173dd41ec710d79",
+          "gpu_sha": "b2abfe34a18cc1aaa24db23b1b33fb822005624368a61d40c9e0990db56d21c9",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c4-r2",
+          "raw_sha": "198612a938efb3ba1ce4908d406fc197049baeda563f33fb43e4c2c647863f1d",
+          "gpu_sha": "fd468e78145228f03c49379c68fba9b99da6c8d36472bfb92a7ad94bc8c26bd2",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "B",
+      "concurrency": 8,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 418.4900186766154,
+      "output_tokens_s_min": 418.4498891837714,
+      "output_tokens_s_max": 418.518577098304,
+      "latency": {
+        "ttft_ms": {
+          "p50": 627.225299499969,
+          "p95": 1070.15707274968,
+          "p99": 1080.6500413494177
+        },
+        "tpot_ms": {
+          "p50": 14.335341153539735,
+          "p95": 17.981968100396507,
+          "p99": 18.096342582281984
+        },
+        "e2e_ms": {
+          "p50": 2443.1978355000865,
+          "p95": 2453.7940532493394,
+          "p99": 2454.6922705504585
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 99.85964912280701,
+      "mean_power_w": 281.2243859649123,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c8-r0",
+          "raw_sha": "e5b527aa77863d11d06f0ef66b79c7a506ac65b78dfdccb384ef0d57f0c8513f",
+          "gpu_sha": "81cfc2fca76e302c12d63271ed4625177b69dd2842003b01875296fc2b61666d",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c8-r1",
+          "raw_sha": "8314ce7c29547fd467e5447cbe4735aa47aee814dbd440608b0f45d7f1f07621",
+          "gpu_sha": "8e3934f487d4a6f53fd73580737051359128706030395412ba9aa21147a5d43d",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c8-r2",
+          "raw_sha": "62150ba7571a59fdca778b1c39123d17d9bc63316fe78005eff12778c8859a6b",
+          "gpu_sha": "e6346196f96fe04c6423c913db43f39836704225ba72ddd2d04ecb594bf476b0",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "B",
+      "concurrency": 16,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 482.78779784601676,
+      "output_tokens_s_min": 476.10260670980404,
+      "output_tokens_s_max": 486.23290590693904,
+      "latency": {
+        "ttft_ms": {
+          "p50": 1199.5882595001603,
+          "p95": 2116.6899647503215,
+          "p99": 2141.549163350055
+        },
+        "tpot_ms": {
+          "p50": 24.246003366142116,
+          "p95": 31.789827492130417,
+          "p99": 32.53553036732937
+        },
+        "e2e_ms": {
+          "p50": 4221.102070999677,
+          "p95": 4302.572703500346,
+          "p99": 4306.436588199904
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 89.1764705882353,
+      "mean_power_w": 271.708431372549,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c16-r0",
+          "raw_sha": "0291e937c6c8170eb410d16fac255e3044beba5bb2ec2faf35d100e7d89f00b6",
+          "gpu_sha": "5c6e18b54888962aed39d6a9240178c796a3eff35e0bd2cc836a3ef5b0b4ce43",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c16-r1",
+          "raw_sha": "84b9a46698d02ca64aa6cd82620a6c7a61a0e48d0ad0114323458ac5df980b99",
+          "gpu_sha": "425ec12337ec56ae0bf9d09daf12cca70dff73a09e655574ccc2f5febebc4039",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c16-r2",
+          "raw_sha": "889e56e85f0ebe4fc8af674e72f987cea0b9f3509def6c405f77b0a039ca1a57",
+          "gpu_sha": "88a2f45d0d6792c18a9a1bef8250dfe938f74baa9ed30761e0b09d6a9cb4d13e",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "B",
+      "concurrency": 32,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 629.6554823950914,
+      "output_tokens_s_min": 628.8617887543824,
+      "output_tokens_s_max": 630.5078718617578,
+      "latency": {
+        "ttft_ms": {
+          "p50": 2229.7407490004844,
+          "p95": 4151.420747749853,
+          "p99": 4267.50014179961
+        },
+        "tpot_ms": {
+          "p50": 33.51386376771833,
+          "p95": 48.58130063779768,
+          "p99": 49.77116723503918
+        },
+        "e2e_ms": {
+          "p50": 6489.483270500386,
+          "p95": 6499.4771495000805,
+          "p99": 6499.803443499377
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 97.92307692307692,
+      "mean_power_w": 295.53051282051285,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c32-r0",
+          "raw_sha": "b636dc3e0b31e743de9c2e0cd9da337400d279af76e1da0e9a6292bffb8be9cf",
+          "gpu_sha": "91ddc9e89bedf83e3fd5179fc6d1d0fe91fefc8667a1ca64150c475b8908aa9d",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c32-r1",
+          "raw_sha": "9f71432964e7576eced4b8793b4af1ded59e3bdec9cacc1f4354aac449863e46",
+          "gpu_sha": "bef843eab05fa61b4d342fafc131e283fadcc5d8fff3d7a5c46c702559787c56",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-B-c32-r2",
+          "raw_sha": "cdf63d779e85d1db91195dfcd4409e0852f17e904865ad1ffe2412b4e61cdf2f",
+          "gpu_sha": "9da72a8615276e6376c1effa004ada107f917d2a72e66cf812cee3260c813992",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "C",
+      "concurrency": 1,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 102.60910708819227,
+      "output_tokens_s_min": 102.57889597383168,
+      "output_tokens_s_max": 102.64455340770793,
+      "latency": {
+        "ttft_ms": {
+          "p50": 45.47859749982308,
+          "p95": 45.9973212496152,
+          "p99": 46.71827879988086
+        },
+        "tpot_ms": {
+          "p50": 9.67483834540172,
+          "p95": 9.68248845548,
+          "p99": 9.685325032975806
+        },
+        "e2e_ms": {
+          "p50": 4989.509467000516,
+          "p95": 4993.2866292501785,
+          "p99": 4994.725176200518
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 99.89035087719299,
+      "mean_power_w": 271.82120614035085,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c1-r0",
+          "raw_sha": "af1eb3a97b3df8e0ec2735ea8dbc59e5013fbe2803ca3624b3090dfe356def8a",
+          "gpu_sha": "df4be44278613b08461382332c0253e6de36d3d3eb03ad0c4f6efeb42534c630",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c1-r1",
+          "raw_sha": "70c0967f07166491678ca4311ad50c0c35327434c336efb0a2403b049b8cae71",
+          "gpu_sha": "9241924c84edcd42ffb35206687fdf0669448c9561f65116ce5d90672490cacb",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c1-r2",
+          "raw_sha": "6c042e6acc44b72104342a03ec9409ca11c10652924a3b92f41651eae10eae2e",
+          "gpu_sha": "5206f39d6fbcf9ab288ff420bfce9c1302feb2e09fb76f4835d4b2e630eb217a",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "C",
+      "concurrency": 4,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 392.05616918374676,
+      "output_tokens_s_min": 392.04813350763624,
+      "output_tokens_s_max": 392.0651269264359,
+      "latency": {
+        "ttft_ms": {
+          "p50": 134.1082194999217,
+          "p95": 135.96553200000017,
+          "p99": 136.46439715002998
+        },
+        "tpot_ms": {
+          "p50": 9.958585983365818,
+          "p95": 9.9613206903122,
+          "p99": 9.963885080331544
+        },
+        "e2e_ms": {
+          "p50": 5223.122130500087,
+          "p95": 5224.752231000139,
+          "p99": 5225.007743549531
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 99.93333333333334,
+      "mean_power_w": 237.756125,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c4-r0",
+          "raw_sha": "de2e46e42be4f8e6a463e30c855b247ff475eed8013f4c2f92fc6d11226d80bd",
+          "gpu_sha": "98c71301e57db7689a055d76d28096f583764656827f1ff0298d0005e70cf960",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c4-r1",
+          "raw_sha": "55b136919411a2bf8e3809b89a685494b5a500034efce37b3373bd368ba93dcb",
+          "gpu_sha": "4f840e8b1d6dd741789b11f3f1a6e30a2358ea486b4c157d0954178db33988bf",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c4-r2",
+          "raw_sha": "5e97649a320d3c4d79c0f50b7780dd2325e6d6c75caa1085ed08aa7a0be3836d",
+          "gpu_sha": "a345275596825334ce40ee4c4942bdb168c9881eb4f60013d470ec11b733e7e8",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "C",
+      "concurrency": 8,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 748.5491777511302,
+      "output_tokens_s_min": 748.4350855953493,
+      "output_tokens_s_max": 748.7083401751786,
+      "latency": {
+        "ttft_ms": {
+          "p50": 231.45256650013835,
+          "p95": 268.2227209998018,
+          "p99": 268.5245178994137
+        },
+        "tpot_ms": {
+          "p50": 10.255009598825394,
+          "p95": 10.573868916341661,
+          "p99": 10.602192367124223
+        },
+        "e2e_ms": {
+          "p50": 5471.2408270002015,
+          "p95": 5474.9886354998125,
+          "p99": 5476.353118049656
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 99.92063492063492,
+      "mean_power_w": 242.74904761904762,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c8-r0",
+          "raw_sha": "021d386ea48a17de3f4bc4237a7afab24f988b6f1d58301066a6b57cf066a72e",
+          "gpu_sha": "e7643735f320c5e9691ffe1c310999fc707d84ef782655e2b9b1abe36ea4c893",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c8-r1",
+          "raw_sha": "813c2785483023294c53729720bb91e179327fc5f964d54dd96be22a9b4e34fb",
+          "gpu_sha": "2640cdc0a1873632e40dc2202ce373b04b96efbac54129676736100d3e5367ef",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c8-r2",
+          "raw_sha": "130ddd4de3dcd032b08fd0de03f026dca044ae86824229fef3dce3abc3872373",
+          "gpu_sha": "0ac9ac1f43c5e5262ea86092d64386778dae1e971e4da55ca2af1df0377a157f",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "C",
+      "concurrency": 16,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 897.3729901933517,
+      "output_tokens_s_min": 893.5826082481599,
+      "output_tokens_s_max": 900.5800898936247,
+      "latency": {
+        "ttft_ms": {
+          "p50": 320.07511700021496,
+          "p95": 516.0616717500943,
+          "p99": 518.042593450582
+        },
+        "tpot_ms": {
+          "p50": 17.193657000978867,
+          "p95": 17.848139207925993,
+          "p99": 17.963499106556664
+        },
+        "e2e_ms": {
+          "p50": 9123.137225000391,
+          "p95": 9287.925981250055,
+          "p99": 9294.11019064978
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 69.62857142857143,
+      "mean_power_w": 202.26228571428572,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c16-r0",
+          "raw_sha": "7e996fba6a65af5f5f0c11f3f94ca57362de9e1b0ae8f4f2588c1498c09aee92",
+          "gpu_sha": "977fe35a13bd03e85d4c79e99a14ca8b4679de5d45490f24cb30d4e3e4cad399",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c16-r1",
+          "raw_sha": "c988398ec1e7d0a6a23a21530c05e2cdb905b17a7e3d33d1b90ffb869f9be942",
+          "gpu_sha": "5f13fb170f4181a2bfebbaecae271d963ed5a006b27b39473d881462944d223f",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c16-r2",
+          "raw_sha": "c0049e5fc6f00634a8ae5a2afb9c13a965e27ccdef52f801079a48822458387e",
+          "gpu_sha": "2a59f6b5ae25810d348bc73aa845d792cc87bff5f88caa5cf64a272e0386a442",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "sglang",
+      "workload": "C",
+      "concurrency": 32,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 1665.9523514188124,
+      "output_tokens_s_min": 1651.9623793641686,
+      "output_tokens_s_max": 1673.3380230040023,
+      "latency": {
+        "ttft_ms": {
+          "p50": 568.4157185000913,
+          "p95": 1012.4599210000724,
+          "p99": 1014.2141695006103
+        },
+        "tpot_ms": {
+          "p50": 18.026828150684075,
+          "p95": 18.98275304892437,
+          "p99": 19.011527101663287
+        },
+        "e2e_ms": {
+          "p50": 9778.983832500217,
+          "p95": 9904.399999000361,
+          "p99": 9904.84815750001
+        }
+      },
+      "peak_gpu_mib": 23239.0,
+      "mean_gpu_util_percent": 81.57894736842105,
+      "mean_power_w": 229.91982456140352,
+      "load_readiness_s": 23.17197286199962,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "sglang",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "sglang-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false,
+        "attention_backend": "triton",
+        "sampling_backend": "pytorch"
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c32-r0",
+          "raw_sha": "efee634d22bbafba9309aa107e32bf655efcef6b3f0898babad53a86e805f63e",
+          "gpu_sha": "fe2930b34440587fbc0bb57d9d668f1dbabc8b6347bc54b7c6dc2b1a3bfc39a2",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c32-r1",
+          "raw_sha": "d23f91ded23dd24e6dbd0fe7e925fdb2af02eee709e381c7c4bff66189b4b126",
+          "gpu_sha": "a7e37997bda0e6d8583fd34bf75788ff8e95e472c9df52e27b382359016efed1",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/sglang-C-c32-r2",
+          "raw_sha": "79d5c953457828ad41f5afc82f5dabe474be10928ef9f73bd9fb37e65ec440da",
+          "gpu_sha": "f976957ce27322d02fd194c186ffce26792af019285b5004f2a9177d5df121c4",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "A",
+      "concurrency": 1,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 91.3399050731884,
+      "output_tokens_s_min": 91.21234867543981,
+      "output_tokens_s_max": 91.58755743952015,
+      "latency": {
+        "ttft_ms": {
+          "p50": 23.278930000060427,
+          "p95": 24.323868750116162,
+          "p99": 25.14914780037998
+        },
+        "tpot_ms": {
+          "p50": 10.737447531746223,
+          "p95": 10.852648412699255,
+          "p99": 10.859325711106658
+        },
+        "e2e_ms": {
+          "p50": 699.8120084999755,
+          "p95": 706.9391802500604,
+          "p99": 707.4372503500399
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 92.55038759689923,
+      "mean_power_w": 235.54201550387597,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c1-r0",
+          "raw_sha": "7f963f531f80efcf3dde5a522006109d46f58e693c34fe46a530bdc93ff7cc09",
+          "gpu_sha": "a1f0041f8cecd17fe225cd68a795d13d5208e47d041828955af3fc5e2402d4b3",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c1-r1",
+          "raw_sha": "11d1c05a18e1c8b2013490819c9aea05293e3b36f3e4e40b8a1b1750b05558b9",
+          "gpu_sha": "2d36bda8fbac6cc6bf93ca08c48f638de048ab632ee7d042daa44b68387c6b5e",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c1-r2",
+          "raw_sha": "637249afe6544851382e4d2a97c00d4efc522a45d03fe3db0e88410886034df0",
+          "gpu_sha": "15e0239165a4fa2c0bae4865efe03b19e887a99a708faa3ff4bd023adf0ba3ee",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "A",
+      "concurrency": 4,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 329.4247599352202,
+      "output_tokens_s_min": 329.2660415428274,
+      "output_tokens_s_max": 329.64161407014706,
+      "latency": {
+        "ttft_ms": {
+          "p50": 74.58885749997535,
+          "p95": 80.54918575010106,
+          "p99": 82.48773109987724
+        },
+        "tpot_ms": {
+          "p50": 11.128768499998293,
+          "p95": 11.828039273813562,
+          "p99": 11.853141358731605
+        },
+        "e2e_ms": {
+          "p50": 775.7902729999842,
+          "p95": 781.915210750185,
+          "p99": 783.3896050001385
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 93.41666666666666,
+      "mean_power_w": 220.38694444444442,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c4-r0",
+          "raw_sha": "e14717744882aef2f087dd073541e28f7b53b9c61119d3a18127f2aed8107cd0",
+          "gpu_sha": "fcab4bfa490eeb6827db12c1487e25666de16d7c24c5ee82cae40a4aef5c80f0",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c4-r1",
+          "raw_sha": "f9d23a836362774abf74d67a2010c3d9c28d8f08e212ce8c44b6934211803256",
+          "gpu_sha": "483fcc974fa6dab556f2e78bb2827ead7d6e390c828885b21487ff44e302e604",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c4-r2",
+          "raw_sha": "b7a298d0e23989d953364e3bfee26c491cdcb39604a150de2fe80ce19387cebe",
+          "gpu_sha": "868357e4caf65cb2e2ec06338e1adcda59d0cfa3d65a0d69959ed8e8e17a1184",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "A",
+      "concurrency": 8,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 601.2998152196242,
+      "output_tokens_s_min": 600.6416983152435,
+      "output_tokens_s_max": 602.5563227210158,
+      "latency": {
+        "ttft_ms": {
+          "p50": 134.44715800005724,
+          "p95": 142.5924192499224,
+          "p99": 143.01806949979436
+        },
+        "tpot_ms": {
+          "p50": 11.334203539682054,
+          "p95": 12.984421519842641,
+          "p99": 13.007757115078387
+        },
+        "e2e_ms": {
+          "p50": 849.2958275001001,
+          "p95": 856.9888337498242,
+          "p99": 857.5038301500172
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 93.0952380952381,
+      "mean_power_w": 232.37714285714284,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c8-r0",
+          "raw_sha": "d22b4e6fb644e321ff0432d7d16f5489000fa53d7396f2c011803ac33e8ff85c",
+          "gpu_sha": "467aa1e4d2a05c61d9021dc229de541cb9b7979e0bba9f00cba0465e36bf9166",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c8-r1",
+          "raw_sha": "18413a9fa65717b926a46044c79969afce0adb6a84bd996a79de5241ec12276f",
+          "gpu_sha": "1cede55785b768eddca7468aaf0c5c234dbf63ec64353b8d4a1edfdf09a3dc1d",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c8-r2",
+          "raw_sha": "859c115caa264468aceb671e253d2018e67a17db003180af0b6e512a9c87465a",
+          "gpu_sha": "fe4eb1c467848e8fc98d0bcab35fcfec74b75bb24ed9efb387c6366b7affb67a",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "A",
+      "concurrency": 16,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 1016.7711862810563,
+      "output_tokens_s_min": 1015.8320097176377,
+      "output_tokens_s_max": 1017.6673334979733,
+      "latency": {
+        "ttft_ms": {
+          "p50": 195.74845999977697,
+          "p95": 269.5270712499678,
+          "p99": 269.8409144998777
+        },
+        "tpot_ms": {
+          "p50": 12.652236015875522,
+          "p95": 15.12690677777791,
+          "p99": 15.171610280950764
+        },
+        "e2e_ms": {
+          "p50": 995.1931175000936,
+          "p95": 1022.1983144998603,
+          "p99": 1022.6944799998819
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 94.83333333333333,
+      "mean_power_w": 249.1075,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c16-r0",
+          "raw_sha": "d656dc932a6e3aafb43b91cfaf693f2ce95768945df754ce463bf014023a47c2",
+          "gpu_sha": "88579672cd0e81f83089e97d940f32adb68c66ff2f9dfe053b290abf6a8b049c",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c16-r1",
+          "raw_sha": "c02ec5297ca849cf896d77c960e812e2219072ac8410d4e704ef71bd4e5e44f3",
+          "gpu_sha": "70e1c4798d1ab5b1a2b4be820fd74a6b22a9414ad2365b077b908bd5407e8f0c",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c16-r2",
+          "raw_sha": "65b6b6c146bdf9e6806821641da8c3ba4bfe8baf2b6174d136f4831ad466eac3",
+          "gpu_sha": "0bf722b0ecb7dd7ae818ba32c26d27849ac3f0f14271d9bf400bef7fefd5e230",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "A",
+      "concurrency": 32,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 1450.3355922284666,
+      "output_tokens_s_min": 1448.1323152218063,
+      "output_tokens_s_max": 1452.310389084022,
+      "latency": {
+        "ttft_ms": {
+          "p50": 343.84111200006373,
+          "p95": 525.6472847501072,
+          "p99": 525.9854180001639
+        },
+        "tpot_ms": {
+          "p50": 16.574109190478627,
+          "p95": 19.28194889285531,
+          "p99": 20.942338709521987
+        },
+        "e2e_ms": {
+          "p50": 1387.848297499886,
+          "p95": 1403.9070749998928,
+          "p99": 1405.0026839997372
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 89.22222222222223,
+      "mean_power_w": 261.92333333333335,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c32-r0",
+          "raw_sha": "af1a78a3d7bf0d8536371ade5b97ed716210aa150f65805cf5ab2cf8bf3b37ed",
+          "gpu_sha": "8ac1f3bb46375a6d740b61c7b69f1310690189b27702f7b7698eb722283d2015",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c32-r1",
+          "raw_sha": "65e078fbcbef39019cdf448322887c1356dc3ce10695e053088dcdc0d8757c8f",
+          "gpu_sha": "d49bc66c6ab487d0d2048e594314877847d5ef60ca3836e42cb0596d720881bb",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-A-c32-r2",
+          "raw_sha": "ed62fa4d332ee09c982e022fc7dbeb7bd04c72696b25a954694f4da715e425d9",
+          "gpu_sha": "4d3e03c4c51ed947a758c58bbd9114bd07096d92ac3ca04fb3984c88aece747a",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "B",
+      "concurrency": 1,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 84.32771283427263,
+      "output_tokens_s_min": 84.30384665122764,
+      "output_tokens_s_max": 84.34426901860907,
+      "latency": {
+        "ttft_ms": {
+          "p50": 134.17455450007765,
+          "p95": 135.40695099993627,
+          "p99": 136.48279310009457
+        },
+        "tpot_ms": {
+          "p50": 10.891200027559734,
+          "p95": 10.928653708663832,
+          "p99": 10.974538622048472
+        },
+        "e2e_ms": {
+          "p50": 1517.6636675000736,
+          "p95": 1522.6746032501524,
+          "p99": 1527.7724642500516
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 93.55197132616487,
+      "mean_power_w": 256.53885304659497,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c1-r0",
+          "raw_sha": "053168a7c8dd8d3f609a97e883e563e5f7b0f1de8b572dec36079ad4cbe1eff6",
+          "gpu_sha": "c62209086a6ba46259a486bd1b3b74fcf5e5f424e15b6435d48225d6b29de437",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c1-r1",
+          "raw_sha": "5836a8101ff4f0e88017517173e6cf15aa86b0a6e496185dd8de07443bdbb335",
+          "gpu_sha": "1889173d3c81de03460f340b062bc0946fe2de600453ff331e979fcf2f7ccbdd",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c1-r2",
+          "raw_sha": "f6eb85b51b598b89eec0709e499b659004bccbf980e77f947bbecd8455d5e902",
+          "gpu_sha": "d2ce513277a953f2652e78d37fd34b4739bcdfe9370b948c96904c13bbde7a44",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "B",
+      "concurrency": 4,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 256.25905726260277,
+      "output_tokens_s_min": 255.78018667998205,
+      "output_tokens_s_max": 256.78551563910094,
+      "latency": {
+        "ttft_ms": {
+          "p50": 277.57418199985295,
+          "p95": 531.5957752500253,
+          "p99": 544.992698549936
+        },
+        "tpot_ms": {
+          "p50": 13.500013212598688,
+          "p95": 14.477825700787543,
+          "p99": 14.587476621259908
+        },
+        "e2e_ms": {
+          "p50": 1992.3723755000537,
+          "p95": 2126.221578750119,
+          "p99": 2259.184175500013
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 94.76344086021506,
+      "mean_power_w": 246.5347311827957,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c4-r0",
+          "raw_sha": "430657da9fff991304288e2863bc6e0d4e623bfe7eddfa10acded22cde5c0c39",
+          "gpu_sha": "787ad440470e3f6de1a8894d31e2c8d65d33e53b75a4fde8128374e8c5b3da12",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c4-r1",
+          "raw_sha": "8c5cb60bb8a9de8842eb054a2989516462b0735f2ffe000838e3ef9e6363b912",
+          "gpu_sha": "30ca0a4c348d5a775d934dfee2f08a8f9b1080b928059334539cf453e84a6ae5",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c4-r2",
+          "raw_sha": "d5a6a6f021d2a3e4b2685fc246b1890ecd7bd4bb1ad7336721970f5dc2321dea",
+          "gpu_sha": "2b707719c730941f35d4656137118a973a5851c55396ef584d87f8a11cb6f060",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "B",
+      "concurrency": 8,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 397.56847786076156,
+      "output_tokens_s_min": 397.43377735742325,
+      "output_tokens_s_max": 397.8031345205033,
+      "latency": {
+        "ttft_ms": {
+          "p50": 402.88674149974213,
+          "p95": 1066.716659250119,
+          "p99": 1083.824851850136
+        },
+        "tpot_ms": {
+          "p50": 16.992410208662633,
+          "p95": 18.87993344685021,
+          "p99": 18.89433574645724
+        },
+        "e2e_ms": {
+          "p50": 2561.0419280001224,
+          "p95": 3217.8408459999446,
+          "p99": 3356.6400570998667
+        }
+      },
+      "peak_gpu_mib": 23103.0,
+      "mean_gpu_util_percent": 95.61666666666666,
+      "mean_power_w": 271.37566666666663,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c8-r0",
+          "raw_sha": "e33e7c726c85ca9da3af7ca0a6ac2ba4b62db0040294fd8ea3fc82e31c2e305b",
+          "gpu_sha": "03a7355acd1b5e25fa8bf0f61c9e060d406d8bf94de8fccfac4a939f8df18080",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c8-r1",
+          "raw_sha": "ebf8a4afcc1733b5669b6df39394903307bf5ad69b5aa4fafc2acb7ee068b737",
+          "gpu_sha": "378dc35d129138f3c0f96150b061893b2f936c59e9034071737ad97fa32e7930",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c8-r2",
+          "raw_sha": "070b0d9a5c635cab4a5e3da925db287cc75d50e5093f07cea0ab98665ad663a6",
+          "gpu_sha": "d1d7584cea2142d63720f907edc4d4c2f3e90139e8721d1b72ee629dedcd992f",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "B",
+      "concurrency": 16,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 538.6002848927125,
+      "output_tokens_s_min": 538.3946069665457,
+      "output_tokens_s_max": 538.9071744548788,
+      "latency": {
+        "ttft_ms": {
+          "p50": 418.19897250002214,
+          "p95": 2163.677955250023,
+          "p99": 2186.123110299991
+        },
+        "tpot_ms": {
+          "p50": 25.94801677165328,
+          "p95": 27.62366349803078,
+          "p99": 28.1831848405531
+        },
+        "e2e_ms": {
+          "p50": 3704.74722799986,
+          "p95": 5480.142941249937,
+          "p99": 5620.954692399891
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 96.64444444444445,
+      "mean_power_w": 291.6793333333333,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c16-r0",
+          "raw_sha": "cc61c46104e7312c3ecd5cbb37e75f49faacecf29c4464e424506d453b44f66a",
+          "gpu_sha": "4fa1222fa54669e9073b0bf7fb298e0a4bc8af3b8a3c341f9505521dea3ff2f0",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c16-r1",
+          "raw_sha": "d437320dbca6f10ad87baaa1a998307380e43d6b478c6c700c9736132a6498b0",
+          "gpu_sha": "c5116636a933483fa9a61e8532c79860de46b3f9b8cdd935d8166a061d235afd",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c16-r2",
+          "raw_sha": "bfeb813dbe3a407f63707e95eaf8db4734ce62c588386e031fcfff951e18132b",
+          "gpu_sha": "f0e79cf3891c216b16fd732a6a67d9a687491e9255a960599aa2f6373c175cd4",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "B",
+      "concurrency": 32,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 619.4353943246772,
+      "output_tokens_s_min": 618.705587247133,
+      "output_tokens_s_max": 620.3894386617416,
+      "latency": {
+        "ttft_ms": {
+          "p50": 2378.8879025000824,
+          "p95": 4453.1827234999355,
+          "p99": 4511.4619861498795
+        },
+        "tpot_ms": {
+          "p50": 31.7715616377957,
+          "p95": 45.447478125984304,
+          "p99": 47.31339001063059
+        },
+        "e2e_ms": {
+          "p50": 6413.264971999979,
+          "p95": 6585.780452750214,
+          "p99": 6601.604357050269
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 97.61538461538461,
+      "mean_power_w": 298.72923076923075,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c32-r0",
+          "raw_sha": "c1a0575c8395588fc00990d3f74b836c54d0445e8b515387404ef54d2d915c07",
+          "gpu_sha": "10264e4763bdd94a16d1920f169b8d63b2964b0ba2415e3d35599f553fe96594",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c32-r1",
+          "raw_sha": "5bdd9a19a98b8f55f2505a08f365ce99b52e29b0b63ba2de2146e419ef7036cf",
+          "gpu_sha": "afa098a20b4aca4daa1316703d4f1ecaecbdb1f4013769b731307c40c94faa3c",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-B-c32-r2",
+          "raw_sha": "b69c5e01ff6a167976fafbc8fd41fe44444aaa59f826ccef77bbc1f50aaa4d22",
+          "gpu_sha": "424876a2c7fc39c0e4fae45236175754afda6e86e67ac9d13d1c0b7e61a4d47b",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "C",
+      "concurrency": 1,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 92.45922641357342,
+      "output_tokens_s_min": 92.43602362222971,
+      "output_tokens_s_max": 92.47968507145781,
+      "latency": {
+        "ttft_ms": {
+          "p50": 37.67972450009438,
+          "p95": 38.347891250055,
+          "p99": 39.087798599803136
+        },
+        "tpot_ms": {
+          "p50": 10.760515802348358,
+          "p95": 10.7967911888459,
+          "p99": 10.807486871428424
+        },
+        "e2e_ms": {
+          "p50": 5536.160242000051,
+          "p95": 5554.874794000057,
+          "p99": 5560.295786049937
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 93.10750384820233,
+      "mean_power_w": 252.17952814894153,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c1-r0",
+          "raw_sha": "efdd6571bf39c1886a02c5ec2faa547c2ae4eace5afa0613d0fee3aad15cf0cf",
+          "gpu_sha": "c48d61c797e8660728aaef28422311ed688182d213dc51ef2f2491e5453abaca",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c1-r1",
+          "raw_sha": "fce1d4d68577659f74b9585c62593d216793796850ef5c9384974a1431c40af3",
+          "gpu_sha": "7b46ada1eb0bb340f0bb867af3a200ac7648895c109defe156bcca938616f503",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c1-r2",
+          "raw_sha": "80085e4fa81e942d5790c154d72abb0ec394d9581f084ca456bf59b0f353c2db",
+          "gpu_sha": "a0b305b159bf00e4cf71e75157965a8c5c8c0af6f67bb66a715f1208fa9aac8d",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "C",
+      "concurrency": 4,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 349.10232130780753,
+      "output_tokens_s_min": 348.6880616999083,
+      "output_tokens_s_max": 349.47816877362584,
+      "latency": {
+        "ttft_ms": {
+          "p50": 132.05534950020592,
+          "p95": 138.47193249989687,
+          "p99": 139.25188864984648
+        },
+        "tpot_ms": {
+          "p50": 11.224294486301059,
+          "p95": 11.404536824364332,
+          "p99": 11.413205568884186
+        },
+        "e2e_ms": {
+          "p50": 5865.82951399987,
+          "p95": 5877.579128499974,
+          "p99": 5878.555326550099
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 93.10740740740741,
+      "mean_power_w": 216.86085185185186,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c4-r0",
+          "raw_sha": "76e6a6b86decd40fb2298cd626ab010f97bd20a9b588c4c02b2db9f8f4ffc479",
+          "gpu_sha": "bdf529d1a5ebcd48d8649bb71f7efa47d03a01c0b623ee1c7af960e42c0d1218",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c4-r1",
+          "raw_sha": "7ed55188d79923634a9baa42947ca2c3a336f73416482a7ed103bd62eafefbc6",
+          "gpu_sha": "4132d74070a0825a6356b2e30a1a4e7246da47ca3266a5be1baddde90fc02870",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c4-r2",
+          "raw_sha": "8f5740dfef298e5aa4f1436260df8fcd447c5a57741fe4706a60374cfdfef449",
+          "gpu_sha": "962750959eb5d0dc78e3dd66255e7913eff63764caa77ae1aafcdecc2c4a5a6b",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "C",
+      "concurrency": 8,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 664.2637065964232,
+      "output_tokens_s_min": 664.004268978775,
+      "output_tokens_s_max": 664.4465900132062,
+      "latency": {
+        "ttft_ms": {
+          "p50": 165.18089149985826,
+          "p95": 264.3562370001291,
+          "p99": 264.64288304966885
+        },
+        "tpot_ms": {
+          "p50": 11.725637734833661,
+          "p95": 11.958595661937771,
+          "p99": 11.971571149413055
+        },
+        "e2e_ms": {
+          "p50": 6163.96769149992,
+          "p95": 6212.0685582501665,
+          "p99": 6246.07293229999
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 93.13475177304964,
+      "mean_power_w": 226.34156028368795,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c8-r0",
+          "raw_sha": "805c02837885e05d6f30cce1b0f26bf93ed2fcb3891b87de3272880ff110c91e",
+          "gpu_sha": "216f86d9e053e44a9c7fe6113c4b4f14ebbc516b6b489969c9e82d9a0bf55c14",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c8-r1",
+          "raw_sha": "73c176776ec3c37724a1d85bf9994a69ebb652492d5cf6d05f3f89baf74a7b92",
+          "gpu_sha": "5aa16169895cf7c15ad877091107b853d2f992cef470a5030bcf7d367832a0dd",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c8-r2",
+          "raw_sha": "960c5cab9f061b2a0c8a693c3a3cca7071c8f1904fd4951a97b4d8c4d0a7d886",
+          "gpu_sha": "442fa23f0a690925028159bc4be104b8bedacbfe26bcc98bd1d48fe403a05791",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "C",
+      "concurrency": 16,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 1224.7819768996064,
+      "output_tokens_s_min": 1222.7216338168964,
+      "output_tokens_s_max": 1227.1595624873469,
+      "latency": {
+        "ttft_ms": {
+          "p50": 253.3983339999395,
+          "p95": 519.2078997501994,
+          "p99": 519.4861039498619
+        },
+        "tpot_ms": {
+          "p50": 12.556928087084344,
+          "p95": 12.873537512230962,
+          "p99": 12.956236644226484
+        },
+        "e2e_ms": {
+          "p50": 6672.012626499736,
+          "p95": 6947.405865000178,
+          "p99": 6948.938575099828
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 93.21794871794872,
+      "mean_power_w": 245.59884615384615,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c16-r0",
+          "raw_sha": "5259c94198e6a2afdc782aa986b754a59c1aadd77999e75d2cd927d6a41f49b5",
+          "gpu_sha": "e00f712766b2c6c2b0f168a271b5dc8f23befb666c7ada3f2606cbf768c05dc9",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c16-r1",
+          "raw_sha": "e52bdb1ffb76bcd6bddaf80431ee3df446c4ac80488f0d7d6ef5f169abbced00",
+          "gpu_sha": "621cde4561dcdc79933f7ee79881dc4a47a45b63cfbb464071917fe205442c4c",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c16-r2",
+          "raw_sha": "aca8efc4cbab2c3c6cf011368be9cfbae2d5dc7aedc0db5af08a616043b3241a",
+          "gpu_sha": "7d1ba02aa63251d096457ccbf9f44bc2bcd7e23acbecec35c94a7bc7a986a07f",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    },
+    {
+      "engine": "vllm",
+      "workload": "C",
+      "concurrency": 32,
+      "repeats": 3,
+      "requests": 96,
+      "errors": 0,
+      "output_tokens_s_mean": 1905.146456373714,
+      "output_tokens_s_min": 1904.654542749369,
+      "output_tokens_s_max": 1905.6054351332214,
+      "latency": {
+        "ttft_ms": {
+          "p50": 615.4338950002511,
+          "p95": 1039.377620999744,
+          "p99": 1043.297550950092
+        },
+        "tpot_ms": {
+          "p50": 15.530732666340125,
+          "p95": 16.30934294569429,
+          "p99": 16.51274964412912
+        },
+        "e2e_ms": {
+          "p50": 8551.695845500035,
+          "p95": 8587.622904249998,
+          "p99": 8591.886580649929
+        }
+      },
+      "peak_gpu_mib": 23105.0,
+      "mean_gpu_util_percent": 93.70588235294117,
+      "mean_power_w": 257.65294117647056,
+      "load_readiness_s": 60.4221255330001,
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "config": {
+        "engine": "vllm",
+        "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+        "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "name": "modelops-frozen-qwen3b",
+        "label": "vllm-baseline",
+        "port": 19801,
+        "memory_fraction": 0.7,
+        "max_context": 4096,
+        "max_sequences": 64,
+        "batch_tokens": 2048,
+        "prefix_cache": false
+      },
+      "receipts": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c32-r0",
+          "raw_sha": "b9876351fc8bbed47332510692e51a4d0431ba3d4e7e95e359bf25bcfad2100b",
+          "gpu_sha": "0bcf6cf4983ece02311e72b52cd3bb4af6c061ff588654304964f9e28d690b98",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c32-r1",
+          "raw_sha": "a78cd3c347aa49ca011298d13b4e0ff60417074f18c7c747ff0d994dbab6f085",
+          "gpu_sha": "d232e45953ca9a4ed23672fec7ff873c8745748ec4444eb4c534c56f4979c5f3",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/engine-comparison/vllm-C-c32-r2",
+          "raw_sha": "ec92eca56efbe1f927ada279b72e08c17b905d0d419b4844498c651c4c244629",
+          "gpu_sha": "4cf1adb0e462925ad79bb3364a406378dca0834ed380f6298ca2cbe5b039b134",
+          "protocol_sha": "1138c1d9d9e69dac06b48d13a107f303e90fb689ddc51825734900fa2f3925fc",
+          "source_sha": "e8b4cb45c34838b7a9672f9bea1f1e69c3fc79535bd8d3315bc23c7ddc6fa1bc"
+        }
+      ]
+    }
+  ],
+  "actual_formal_requests": 2880,
+  "invalid": [],
+  "failures_retained": [
+    {
+      "engine": "sglang",
+      "error": "RuntimeError: Model server exited; inspect /data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/servers/sglang-baseline/server.log",
+      "time": 1791939013.2215464
+    }
+  ],
+  "hardware": {
+    "status": "PASS",
+    "gpu_name": "NVIDIA GeForce RTX 4080 SUPER",
+    "compute_capability": [
+      8,
+      9
+    ],
+    "torch_total_memory_bytes": 33794359296,
+    "multiprocessors": 80,
+    "torch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "cuda_available": true,
+    "cuda_event_matmul_ms": 64.58089447021484,
+    "cuda_output_finite": true,
+    "cpu_visible": 16,
+    "driver": "580.173.02",
+    "nsys": {
+      "status": "SKIPPED",
+      "reason": "CLI absent; no privilege bypass"
+    },
+    "ncu": {
+      "status": "SKIPPED",
+      "reason": "CLI absent; no privilege bypass"
+    },
+    "docker_gpu_runtime": {
+      "status": "SKIPPED",
+      "reason": "No Docker host/runtime in current authorized container"
+    },
+    "baseline": {
+      "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+      "sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+      "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1"
+    },
+    "historical_checkpoint_verified": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+    "fp8": "Not validated; architecture alone is not an FP8 performance claim"
+  },
+  "scope": "Exact token-ID synthetic workloads, no chat transformation; isolated native stacks, no historical RTX3090 values pooled."
+}

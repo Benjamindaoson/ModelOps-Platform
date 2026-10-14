@@ -1,0 +1,75 @@
+{
+  "model": "ModelOps-Qwen2.5-3B",
+  "version": 1,
+  "run_id": "b127f8d1474b414db0025df3a611d5c7",
+  "status": "PASS",
+  "checks": {
+    "artifact": true,
+    "evaluation": true,
+    "serving": true,
+    "benchmark": true
+  },
+  "errors": {},
+  "policy": {
+    "min_f1": 0.55,
+    "min_delta": -0.02,
+    "min_samples": 20,
+    "concurrency": 4,
+    "repeats": 3,
+    "requests_per_repeat": 128,
+    "min_output_tokens_s": 250,
+    "max_ttft_p95_ms": 200,
+    "max_latency_p95_ms": 1200
+  },
+  "evidence": {
+    "checkpoint": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+    "adapter": "2cbead2c5070ea3ff6d51c93aea8eefb1cd96e878c53599f74512046d94d44f2",
+    "evaluation_report": "f1a2138682ccbca86b1d30f5f42a0f674630ef38afd1a50e2c1661a40a3f8910",
+    "quality_approval": {
+      "gate_schema": "modelops.approval.v1",
+      "report_sha256": "f1a2138682ccbca86b1d30f5f42a0f674630ef38afd1a50e2c1661a40a3f8910",
+      "artifact_sha256": "2654416af054e5c15e9ac26533ad405610da0e7f4497020280001e94575ee939",
+      "heldout_sha256": "7bcda49c2eff03606d021024400a7bf225594ca6e259ebf166bb4e102d2f0e3e",
+      "approved_at_utc": "2026-10-13T11:09:27.297254+00:00",
+      "min_samples": 24,
+      "min_token_f1": 0.55,
+      "min_delta_token_f1": -0.02
+    },
+    "comparison_manifest": "5a9c094c35951367c86b27bcb346f48839c8330c243f110fa79c664ba3789129",
+    "benchmark": {
+      "model_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+      "requests": 384,
+      "repeats": 3,
+      "concurrency": 4,
+      "output_tokens_s": 283.1689499918215,
+      "ttft_p95_ms": 133.07872040216657,
+      "latency_p95_ms": 945.466739058611,
+      "raw_evidence": [
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-platform-finalization/comparison/trained-r0-c4",
+          "raw_sha256": "c08fe1c66aa050a9e9eab76bb19a4633b4e77864fff8a6ee1893f6a87e5ac076",
+          "status_sha256": "7a5e2e639f74984a0bbb5ae54e8c5d4f30028121505fb0a9134dad1bf06cf5ee"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-platform-finalization/comparison/trained-r1-c4",
+          "raw_sha256": "49e3d630236da9b34c955acbdf8a6fbb4f8603347d1e54b5e05b8bd00d0a68de",
+          "status_sha256": "8e3b80818b5fe69ff4983203421efd7ad5300c8419cf64f829f03aa78f36e0e1"
+        },
+        {
+          "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/llm-platform-finalization/comparison/trained-r2-c4",
+          "raw_sha256": "4d2f8dd1151501005de1009c8d0e07d48b238105442381d30a253028eef9f610",
+          "status_sha256": "762ebfd218cb2668fce66c076dd4be4b1b7aa91367a1354b3f237cb9b4dfcd36"
+        }
+      ]
+    },
+    "serving": {
+      "healthy": true,
+      "expected_model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+      "loaded_models": [
+        "0b859c58-b519-4186-a8e4-3bd3d4f1499d"
+      ]
+    }
+  },
+  "at_utc": "2026-10-13T11:09:42.345675+00:00",
+  "scope": "Development release eligibility; not enterprise OIDC/GPU-Docker approval"
+}

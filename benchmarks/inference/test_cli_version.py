@@ -1,7 +1,7 @@
 """CLI compatibility contracts for the pinned GPU validation runtime."""
 import unittest
 from pathlib import Path
-from run import parse_args,build_command
+from benchmarks.inference.run import parse_args,build_command
 class VersionContracts(unittest.TestCase):
     def test_v010_uses_official_random_dataset_flags(self):
         a=parse_args(["--base-url","http://127.0.0.1:8000","--model","uuid",

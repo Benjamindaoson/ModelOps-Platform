@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "gpu_name": "NVIDIA GeForce RTX 4080 SUPER",
+  "compute_capability": [
+    8,
+    9
+  ],
+  "torch_total_memory_bytes": 33794359296,
+  "multiprocessors": 80,
+  "torch": "2.8.0+cu128",
+  "cuda_runtime": "12.8",
+  "cuda_available": true,
+  "cuda_event_matmul_ms": 64.58089447021484,
+  "cuda_output_finite": true,
+  "cpu_visible": 16,
+  "driver": "580.173.02",
+  "nsys": {
+    "status": "SKIPPED",
+    "reason": "CLI absent; no privilege bypass"
+  },
+  "ncu": {
+    "status": "SKIPPED",
+    "reason": "CLI absent; no privilege bypass"
+  },
+  "docker_gpu_runtime": {
+    "status": "SKIPPED",
+    "reason": "No Docker host/runtime in current authorized container"
+  },
+  "baseline": {
+    "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+    "sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1"
+  },
+  "historical_checkpoint_verified": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+  "fp8": "Not validated; architecture alone is not an FP8 performance claim"
+}

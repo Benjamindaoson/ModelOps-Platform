@@ -1,0 +1,72 @@
+{
+  "source_commit": "90273309cec76a48bb1d332d17596f1b0af499a7",
+  "status": "PASS",
+  "checks": [
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439173/job/115182835158",
+      "name": "kind-operator",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439173/job/115182834842",
+      "name": "kind-gateway",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823836",
+      "name": "argo-render-contract",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823760",
+      "name": "benchmark-contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439069/job/115182823751",
+      "name": "image",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823744",
+      "name": "helm-contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823720",
+      "name": "training-evidence-contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823710",
+      "name": "python-contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823640",
+      "name": "operations-contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823623",
+      "name": "operator-contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "details_url": "https://github.com/Benjamindaoson/ModelOps-Platform/actions/runs/38363439071/job/115182823606",
+      "name": "evidence-boundary",
+      "status": "completed"
+    }
+  ]
+}

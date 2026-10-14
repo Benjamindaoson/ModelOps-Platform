@@ -1,0 +1,69 @@
+{
+  "repo": "Qwen/Qwen2.5-3B-Instruct",
+  "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+  "license": "qwen-research",
+  "retrieval": "Official Hugging Face API, Windows process memory only; no local file written",
+  "files": [
+    {
+      "name": "LICENSE",
+      "blob": "ed317377ac0abff39f17eec693ce664f4b8152af",
+      "lfs": null
+    },
+    {
+      "name": "README.md",
+      "blob": "0b87f6362ee8ad33b2223afb47134264380f13fe",
+      "lfs": null
+    },
+    {
+      "name": "config.json",
+      "blob": "51b83fbd4e2d363b60235b9c8d494046a83c1cbf",
+      "lfs": null
+    },
+    {
+      "name": "generation_config.json",
+      "blob": "bf077f03dc569cfb8a90b3ec1ad20365a620bad6",
+      "lfs": null
+    },
+    {
+      "name": "merges.txt",
+      "blob": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0",
+      "lfs": null
+    },
+    {
+      "name": "model-00001-of-00002.safetensors",
+      "blob": "023b91070b9cfb1f9ab22fe215519bd786db6906",
+      "lfs": {
+        "sha256": "67347b23fb4165b652eb6611f5e1f2a06dfcddba8e909df1b2b0b1857bee06c2",
+        "size": 3968658944
+      }
+    },
+    {
+      "name": "model-00002-of-00002.safetensors",
+      "blob": "02754809bbcaf9c3f1a667c1ca0c3b153d6d72ac",
+      "lfs": {
+        "sha256": "a40d941d0e7e0b966ad8b62bb6d6b7c88cce1299197b599d9d0a4ce59aabfc1d",
+        "size": 2203268048
+      }
+    },
+    {
+      "name": "model.safetensors.index.json",
+      "blob": "38047c6284a25427043f0ab040f623a2a20dd093",
+      "lfs": null
+    },
+    {
+      "name": "tokenizer.json",
+      "blob": "443909a61d429dff23010e5bddd28ff530edda00",
+      "lfs": null
+    },
+    {
+      "name": "tokenizer_config.json",
+      "blob": "07bfe0640cb5a0037f9322287fbfc682806cf672",
+      "lfs": null
+    },
+    {
+      "name": "vocab.json",
+      "blob": "4783fe10ac3adce15ac8f358ef5462739852c569",
+      "lfs": null
+    }
+  ]
+}

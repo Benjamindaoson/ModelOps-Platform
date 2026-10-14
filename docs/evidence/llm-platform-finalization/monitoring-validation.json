@@ -1,0 +1,120 @@
+{
+  "actual_requests": 2,
+  "checkpoint_sha256": "04f8b6f49494117020a2134de0422ad9a4f8d4c77fd2767eb70d362cb4b0225b",
+  "dashboard_uid": "modelops-lifecycle",
+  "grafana_health": {
+    "commit": "90ffed056f0884267356c12a0eeb72a022af53f1",
+    "database": "ok",
+    "version": "13.2.3"
+  },
+  "model": "0b859c58-b519-4186-a8e4-3bd3d4f1499d",
+  "model_load_s": 60.545519476989284,
+  "queries": {
+    "modelops_gpu_memory_used_bytes": {
+      "data": {
+        "result": [
+          {
+            "metric": {
+              "__name__": "modelops_gpu_memory_used_bytes",
+              "gpu": "0",
+              "instance": "127.0.0.1:19780",
+              "job": "modelops-serving"
+            },
+            "value": [
+              1791889750.151,
+              "23847763968"
+            ]
+          }
+        ],
+        "resultType": "vector"
+      },
+      "status": "success"
+    },
+    "modelops_gpu_temperature_celsius": {
+      "data": {
+        "result": [
+          {
+            "metric": {
+              "__name__": "modelops_gpu_temperature_celsius",
+              "gpu": "0",
+              "instance": "127.0.0.1:19780",
+              "job": "modelops-serving"
+            },
+            "value": [
+              1791889750.163,
+              "51"
+            ]
+          }
+        ],
+        "resultType": "vector"
+      },
+      "status": "success"
+    },
+    "modelops_gpu_utilization_percent": {
+      "data": {
+        "result": [
+          {
+            "metric": {
+              "__name__": "modelops_gpu_utilization_percent",
+              "gpu": "0",
+              "instance": "127.0.0.1:19780",
+              "job": "modelops-serving"
+            },
+            "value": [
+              1791889750.143,
+              "0"
+            ]
+          }
+        ],
+        "resultType": "vector"
+      },
+      "status": "success"
+    },
+    "modelops_inference_requests_total": {
+      "data": {
+        "result": [
+          {
+            "metric": {
+              "__name__": "modelops_inference_requests_total",
+              "instance": "127.0.0.1:19780",
+              "job": "modelops-serving",
+              "route": "/v1/chat/completions",
+              "status": "ok",
+              "version": "trained-monitoring"
+            },
+            "value": [
+              1791889750.128,
+              "2"
+            ]
+          }
+        ],
+        "resultType": "vector"
+      },
+      "status": "success"
+    },
+    "modelops_inference_ttft_seconds_count": {
+      "data": {
+        "result": [
+          {
+            "metric": {
+              "__name__": "modelops_inference_ttft_seconds_count",
+              "instance": "127.0.0.1:19780",
+              "job": "modelops-serving",
+              "version": "trained-monitoring"
+            },
+            "value": [
+              1791889750.136,
+              "2"
+            ]
+          }
+        ],
+        "resultType": "vector"
+      },
+      "status": "success"
+    }
+  },
+  "release_gate": "PASS",
+  "scope": "Native CPU Prometheus/Grafana + actual GPU vLLM; not Docker",
+  "status": "PASS",
+  "wall_s": 104.59408765198896
+}

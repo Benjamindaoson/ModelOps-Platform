@@ -79,6 +79,8 @@ class LinuxRuntime:
             "lora_rank": parameters.get("lora_rank", 8),
             "lora_alpha": parameters.get("lora_alpha", 16),
             "max_seq_length": parameters.get("max_seq_length", 256),
+            "gradient_accumulation_steps": parameters.get("gradient_accumulation_steps", 1),
+            "gradient_checkpointing": parameters.get("gradient_checkpointing", False),
             "output": str(self.directory(row) / "artifacts"),
         }
 
@@ -108,6 +110,8 @@ class LinuxRuntime:
         env = {k: v for k, v in os.environ.items()
                if not any(word in k.upper() for word in ("TOKEN", "PASSWORD", "SECRET"))}
         env.update(HF_HUB_OFFLINE="1", TOKENIZERS_PARALLELISM="false")
+        for key,name in [("HF_HOME","hf"),("TRITON_CACHE_DIR","triton"),("TORCHINDUCTOR_CACHE_DIR","inductor"),("TMPDIR","tmp")]:
+            path=self.repo/".tools/training-cache"/name;path.mkdir(parents=True,exist_ok=True);env[key]=str(path)
         args = [str(self.python), "-m", "pipelines.training.sft_worker",
                 "--config", str(directory / "config.json")]
         if resume:
