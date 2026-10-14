@@ -37,16 +37,18 @@ def log_steps(run_id,path,last_step=0):
     for line in Path(path).read_text().splitlines():
         event=json.loads(line)
         if event["step"]<=last_step:continue
-        for key in ("loss","gradient_norm","lr","forward_s","backward_s","optimizer_s","wall_s","gpu_allocated_bytes","gpu_reserved_bytes"):
+        for key in ("loss","gradient_norm","lr","forward_s","backward_s","optimizer_s","wall_s","gpu_allocated_bytes","gpu_reserved_bytes","input_tokens","supervised_tokens"):
+            if key not in event:continue
             client.log_metric(run_id,key,float(event[key]),int(time.time()*1000),step=event["step"])
         last_step=event["step"]
     return last_step
 
-def register_training(result,tracking):
-    paths=verified_training_artifacts(result,E)
+def register_training(result,tracking,evidence_root=None,model_name="ModelOps-Qwen2.5-3B"):
+    evidence=Path(evidence_root or E)
+    paths=verified_training_artifacts(result,evidence)
     client,_=tracking_client();run_id=tracking["run_id"]
     client.log_artifacts(run_id,str(paths["adapter"].parent),artifact_path="model")
-    info=E/"checkpoint_info.json";info.write_text(json.dumps(result,indent=2))
+    info=evidence/("checkpoint_info-"+result["run_id"]+".json");info.write_text(json.dumps(result,indent=2))
     client.log_artifact(run_id,str(info),artifact_path="model")
     steps=paths["adapter"].parent.parent/"steps.jsonl"
     if steps.exists():client.log_artifact(run_id,str(steps),artifact_path="training")
@@ -55,7 +57,7 @@ def register_training(result,tracking):
     client.set_tag(run_id,"modelops.training_run_id",result["run_id"])
     client.set_tag(run_id,"adapter_sha256",result["adapter_sha256"])
     client.set_tag(run_id,"checkpoint_sha256",result["checkpoint_sha256"])
-    name="ModelOps-Qwen2.5-3B"
+    name=model_name
     registered=client.get_registered_model(name) if client.search_registered_models(filter_string="name='"+name+"'") else client.create_registered_model(name)
     versions=client.search_model_versions("name='"+name+"'")
     matches=[v for v in versions if v.run_id==run_id]

@@ -142,6 +142,7 @@ class FineTuneIn(BaseModel):
     lora_alpha: int = Field(default=16, ge=1, le=512)
     gpu: int = Field(default=1, ge=0, le=16)
     gradient_accumulation_steps: int = Field(default=4, ge=1, le=256)
+    gradient_checkpointing: bool = False
     output_name: str = Field(pattern=NAME)
     min_token_f1: float = Field(default=0.55, ge=0, le=1)
     framework: Literal["llama_factory", "transformers", "smolvla"] = "llama_factory"

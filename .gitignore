@@ -79,3 +79,7 @@ Evidence/
 # Local browser test output
 console/playwright-report/
 console/test-results/
+
+# Pinned isolated hardening runtimes
+.sglang-venv/
+.quant-venv/

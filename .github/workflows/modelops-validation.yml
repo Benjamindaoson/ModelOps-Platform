@@ -27,7 +27,7 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install -e "control-plane[dev,robotics]" PyYAML
       - name: Lint changed lifecycle modules
-        run: .venv/bin/ruff check --select F821,F822,F823 ops/model_release_gate ops/observability ops/gpu_runtime_validation.py ops/platform_serving.py ops/run_model_comparison.py ops/validate_live_monitoring.py ops/validate_monitoring_compose.py ops/validate_console_runtime.py
+        run: .venv/bin/ruff check --select F821,F822,F823 ops/model_release_gate ops/observability ops/inference_hardening ops/run_inference_hardening.py pipelines/training/options.py ops/gpu_runtime_validation.py ops/platform_serving.py ops/run_model_comparison.py ops/validate_live_monitoring.py ops/validate_monitoring_compose.py ops/validate_console_runtime.py
       - name: CPU tests and unittest contracts
         run: |
           mkdir -p Evidence/ci-validation

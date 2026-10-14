@@ -79,6 +79,8 @@ class LinuxRuntime:
             "lora_rank": parameters.get("lora_rank", 8),
             "lora_alpha": parameters.get("lora_alpha", 16),
             "max_seq_length": parameters.get("max_seq_length", 256),
+            "gradient_accumulation_steps": parameters.get("gradient_accumulation_steps", 1),
+            "gradient_checkpointing": parameters.get("gradient_checkpointing", False),
             "output": str(self.directory(row) / "artifacts"),
         }
 
