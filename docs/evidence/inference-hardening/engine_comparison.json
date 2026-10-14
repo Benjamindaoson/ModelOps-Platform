@@ -31,6 +31,7 @@
       "peak_gpu_mib": 22925.0,
       "mean_gpu_util_percent": 99.47863247863248,
       "mean_power_w": 258.2674358974359,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -101,6 +102,7 @@
       "peak_gpu_mib": 22969.0,
       "mean_gpu_util_percent": 99.57575757575758,
       "mean_power_w": 240.76151515151514,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -171,6 +173,7 @@
       "peak_gpu_mib": 23113.0,
       "mean_gpu_util_percent": 94.61904761904762,
       "mean_power_w": 253.33833333333334,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -241,6 +244,7 @@
       "peak_gpu_mib": 23199.0,
       "mean_gpu_util_percent": 80.06666666666666,
       "mean_power_w": 230.05966666666666,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -311,6 +315,7 @@
       "peak_gpu_mib": 23199.0,
       "mean_gpu_util_percent": 92.83333333333333,
       "mean_power_w": 254.5175,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -381,6 +386,7 @@
       "peak_gpu_mib": 23219.0,
       "mean_gpu_util_percent": 99.88372093023256,
       "mean_power_w": 269.4889147286822,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -451,6 +457,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 99.86206896551724,
       "mean_power_w": 264.18574712643675,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -521,6 +528,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 99.85964912280701,
       "mean_power_w": 281.2243859649123,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -591,6 +599,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 89.1764705882353,
       "mean_power_w": 271.708431372549,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -661,6 +670,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 97.92307692307692,
       "mean_power_w": 295.53051282051285,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -731,6 +741,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 99.89035087719299,
       "mean_power_w": 271.82120614035085,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -801,6 +812,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 99.93333333333334,
       "mean_power_w": 237.756125,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -871,6 +883,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 99.92063492063492,
       "mean_power_w": 242.74904761904762,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -941,6 +954,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 69.62857142857143,
       "mean_power_w": 202.26228571428572,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -1011,6 +1025,7 @@
       "peak_gpu_mib": 23239.0,
       "mean_gpu_util_percent": 81.57894736842105,
       "mean_power_w": 229.91982456140352,
+      "load_readiness_s": 23.17197286199962,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "sglang",
@@ -1081,6 +1096,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 92.55038759689923,
       "mean_power_w": 235.54201550387597,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1149,6 +1165,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 93.41666666666666,
       "mean_power_w": 220.38694444444442,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1217,6 +1234,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 93.0952380952381,
       "mean_power_w": 232.37714285714284,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1285,6 +1303,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 94.83333333333333,
       "mean_power_w": 249.1075,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1353,6 +1372,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 89.22222222222223,
       "mean_power_w": 261.92333333333335,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1421,6 +1441,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 93.55197132616487,
       "mean_power_w": 256.53885304659497,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1489,6 +1510,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 94.76344086021506,
       "mean_power_w": 246.5347311827957,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1557,6 +1579,7 @@
       "peak_gpu_mib": 23103.0,
       "mean_gpu_util_percent": 95.61666666666666,
       "mean_power_w": 271.37566666666663,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1625,6 +1648,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 96.64444444444445,
       "mean_power_w": 291.6793333333333,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1693,6 +1717,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 97.61538461538461,
       "mean_power_w": 298.72923076923075,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1761,6 +1786,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 93.10750384820233,
       "mean_power_w": 252.17952814894153,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1829,6 +1855,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 93.10740740740741,
       "mean_power_w": 216.86085185185186,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1897,6 +1924,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 93.13475177304964,
       "mean_power_w": 226.34156028368795,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -1965,6 +1993,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 93.21794871794872,
       "mean_power_w": 245.59884615384615,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",
@@ -2033,6 +2062,7 @@
       "peak_gpu_mib": 23105.0,
       "mean_gpu_util_percent": 93.70588235294117,
       "mean_power_w": 257.65294117647056,
+      "load_readiness_s": 60.4221255330001,
       "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
       "config": {
         "engine": "vllm",

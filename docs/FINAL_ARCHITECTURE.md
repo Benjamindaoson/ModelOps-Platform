@@ -49,3 +49,7 @@ Existing ModelOps deployment/version contracts retain rollback capability. Nativ
 ## Operational boundaries
 
 Single-node validation does not establish production HA, failover under load, external OIDC integration, tenant isolation under hostile workloads, multi-node GPU scheduling or application ROI. The original Kubernetes/Argo/operator modules remain available and are documented separately; none replaces the actual native measurements in this sprint.
+
+## Advanced native execution — 2026-10-14
+
+The existing FastAPI/Next.js/MLflow architecture is retained. Explicit native adapters now manage isolated vLLM/SGLang runtimes, immutable package verification, GPU lease/process ownership, fixed protocol benchmark, local INT4 conversion, controlled QLoRA resume and engineering quality/regression decisions. No new UI, Kubernetes cluster or diagram was introduced. SGLang/INT4 use the explicit adapter; the older NativeDeployment API's validation scope remains distinct. Raw weights, optimizer/RNG, prompts and traces stay private. Current acceptance: docs/evidence/inference-hardening/validation_report.md.

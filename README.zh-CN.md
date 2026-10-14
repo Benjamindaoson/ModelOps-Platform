@@ -4,9 +4,27 @@
 
 面向企业内部模型团队，将数据版本、QLoRA 训练、MLflow 追踪与注册、评估和发布准入、vLLM 服务、性能测试、监控及版本回滚串成可追溯流程。沿用现有 FastAPI 控制面与 Next.js 管理台，模型与原始记录留在私有云端，以 Run ID 和哈希关联。
 
-> **实测边界：** 已验证 RTX3090 单机原生 LLM 生命周期；当前云容器没有 Docker GPU runtime，该项明确为 **SKIPPED**。尚未宣称企业生产高可用、安全部署或模型质量提升。实现、CPU 合同测试与真实 GPU 结果分别列明。
+> **实测边界：** RTX3090 是历史生命周期证据；本轮独立验证当前 GPU 的双引擎、量化、训练与恢复。当前云容器没有 Docker GPU runtime，该项明确为 **SKIPPED**。尚未宣称企业生产高可用、安全部署或模型质量提升。实现、CPU 合同测试与真实 GPU 结果分别列明。
 
 [English](README.md) · [最终验收报告](docs/evidence/final-validation-report.md) · [分层架构](docs/FINAL_ARCHITECTURE.md) · [模型对照](benchmark/model-comparison.md)
+
+
+<!-- INFERENCE_HARDENING_BEGIN -->
+## 高级推理与训练实测｜2026-10-14
+
+本轮单机工程验收：**PASS**。当前驱动报告 RTX4080 SUPER、CC8.9；下方 RTX3090 数字保留为历史结果，不混算。
+
+- **双引擎对照：** vLLM0.10.2 与 SGLang0.4.10，90 个测量点、2,880 次真实请求；每个负载和并发均有三次重复，模型、Tokenizer、精度和请求协议冻结。
+- **真实量化：** 从原始权重转换 GPTQ/AWQ W4A16。固定3GiB KV Cache 后，GPTQ 长输出 C32 吞吐为 2988.09 tokens/s，FP16 为 1903.93，约 1.57 倍；整卡峰值显存 6163 vs 10161MiB，下降 39.3%。
+- **质量取舍：** GPTQ 在128条独立 QA 与24条 Smoke 上通过预设工程门槛；AWQ 未通过，保留负结果并拒绝发布。不能据此证明广泛质量不下降。
+- **GPU 分析：** 真实 PyTorch/CUDA Trace；重复长上下文的 Prefix Cache 三次对照吞吐约 2.28–2.30 倍，96条输出完全一致。没有声称原创 CUDA Kernel 或已测得显存带宽瓶颈。
+- **训练与恢复：** 两组64步 BF16/NF4 QLoRA 对照，检查点优化节省 51.5% 的 Torch 峰值分配，但也降低训练速度；另一次中断恢复与连续运行的权重、Loss、样本序列完全一致。
+- **交付可靠性：** Hash、模型版本、质量、性能和缺失监控准入；真实 OOM、超时、流中断、服务重启检查。保留 Prometheus/Grafana。
+- **尚未验证：** GPU Docker Runtime、Nsight 硬件计数器、生产业务 SLO 和多节点扩展。
+
+[本轮验收](docs/evidence/inference-hardening/validation_report.md) · [引擎对照](benchmark/engine-comparison.md) · [量化对照](benchmark/quantization-comparison.md) · [GPU 分析](docs/GPU_PERFORMANCE_PROFILING.md) · [训练与恢复](experiments/training/optimization-report.md) · [复现入口](deploy/llm-validation/native-hardening/README.md)
+
+<!-- INFERENCE_HARDENING_END -->
 
 ## 本轮完善与真实结果｜2026-10-13
 

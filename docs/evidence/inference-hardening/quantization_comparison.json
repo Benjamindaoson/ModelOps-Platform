@@ -1,0 +1,1678 @@
+{
+  "status": "PASS",
+  "models": {
+    "fp16": {
+      "status": "PASS",
+      "quality": {
+        "status": "PASS",
+        "wall_s": 5.3692868830003135,
+        "spec": {
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "data_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+          "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+          "source_sha": "3b82ccc27c50f81b0fe08fcb4a026cf64955c6c4ffcb73cb6dcd65921e1104d6",
+          "dolly_manifest_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+          "dolly_heldout_sha": "62e1b045b8554dc5508e93c254cfb277e075617294356eaefbd5201f8830a636",
+          "temperature": 0,
+          "max_new_tokens": 64
+        },
+        "groups": {
+          "squad128": {
+            "samples": 128,
+            "errors": 0,
+            "token_f1": 0.8154568934444556,
+            "exact_match": 0.671875
+          },
+          "dolly24": {
+            "samples": 24,
+            "errors": 0,
+            "token_f1": 0.7404587371692635,
+            "exact_match": 0.5416666666666666
+          }
+        },
+        "raw_sha": "88ba3215d3f45a33cac57cad3695bfe4cd59adebf97a5dd096273d78a1117c8c",
+        "scope": "Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO."
+      },
+      "quality_gate": {
+        "status": "PASS",
+        "checks": {
+          "squad128": true,
+          "dolly24": true,
+          "frozen_data": true
+        },
+        "threshold_delta": -0.02,
+        "scope": "Bounded QA engineering admission; not broad model-quality proof"
+      },
+      "groups": [
+        {
+          "workload": "A",
+          "concurrency": 1,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 91.61337024424203,
+          "output_tokens_s_min": 91.5488254004363,
+          "output_tokens_s_max": 91.64892202348531,
+          "latency": {
+            "ttft_ms": {
+              "p50": 23.145203000240144,
+              "p95": 23.532705499974327,
+              "p99": 23.604383999736456
+            },
+            "tpot_ms": {
+              "p50": 10.718569817462203,
+              "p95": 10.753450182540016,
+              "p99": 10.769372317464866
+            },
+            "e2e_ms": {
+              "p50": 698.4866800003147,
+              "p95": 700.5803634995118,
+              "p99": 701.4222709998194
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 92.76744186046513,
+          "mean_power_w": 240.06503875968994,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c1-r0",
+              "raw_sha": "5edeafb17c18dd15cf24476260841fc41fbcbd31b9b9a6c77fef00aafe283451",
+              "gpu_sha": "818c78c5d8de7cff014c147bce0426b1e6d9a776afd930698b8c7aa19d3e629d",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c1-r1",
+              "raw_sha": "bca969f7a5459316df9a8f2fe7a07ee6a7f1130be5a4a9bb6877ec0d4ba86732",
+              "gpu_sha": "c2229c89625be14f5f122fc7b2a2851fb480b890074b46f11981d946ec9b723e",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c1-r2",
+              "raw_sha": "523b79029e0754ec87d5314c46cd30c8641dd2f1d23f5f730150487f9d2c2d70",
+              "gpu_sha": "85bf46ba97037b41c0ca1e5b1e850bd4e63ada121435bcd86b996b09b94a951b",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "A",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1017.3752164003978,
+          "output_tokens_s_min": 1015.838668332171,
+          "output_tokens_s_max": 1018.4056523162276,
+          "latency": {
+            "ttft_ms": {
+              "p50": 175.92485999966812,
+              "p95": 273.1813465004507,
+              "p99": 273.7945611000214
+            },
+            "tpot_ms": {
+              "p50": 13.339021396830734,
+              "p95": 15.061489182536596,
+              "p99": 15.158715679365466
+            },
+            "e2e_ms": {
+              "p50": 994.0669809998326,
+              "p95": 1039.624767000305,
+              "p99": 1041.1287535493102
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 93.83333333333333,
+          "mean_power_w": 249.27083333333334,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c16-r0",
+              "raw_sha": "212f89f4ad4df7711202470895c83ced87ac6637bf63e5b2c0528c40dbb9209c",
+              "gpu_sha": "58cd5516719ecab005fcf5a260fde2388164af9aa59821567c04d9084da59bb0",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c16-r1",
+              "raw_sha": "763728e3738bfa309ef34c4f10c86aca41f60985265a900d81fbe47f0b8aa987",
+              "gpu_sha": "28d86e9167de52d5074b1f550c6d7633e2b2031edd74f5099a7c9c3bd46f8b11",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c16-r2",
+              "raw_sha": "939f26a40f969373c2885663f69162fdca9af48cba019980447cd5862a761fcf",
+              "gpu_sha": "0dcf1b04ca802b83792991eb1e1900b69ff3ea7d9ca4ce148a0fba7fbe386ac0",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "A",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1448.5182392426038,
+          "output_tokens_s_min": 1445.6867900387192,
+          "output_tokens_s_max": 1450.1719994629987,
+          "latency": {
+            "ttft_ms": {
+              "p50": 341.86786649979695,
+              "p95": 524.2579799999021,
+              "p99": 524.5870424000714
+            },
+            "tpot_ms": {
+              "p50": 16.629124246033854,
+              "p95": 19.36092018650737,
+              "p99": 20.963685452376907
+            },
+            "e2e_ms": {
+              "p50": 1389.780064000206,
+              "p95": 1406.530033999843,
+              "p99": 1407.3915760498494
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 94.0,
+          "mean_power_w": 262.0311111111111,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c32-r0",
+              "raw_sha": "3987c5d77b22463bc9afc061c1c4c1eb8dfee81927b8666d694c7b2752145334",
+              "gpu_sha": "fc70024fa72675cd5a96d800f24cfba2416cbb775b419ea5eb12729645e521c6",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c32-r1",
+              "raw_sha": "4b67c8b391c67e6db4f986ba251a40a95c4d2085c6931ebe30fbee124b5f7ff7",
+              "gpu_sha": "209f485f88aff74c66d020f9574676804c9a5cb9af6af2c3f1bd2dabb9be9ee9",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-A-c32-r2",
+              "raw_sha": "66d4ea9aaafa83bd98acc0cc8123903c37d72b24da134990162dc30095750f5b",
+              "gpu_sha": "3442cd839a8ab77f3339882712df6cc970c491583bfa2c8b8421946e00533e76",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "B",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 536.8562453865127,
+          "output_tokens_s_min": 534.9049339676932,
+          "output_tokens_s_max": 538.8507387995669,
+          "latency": {
+            "ttft_ms": {
+              "p50": 418.6030734999804,
+              "p95": 2164.2484257499746,
+              "p99": 2189.0525556498687
+            },
+            "tpot_ms": {
+              "p50": 25.98614292126183,
+              "p95": 27.645203779526828,
+              "p99": 28.335265024014106
+            },
+            "e2e_ms": {
+              "p50": 3712.295535499834,
+              "p95": 5484.361672999739,
+              "p99": 5625.98576805035
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 96.37777777777778,
+          "mean_power_w": 290.3791111111111,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-B-c16-r0",
+              "raw_sha": "e61cb34dc86e7b4b1bef45f35d57d874a4822669d6e14b6169491ac20c1fe02f",
+              "gpu_sha": "757c1bea52742cdd48b61f388c9a615669c399cb0ebecf9474bb4c280d261cdb",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-B-c16-r1",
+              "raw_sha": "5fc5689f66dfcbca106e23bda39ad1e14a142b3af28f6cf8451f39a6479dfd0c",
+              "gpu_sha": "e1e486929c386b6ac03b640a6b10661184bcc7fa3cfbcd546b53cf3721b87247",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-B-c16-r2",
+              "raw_sha": "0ceee62a1cc5c8a0de4dd8e4410876d269af41c8b46e22e18ea5579b660f00f7",
+              "gpu_sha": "51f441f11a229dcc7e23d49a1ffc2e364b5bf39ca1e0c4a02c578f1bcfe99ed6",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "B",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 619.6203791097236,
+          "output_tokens_s_min": 619.3777129779377,
+          "output_tokens_s_max": 619.9862274963723,
+          "latency": {
+            "ttft_ms": {
+              "p50": 2378.1447400001525,
+              "p95": 4451.803156000096,
+              "p99": 4506.824889899508
+            },
+            "tpot_ms": {
+              "p50": 31.7459329724364,
+              "p95": 45.41643553149848,
+              "p99": 47.249269027954114
+            },
+            "e2e_ms": {
+              "p50": 6409.686755499479,
+              "p95": 6579.083942499892,
+              "p99": 6595.899080650179
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 97.38461538461539,
+          "mean_power_w": 298.49051282051283,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-B-c32-r0",
+              "raw_sha": "cf9b1b5e3ca1e18f65dfb1cccb6e2d5d881d6085f79ca6c82acd82d6dc963b6a",
+              "gpu_sha": "b7480b5e5007d4b81511ccac6fda1a00f2ce29fc4da2d0225d5716df44ce8769",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-B-c32-r1",
+              "raw_sha": "57e60db17387af08b8698284a2ca69b4f34323c32f002ca2c05dbf4d2b082da9",
+              "gpu_sha": "89b2f2ab5c80e4af6d2c89007fde10484a50493e961ddac01c1941947e1901ba",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-B-c32-r2",
+              "raw_sha": "b98e11bc87a2432d971d88415629c94a750db8a8ec016f44af8d3a36f7d6116f",
+              "gpu_sha": "470f2b588c42c550deb7f0fd88de4475dfff64346e7d21781e4db8b2429ead73",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "C",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1221.6231184105234,
+          "output_tokens_s_min": 1219.8789255096399,
+          "output_tokens_s_max": 1222.915350076573,
+          "latency": {
+            "ttft_ms": {
+              "p50": 252.93880399976842,
+              "p95": 518.1360299998232,
+              "p99": 518.3805062004922
+            },
+            "tpot_ms": {
+              "p50": 12.586392777886498,
+              "p95": 12.937850308708487,
+              "p99": 12.980458239627135
+            },
+            "e2e_ms": {
+              "p50": 6680.693662500289,
+              "p95": 6952.173025000093,
+              "p99": 6958.728790749365
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 93.08974358974359,
+          "mean_power_w": 254.79358974358976,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-C-c16-r0",
+              "raw_sha": "244f2e196c7a95723232416f413c06f34d7e6dc38d10889db6a8aa4153c9bd49",
+              "gpu_sha": "d1fbf7af7ea859d6259da3fbb5b4e11993e2e1a6d558ff708abcfbc46102bed4",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-C-c16-r1",
+              "raw_sha": "b897ad30ac207a36c3f87807894667da1b6ca7c17e44763ebdaccb77ae43ff27",
+              "gpu_sha": "062995748ebf695f6ab81681f01f46c881fac47d3007f5ce94bd6404aff1d20d",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-C-c16-r2",
+              "raw_sha": "b4464a085bb782cf6e893e16f98779a65554d70b9f9cf360a09dc76e7ad2c909",
+              "gpu_sha": "001088a16a28768e13f1abf7713c031119f9c66672f8d92e2ec2acea44dcfac2",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "C",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1903.934915753622,
+          "output_tokens_s_min": 1902.8067858321547,
+          "output_tokens_s_max": 1906.170045999733,
+          "latency": {
+            "ttft_ms": {
+              "p50": 614.5385885001815,
+              "p95": 1036.946909499875,
+              "p99": 1038.3724394004275
+            },
+            "tpot_ms": {
+              "p50": 15.54242137377628,
+              "p95": 16.326137722113796,
+              "p99": 16.53212349412869
+            },
+            "e2e_ms": {
+              "p50": 8555.880966499899,
+              "p95": 8596.306267749924,
+              "p99": 8599.908609299382
+            }
+          },
+          "peak_gpu_mib": 10161.0,
+          "mean_gpu_util_percent": 93.74509803921569,
+          "mean_power_w": 256.36,
+          "load_readiness_s": 33.26775712500057,
+          "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/.tools/assets/qwen3b-base",
+            "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-fp16",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-C-c32-r0",
+              "raw_sha": "09ba412dc3a3a0afebcc3b378afdfe65abd16d09d0c5046a55dc8c02103bdd5c",
+              "gpu_sha": "b2c8a743237398514d36b2e9b011b720a23802e7e9386cebff3f2d30f940a0cb",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-C-c32-r1",
+              "raw_sha": "43ba4940086c786221cd68ce042de2c829acdf7d5499ef4fa44ac1b32804904b",
+              "gpu_sha": "935adaf76ea7a244daa8f354106bfdbb664b956f7572cbea469ddb84818930e6",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/fp16-C-c32-r2",
+              "raw_sha": "ff1545db62506639770fca6d78280890f013a0219e27d7d2b5497681ec4e8066",
+              "gpu_sha": "43de67f64ea783e7fe7f006dcaa4f4ca37df20606101d13ec4845ca366a812bd",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        }
+      ],
+      "invalid": [],
+      "conversion": null,
+      "max_tested_concurrency": 32
+    },
+    "gptq": {
+      "status": "PASS",
+      "quality": {
+        "status": "PASS",
+        "wall_s": 4.264371881000443,
+        "spec": {
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "data_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+          "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+          "source_sha": "3b82ccc27c50f81b0fe08fcb4a026cf64955c6c4ffcb73cb6dcd65921e1104d6",
+          "dolly_manifest_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+          "dolly_heldout_sha": "62e1b045b8554dc5508e93c254cfb277e075617294356eaefbd5201f8830a636",
+          "temperature": 0,
+          "max_new_tokens": 64
+        },
+        "groups": {
+          "squad128": {
+            "samples": 128,
+            "errors": 0,
+            "token_f1": 0.8133508644074294,
+            "exact_match": 0.671875
+          },
+          "dolly24": {
+            "samples": 24,
+            "errors": 0,
+            "token_f1": 0.7471955128205128,
+            "exact_match": 0.5833333333333334
+          }
+        },
+        "raw_sha": "18df7ef5469cd3d0a6c013c99bd5037430768daaa568fc9e8e052eba4d4b727e",
+        "scope": "Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO."
+      },
+      "quality_gate": {
+        "status": "PASS",
+        "checks": {
+          "squad128": true,
+          "dolly24": true,
+          "frozen_data": true
+        },
+        "threshold_delta": -0.02,
+        "scope": "Bounded QA engineering admission; not broad model-quality proof"
+      },
+      "groups": [
+        {
+          "workload": "A",
+          "concurrency": 1,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 169.89060282935475,
+          "output_tokens_s_min": 169.26301785617656,
+          "output_tokens_s_max": 170.67409364940687,
+          "latency": {
+            "ttft_ms": {
+              "p50": 20.885472500140168,
+              "p95": 21.090962749440223,
+              "p99": 21.663221400012844
+            },
+            "tpot_ms": {
+              "p50": 5.638537992061694,
+              "p95": 5.7153945952320235,
+              "p99": 5.801508829356155
+            },
+            "e2e_ms": {
+              "p50": 376.1455370004114,
+              "p95": 380.9316052502254,
+              "p99": 386.4701899501597
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 76.43236714975846,
+          "mean_power_w": 188.06965579710143,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c1-r0",
+              "raw_sha": "f34084e7c33f6243bb27e95e124bfeb226c52f3f808f03f629b064b488cb1a9c",
+              "gpu_sha": "6058781edbfffab89d0d16252d214c8206d063650fe3d27ecac3e219c5a2a8fd",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c1-r1",
+              "raw_sha": "a124720331185d7c67aa32ab2ca66286848144c4d83177f2676528c53bb8f9f3",
+              "gpu_sha": "440453d49035af07511795143f83d91e0e1bc3be95acf7c7c3518302437dd967",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c1-r2",
+              "raw_sha": "b8d36ec8e7f935237555d94b56ad3339c94518aa08b125b8f197caad025e0dd4",
+              "gpu_sha": "17aa17fab2811cb4db2b3e552f012e4a73589da4467d42efa446c84605144876",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "A",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1547.2093874481648,
+          "output_tokens_s_min": 1540.6748929379962,
+          "output_tokens_s_max": 1553.1692108333507,
+          "latency": {
+            "ttft_ms": {
+              "p50": 192.8858059995946,
+              "p95": 261.19774699941445,
+              "p99": 261.782753849684
+            },
+            "tpot_ms": {
+              "p50": 7.340774841272905,
+              "p95": 9.797605134919996,
+              "p99": 9.948296717466148
+            },
+            "e2e_ms": {
+              "p50": 657.1472024998002,
+              "p95": 679.7958899994683,
+              "p99": 681.2297239004693
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 87.22222222222223,
+          "mean_power_w": 214.5,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c16-r0",
+              "raw_sha": "50c01cef2903b014f7d8842b4938eda30b616b6d282011c76dabdc678ee6407c",
+              "gpu_sha": "9f7661df169503c53ff0555b68b237640bfb27e7c43ad25210bbceaa8ca5480f",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c16-r1",
+              "raw_sha": "0b7d23edae1107016b11c3b32024ecdabfc58140f733b89a8f9f98300f720682",
+              "gpu_sha": "4315d10b015d562444369c72d58931a20ece97af9345ed51f02a63d13afff499",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c16-r2",
+              "raw_sha": "cd1a4c34d6e30ef1d161e1872cc8505a80b4f0c501369d5f89ee6fe7f2787733",
+              "gpu_sha": "0c5fb3b7ad27ad8ea61435f6feec09039d3121818b1f0a49e35753ef407cbd2a",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "A",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 2007.0675316601369,
+          "output_tokens_s_min": 2004.4869853924965,
+          "output_tokens_s_max": 2009.5194034769654,
+          "latency": {
+            "ttft_ms": {
+              "p50": 342.63410549965556,
+              "p95": 522.5173312503557,
+              "p99": 522.92341375055
+            },
+            "tpot_ms": {
+              "p50": 10.503115158725349,
+              "p95": 13.3757707738022,
+              "p99": 15.008697839676456
+            },
+            "e2e_ms": {
+              "p50": 1003.3749975004866,
+              "p95": 1011.4185192501282,
+              "p99": 1012.4326062995806
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 79.0,
+          "mean_power_w": 210.63166666666666,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c32-r0",
+              "raw_sha": "41aa0e90163d0b386a1e62df68fd878fcc25ae8f68b5fa845ad81dd9c749641f",
+              "gpu_sha": "ceddfed4b200b67c8720545364e71be4616315772eb64613aa6319dedc9b647f",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c32-r1",
+              "raw_sha": "8ec739e7ce69db92e0e5b113db8c97ef3d9278d42bc4c1059ced79e8964d3370",
+              "gpu_sha": "0e9c0341fc9bd6c3b5815664e4aba52ebd0e14c9790dab36606e18f297f28923",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-A-c32-r2",
+              "raw_sha": "eeea2e69c82d5679d7f8003fa5fd5ee643bac7a8e1ebb73e365ebc4ddc564b1b",
+              "gpu_sha": "a62b9f88593a8d6131360319e296c0d789d2702face83bbec192c66044213fab",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "B",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 651.7155235607041,
+          "output_tokens_s_min": 650.923783922621,
+          "output_tokens_s_max": 653.175679364335,
+          "latency": {
+            "ttft_ms": {
+              "p50": 421.1138265000045,
+              "p95": 2175.8775459998105,
+              "p99": 2196.935325100003
+            },
+            "tpot_ms": {
+              "p50": 21.072238929131643,
+              "p95": 22.835481171264615,
+              "p99": 23.36315912480346
+            },
+            "e2e_ms": {
+              "p50": 3084.4772874997943,
+              "p95": 4872.563654250143,
+              "p99": 5021.848957099928
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 93.36965811965813,
+          "mean_power_w": 285.47459401709403,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-B-c16-r0",
+              "raw_sha": "8abf765370f58974319afb497bb54c394ebbb894fbbcea18e09770e616d17110",
+              "gpu_sha": "019b09f8263b8899b86934a9c60cb66c04b6f41629d1433fcf8c5439f36320f8",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-B-c16-r1",
+              "raw_sha": "09d8b61af60991669101d963e7b0d5550382607a7afe142f4655d5da28551c32",
+              "gpu_sha": "8ed9c1c93313044843edeea80c93801bf18a89e41a0ffaaf5f65b9a9a4457fe7",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-B-c16-r2",
+              "raw_sha": "a85673e4d2014cef464c7d5de1f8fe8f4915fd33e3ef021fa58da7c27e6bd720",
+              "gpu_sha": "ccd4807bfb8f936d6001533dbf5a8468ce2aefa464c26a602560211ac4cb8543",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "B",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 694.1281327591591,
+          "output_tokens_s_min": 693.1925008789893,
+          "output_tokens_s_max": 694.6498433855144,
+          "latency": {
+            "ttft_ms": {
+              "p50": 2393.0927230003363,
+              "p95": 4482.062086249925,
+              "p99": 4539.780629399775
+            },
+            "tpot_ms": {
+              "p50": 26.737066838582606,
+              "p95": 41.175007665354165,
+              "p99": 43.102022999604976
+            },
+            "e2e_ms": {
+              "p50": 5788.381124999887,
+              "p95": 5878.262035249463,
+              "p99": 5889.584378400059
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 94.88888888888889,
+          "mean_power_w": 293.2061111111111,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-B-c32-r0",
+              "raw_sha": "92e7e1a342c62a97f74831329d384fe6fb71fbda92532666e89f6a01f91d5fab",
+              "gpu_sha": "0d73080528f51f481713e1fe11a8ab48533654d4497c44f2c19c0843941e104f",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-B-c32-r1",
+              "raw_sha": "d2a0590bc60fcae2464d72288528b0755c03b8b85324d994ca9b55bb78bb30ac",
+              "gpu_sha": "8ac8a32fabaac027a6fa355018c8cb99547686656a729e0d870508cb79bca02f",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-B-c32-r2",
+              "raw_sha": "86476bdf2fddc42c8ac24cedb0ff2e7030da503d59ac4353358969f78728e9e5",
+              "gpu_sha": "5bbcb2ca0fa90747ed556d11f1a0e3db055a9390022b76fb5619c50abe000f70",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "C",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 2145.487772529039,
+          "output_tokens_s_min": 2133.0099962359045,
+          "output_tokens_s_max": 2167.2795787066743,
+          "latency": {
+            "ttft_ms": {
+              "p50": 255.13635600009366,
+              "p95": 517.2505382502095,
+              "p99": 519.8499423496287
+            },
+            "tpot_ms": {
+              "p50": 6.8987776898239925,
+              "p95": 7.2994889143837,
+              "p99": 7.3917186245592985
+            },
+            "e2e_ms": {
+              "p50": 3807.8385435005657,
+              "p95": 4043.368259999852,
+              "p99": 4083.2637243998306
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 85.84444444444445,
+          "mean_power_w": 242.78066666666666,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-C-c16-r0",
+              "raw_sha": "665132b033c3cb8afec37356d57a06f5c2c33943277fdd3407b9ae31ae3fd238",
+              "gpu_sha": "fbfc4097ef2395cb96645ad98ac5f987a5bc853f24b0d4d4c4c25bd39bf0ca7b",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-C-c16-r1",
+              "raw_sha": "37d8653eabdd53468b1572b3687f0a12ccfbe151cf5820216db404c4445be8f1",
+              "gpu_sha": "85a0fb19343b390b9433f31f8791a18651e92a6cfefbac52a3dce3cd06f9e475",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-C-c16-r2",
+              "raw_sha": "051bcf69a8d985971c5613785f2cc551addda66e49f95ef604ed0ba6c90097c9",
+              "gpu_sha": "31f89c67b3762b693fe0fd605f8e0b579705ce6860b2875d9fa4cf38740809d9",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "C",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 2988.086848235587,
+          "output_tokens_s_min": 2986.0276619568294,
+          "output_tokens_s_max": 2990.4054371068396,
+          "latency": {
+            "ttft_ms": {
+              "p50": 615.5761840000196,
+              "p95": 1046.513319000269,
+              "p99": 1047.9523343493383
+            },
+            "tpot_ms": {
+              "p50": 9.463976859099757,
+              "p95": 10.289206235811951,
+              "p99": 10.515549991291424
+            },
+            "e2e_ms": {
+              "p50": 5452.669235000485,
+              "p95": 5473.17388249985,
+              "p99": 5474.247430300238
+            }
+          },
+          "peak_gpu_mib": 6163.0,
+          "mean_gpu_util_percent": 88.2121212121212,
+          "mean_power_w": 245.29818181818183,
+          "load_readiness_s": 50.316411281999535,
+          "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/gptq/model",
+            "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-gptq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-C-c32-r0",
+              "raw_sha": "4ba714347a0a6771df6e7d19cf35bb4469c4e3c7864b7d795447e885f1450b3a",
+              "gpu_sha": "aa10bd5f5cd658cea0417e37f52d0b7eb1fed91f1df54f1dae71f7eabf4268b8",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-C-c32-r1",
+              "raw_sha": "a0258ac4e90a1ce8beff59b083a1ee4eb752d21b42f27c6e9917964a1f3562f9",
+              "gpu_sha": "f3e84f2c1a0fdba3848e6a9743df9ff177915ce1cff38e0c70ed028bc701f9bf",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/gptq-C-c32-r2",
+              "raw_sha": "8f9e2bcab437eae2ebd2fa7789afcc8efd24e956901e7b12ff0db2d1166ac7b5",
+              "gpu_sha": "35006fdaa69775a68f30d364823a679bd649ffd6f8269084994e90839ab58d2b",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        }
+      ],
+      "invalid": [],
+      "conversion": {
+        "status": "PASS",
+        "algorithm": "gptq",
+        "precision": "W4A16-G128; lm_head excluded",
+        "base_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "model_sha": "aa69779e6660eecb6f2d00b77c89028b411006039b42700873613976238a0217",
+        "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+        "calibration_samples": 64,
+        "max_sequence_length": 512,
+        "seed": 8901,
+        "wall_s": 358.91145080800015,
+        "peak_allocated_bytes": 7617082368,
+        "model_bytes": 2691752891,
+        "weights": [
+          {
+            "name": "model.safetensors",
+            "sha256": "4aed999028c770585f65dcced92d76d61cda193b1b3bee0f2276069b8c065e98",
+            "bytes": 2675871136
+          }
+        ],
+        "torch": "2.8.0+cu128",
+        "llmcompressor": "0.6.0",
+        "source_sha": "8bc5b84c27ab581cc6e318ad0a7ac35c9d029684f999b98177a38d37e71ab8a7"
+      },
+      "max_tested_concurrency": 32
+    },
+    "awq": {
+      "status": "PASS",
+      "quality": {
+        "status": "PASS",
+        "wall_s": 4.282217865999883,
+        "spec": {
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "data_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+          "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+          "source_sha": "3b82ccc27c50f81b0fe08fcb4a026cf64955c6c4ffcb73cb6dcd65921e1104d6",
+          "dolly_manifest_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+          "dolly_heldout_sha": "62e1b045b8554dc5508e93c254cfb277e075617294356eaefbd5201f8830a636",
+          "temperature": 0,
+          "max_new_tokens": 64
+        },
+        "groups": {
+          "squad128": {
+            "samples": 128,
+            "errors": 0,
+            "token_f1": 0.7304468324628445,
+            "exact_match": 0.546875
+          },
+          "dolly24": {
+            "samples": 24,
+            "errors": 0,
+            "token_f1": 0.6483125400911912,
+            "exact_match": 0.375
+          }
+        },
+        "raw_sha": "e3894cca3a9496b20e30b8b4af4afee81b24a416d12aba1b1ae3cfe1c9adaee4",
+        "scope": "Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO."
+      },
+      "quality_gate": {
+        "status": "FAIL",
+        "checks": {
+          "squad128": false,
+          "dolly24": false,
+          "frozen_data": true
+        },
+        "threshold_delta": -0.02,
+        "scope": "Bounded QA engineering admission; not broad model-quality proof"
+      },
+      "groups": [
+        {
+          "workload": "A",
+          "concurrency": 1,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 168.4146886776389,
+          "output_tokens_s_min": 167.10476204458996,
+          "output_tokens_s_max": 170.0569636597751,
+          "latency": {
+            "ttft_ms": {
+              "p50": 20.89065500013021,
+              "p95": 21.33246924950072,
+              "p99": 22.37355044985634
+            },
+            "tpot_ms": {
+              "p50": 5.690033182540829,
+              "p95": 5.859703809525695,
+              "p99": 5.884040431735793
+            },
+            "e2e_ms": {
+              "p50": 379.2924489998768,
+              "p95": 390.17045950004103,
+              "p99": 391.80582159960977
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 75.98913043478261,
+          "mean_power_w": 185.79242753623188,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c1-r0",
+              "raw_sha": "b5562de8ffc2952ac57885d70135c25c0a7c9aa0b0a174c8122c4ba6fd9c225f",
+              "gpu_sha": "20b14f1bc451ea83007f553023a7a40146d801047e61802ff8f07faa18d192d6",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c1-r1",
+              "raw_sha": "620d12564e23cb29825d01fe4e2ad0aa533cbf571e8a478914af5eec00be558e",
+              "gpu_sha": "0b3caa25d3cd5afe8ca6a1f3bc4d5c85482d4fdb0db59be4b185825f231d7312",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c1-r2",
+              "raw_sha": "1319023735bdcc38f1b37200b9584898bd8015f8488cf796bac9e90166cbaf6f",
+              "gpu_sha": "9a26add70932010183b95062ea214f1153c9c21c52b32b89dde5f478319c0a8d",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "A",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1547.2570622016867,
+          "output_tokens_s_min": 1543.1229509950008,
+          "output_tokens_s_max": 1552.9336929144624,
+          "latency": {
+            "ttft_ms": {
+              "p50": 191.52046150020396,
+              "p95": 261.6349382503813,
+              "p99": 262.227256349297
+            },
+            "tpot_ms": {
+              "p50": 7.3732710158750825,
+              "p95": 9.818691746023967,
+              "p99": 9.955318010325854
+            },
+            "e2e_ms": {
+              "p50": 653.9449380002225,
+              "p95": 681.4228272505716,
+              "p99": 682.7694688991869
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 86.0,
+          "mean_power_w": 214.92555555555555,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c16-r0",
+              "raw_sha": "f025d19c5998bdcc0dcab8fc38a19f7e9579fd246addad79fe1f174c80346725",
+              "gpu_sha": "c2641036be518aa073825ff857d6efe58d5f75257a8292679d7ad70ddf43f4ca",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c16-r1",
+              "raw_sha": "11da8efa9d72e9e0feb40003e5004a01440f058d6a656c9498f02ec64731365d",
+              "gpu_sha": "d1af5eeb15cbe379010e2a47bc12f3b0ff1bbbd3774c0d0917c1fb051e061c39",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c16-r2",
+              "raw_sha": "cdfdeaa8afd5465cc34fcc6f98f9c8fe9633d60a4fd9ea07a7d28c23ed52eb01",
+              "gpu_sha": "d682229484c653b2ca39f370e3d29c1e0c3e35d4b7537038874efb4501a3d3f9",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "A",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 1997.4503282085968,
+          "output_tokens_s_min": 1991.401091192974,
+          "output_tokens_s_max": 2005.9098649266834,
+          "latency": {
+            "ttft_ms": {
+              "p50": 343.47653799977707,
+              "p95": 522.8015930001675,
+              "p99": 523.3178263997161
+            },
+            "tpot_ms": {
+              "p50": 10.550695777777628,
+              "p95": 13.48256779761681,
+              "p99": 15.140337557154668
+            },
+            "e2e_ms": {
+              "p50": 1007.7425764993677,
+              "p95": 1017.9158395001195,
+              "p99": 1018.9958501503497
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 79.66666666666667,
+          "mean_power_w": 210.05666666666667,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c32-r0",
+              "raw_sha": "efd8ee14e90f42632052cad1124fbf5fc418a924c8163237ac8ded70eacdc495",
+              "gpu_sha": "5745c782fdc03e4375c311c90555c57489efbaf5476dd48a99c5811fc3379c6e",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c32-r1",
+              "raw_sha": "b21f84968b4ee784977c0df86209db5b90a3c51b260ac7a482841a57a99233b0",
+              "gpu_sha": "27a823ac2cabb1cdc46b8170440f8cf9243471996bd91f0f02a9708983ba69cd",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-A-c32-r2",
+              "raw_sha": "b27ba66c6a3b9f1a0b27f9f04399a103f17b0277c935de05a49ceea70bce8e40",
+              "gpu_sha": "05fc29dad7b7f76468956d6257f75d02bcb321b591117ea9082d1e127cfa7a7a",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "B",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 652.5795437034301,
+          "output_tokens_s_min": 652.1665380955503,
+          "output_tokens_s_max": 653.2591000249676,
+          "latency": {
+            "ttft_ms": {
+              "p50": 420.143392999762,
+              "p95": 2169.9557094993907,
+              "p99": 2191.4037555497544
+            },
+            "tpot_ms": {
+              "p50": 21.044822125986684,
+              "p95": 22.81577730118049,
+              "p99": 23.313451549213244
+            },
+            "e2e_ms": {
+              "p50": 3084.002721499928,
+              "p95": 4865.3283124997415,
+              "p99": 5009.107936899909
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 93.05128205128206,
+          "mean_power_w": 286.1542521367521,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-B-c16-r0",
+              "raw_sha": "796e140f15015870cb3ad062daba342feb8a9443ab5ad882999dff27b62a3955",
+              "gpu_sha": "57af21532577ece5601a50b81dafaf6b8cc73e37c9c2ac27dedd3ea21a0a054c",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-B-c16-r1",
+              "raw_sha": "0af05e43ab74ac1234318d14993d6cbbfb867c2a8f4fdcb1f691015f8dbfda89",
+              "gpu_sha": "9ae92fa45c65cae77c65e38a3592cc128ef84d2d748f8de6d384152a468919a2",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-B-c16-r2",
+              "raw_sha": "ac665610b6974cb910e76b6a7f80384122e51cf9e51b65d4488f35a9afacd1b2",
+              "gpu_sha": "8668f790f96750f518645991f2fb0221cbf3dd9ae9f1ab749258c6ff7a4201c7",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "B",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 693.0409566955597,
+          "output_tokens_s_min": 691.7349096649332,
+          "output_tokens_s_max": 694.121593595455,
+          "latency": {
+            "ttft_ms": {
+              "p50": 2394.010804499885,
+              "p95": 4485.432994749772,
+              "p99": 4541.95425060002
+            },
+            "tpot_ms": {
+              "p50": 26.761750393699742,
+              "p95": 41.22004608267899,
+              "p99": 43.17260557874087
+            },
+            "e2e_ms": {
+              "p50": 5791.860333999921,
+              "p95": 5884.435719499834,
+              "p99": 5894.604969849706
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 93.61111111111111,
+          "mean_power_w": 294.88944444444445,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-B-c32-r0",
+              "raw_sha": "4dd20a2e6a6bde924b723837f5736f1c056c2d4ee832c38d1ca729c3d9044d14",
+              "gpu_sha": "848538e2d6ee87086d1f0d5c709a9b0eea55e2dda4850b7b0280f65ae9606872",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-B-c32-r1",
+              "raw_sha": "c3444aa75c83948dcef6f3b8f26e07d0fb68ca045eb244a2ec88a25df3758b1b",
+              "gpu_sha": "43bb3690c1e9c141506c303dbb50b02838181560e00b5d953eac5640bd609472",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-B-c32-r2",
+              "raw_sha": "83549ea9aa05395f5a4a65f6ab76d8e504dc5f95e490d4da50c965d591402a0a",
+              "gpu_sha": "f371264264d23040db4816a3491327cc1e86abbcc08f500b5d2f75163dbc990f",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "C",
+          "concurrency": 16,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 2141.9601017781365,
+          "output_tokens_s_min": 2136.6852577751047,
+          "output_tokens_s_max": 2146.7689286022305,
+          "latency": {
+            "ttft_ms": {
+              "p50": 255.05620700050713,
+              "p95": 519.9263664999307,
+              "p99": 521.3751523998781
+            },
+            "tpot_ms": {
+              "p50": 6.940102966731993,
+              "p95": 7.3283877754403335,
+              "p99": 7.387725834931263
+            },
+            "e2e_ms": {
+              "p50": 3808.5334850002255,
+              "p95": 4082.346813499953,
+              "p99": 4095.963328000289
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 83.57777777777777,
+          "mean_power_w": 242.10066666666665,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-C-c16-r0",
+              "raw_sha": "b405762102a4cce35c51d82eb1d7f7ead32bb7679698b972ef0c9aa46562ed90",
+              "gpu_sha": "ad70312ce5ddac718fe45afbccdd164180e04de15ce50a6685f222e16e22eb23",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-C-c16-r1",
+              "raw_sha": "e1938a6a016269965dd7360439e537d1a9f9800b25d97eeb53c657bab3a06cea",
+              "gpu_sha": "d2ddfd52b91c0fd1a87623544f71455529af0874bf4f5f95db6a414fd416f321",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-C-c16-r2",
+              "raw_sha": "a13a40be9bc619b3d2d16117db21983bfb6152f2ca0df2dcebbf76789802e3f3",
+              "gpu_sha": "ecc8d3ccd83dce42dab9cd8e0c0f79210c5fbe483469090a4930478913e98a71",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        },
+        {
+          "workload": "C",
+          "concurrency": 32,
+          "repeats": 3,
+          "requests": 96,
+          "errors": 0,
+          "output_tokens_s_mean": 2983.66575075456,
+          "output_tokens_s_min": 2979.9491901602096,
+          "output_tokens_s_max": 2986.3978173696123,
+          "latency": {
+            "ttft_ms": {
+              "p50": 616.005688000314,
+              "p95": 1046.482175000392,
+              "p99": 1046.9469922997177
+            },
+            "tpot_ms": {
+              "p50": 9.485971773971677,
+              "p95": 10.315253025440315,
+              "p99": 10.522635640313503
+            },
+            "e2e_ms": {
+              "p50": 5461.256174000482,
+              "p95": 5481.961265499876,
+              "p99": 5487.640464450442
+            }
+          },
+          "peak_gpu_mib": 6173.0,
+          "mean_gpu_util_percent": 87.69696969696969,
+          "mean_power_w": 244.90272727272728,
+          "load_readiness_s": 35.23800721099997,
+          "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+          "config": {
+            "engine": "vllm",
+            "model": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/awq/model",
+            "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+            "name": "modelops-frozen-qwen3b",
+            "label": "quant-awq",
+            "port": 19801,
+            "memory_fraction": 0.7,
+            "max_context": 4096,
+            "max_sequences": 64,
+            "batch_tokens": 2048,
+            "prefix_cache": false,
+            "kv_cache_bytes": 3221225472
+          },
+          "receipts": [
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-C-c32-r0",
+              "raw_sha": "80d28a51dcb151ecad99d3039c09cda15591088a2b10cbe18ea6666e92bd27bb",
+              "gpu_sha": "a44367181210334b7db0a33d3f0c820bec04e6e3dd4e0dca111d5fe1cba410fd",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-C-c32-r1",
+              "raw_sha": "f220baea5203ae07d6488cb41d21d65d7f6c9166266fcdb0a8eecc355021c289",
+              "gpu_sha": "b483432360d84d7d42b49d3ad409584425a0f2996536f26e94f53c2d374f45d4",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            },
+            {
+              "path": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/quantization/performance/awq-C-c32-r2",
+              "raw_sha": "fc704b0db16a6d9a8118aaf3775491028e69492ccb8d541789448117608ba62b",
+              "gpu_sha": "70f3a99cc7120c9ec125dc3adc183d20ce81fa44e36dc74e51418677e8f10be2",
+              "protocol_sha": "3a052cde08159c976a6aef76104c6cb70755d3a72c3a94ecb83fa6fd9d5e5c1f",
+              "source_sha": "11cc854ec406855f5354fd2c08b3f3284ed16ad3f77434d4dd6d61cfdca49935"
+            }
+          ]
+        }
+      ],
+      "invalid": [],
+      "conversion": {
+        "status": "PASS",
+        "algorithm": "awq",
+        "precision": "W4A16-G128; lm_head excluded",
+        "base_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "model_sha": "113964c974d541c35dbbc0c92fd025dead1784a75e3afca122b8b905ea9e4790",
+        "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+        "calibration_samples": 64,
+        "max_sequence_length": 512,
+        "seed": 8901,
+        "wall_s": 112.78128905199992,
+        "peak_allocated_bytes": 7504110080,
+        "model_bytes": 2691752890,
+        "weights": [
+          {
+            "name": "model.safetensors",
+            "sha256": "ceabf1cbd67258e2c21567ae07da46246a1ceb42386b04e8615bb052b55f80f4",
+            "bytes": 2675871136
+          }
+        ],
+        "torch": "2.8.0+cu128",
+        "llmcompressor": "0.6.0",
+        "source_sha": "8bc5b84c27ab581cc6e318ad0a7ac35c9d029684f999b98177a38d37e71ab8a7"
+      },
+      "max_tested_concurrency": 32
+    }
+  },
+  "failures": [],
+  "protocol": {
+    "kv_cache_bytes": 3221225472,
+    "workloads": [
+      "A",
+      "B",
+      "C"
+    ],
+    "concurrency": {
+      "A": [
+        1,
+        16,
+        32
+      ],
+      "B": [
+        16,
+        32
+      ],
+      "C": [
+        16,
+        32
+      ]
+    },
+    "requests": 32,
+    "repeats": 3,
+    "warmup": 3,
+    "base_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+    "prompt_sha": "36444d66c914824b4d6ccf875d708f8e46c9c29aedcdfbab94ce7b2dd117c3de",
+    "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+    "quality_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+    "min_f1_delta": -0.02,
+    "min_em_delta": -0.02,
+    "quality_scope": "Engineering gate, not a production SLA"
+  }
+}

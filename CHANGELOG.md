@@ -7,6 +7,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Advanced inference and training — 2026-10-14
+
+- Added native dual-engine loading/identity adapters and90-point matched measurements.
+- Actually converted and evaluated GPTQ/AWQ; preserved AWQ quality rejection.
+- Captured CUDA/PyTorch traces and output-verified prefix/cache and configuration experiments.
+- Added token-weighted accumulation, checkpointing configuration, semantic resume identity and managed64-update comparisons.
+- Hardened Registry/online version, telemetry and quality/performance decisions with bounded real faults.
+- Fixed missing Registry revision and excessive Unix socket temp paths; retired an incorrect fault classification rather than claiming it as evidence.
+- Published safe summaries only; no raw weights/data, GPU Docker, Nsight, multi-node or business-SLO claims.
+
 ## ModelOps LLM validation finalization — 2026-10-13
 
 ### Added

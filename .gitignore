@@ -83,3 +83,6 @@ console/test-results/
 # Pinned isolated hardening runtimes
 .sglang-venv/
 .quant-venv/
+
+# Third-party conversion logs are private Evidence, never publish
+sparse_logs/

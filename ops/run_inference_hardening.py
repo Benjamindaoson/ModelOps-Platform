@@ -52,7 +52,7 @@ def run_engines(engines):
     progress.write_text(json.dumps(records,indent=2)+"\n")
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument("--stage",choices=["engines","tuning","profiling","faults","quantization","training","release","report","all"],default="engines");p.add_argument("--engines",nargs="+",choices=["vllm","sglang"],default=["vllm","sglang"]);p.add_argument("--wait-pid",type=int)
+    p=argparse.ArgumentParser();p.add_argument("--stage",choices=["engines","tuning","profiling","faults","quantization","training","release","audit","report","all"],default="engines");p.add_argument("--engines",nargs="+",choices=["vllm","sglang"],default=["vllm","sglang"]);p.add_argument("--wait-pid",type=int)
     a=p.parse_args();E.mkdir(exist_ok=True)
     queue=(E/"all-queue.lock").open("a") if a.stage=="all" else None
     if queue:fcntl.flock(queue,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -68,12 +68,12 @@ def main():
                 if active.create_time()!=created or active.status()==psutil.STATUS_ZOMBIE:break
             except psutil.NoSuchProcess:break
             time.sleep(5)
-    stages=["engines","tuning","profiling","faults","quantization","training","release","report"] if a.stage=="all" else [a.stage]
+    stages=["engines","tuning","profiling","faults","quantization","training","release","audit","report"] if a.stage=="all" else [a.stage]
     with (E/"controller.lock").open("a") as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         overall=[]
         from importlib import import_module
-        modules={"tuning":"tuning_stage","profiling":"profiling_stage","faults":"fault_stage","quantization":"quantization_stage","training":"training_stage","release":"release_stage","report":"report"}
+        modules={"tuning":"tuning_stage","profiling":"profiling_stage","faults":"fault_stage","quantization":"quantization_stage","training":"training_stage","release":"release_stage","audit":"audit","report":"report"}
         for stage in stages:
             start=time.time()
             try:

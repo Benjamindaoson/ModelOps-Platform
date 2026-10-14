@@ -3,8 +3,10 @@ import asyncio,json,subprocess,time,hashlib,traceback,os
 from pathlib import Path
 from .runtime import ROOT,E,Server
 from .contracts import digest,resume_valid
+from .resume import valid_receipt
 from .benchmark import measure
 from .quality import evaluate
+from .completed import completed_model
 from pipelines.training.data_contract import verify_model_bundle
 
 def main():
@@ -37,6 +39,8 @@ def main():
     for name,model in models.items():
         config={"engine":"vllm","model":str(model),"model_sha":digest(model/"modelops-files.json"),"name":"modelops-frozen-qwen3b","label":"quant-"+name,"port":19801,"memory_fraction":.7,"max_context":4096,"max_sequences":64,"batch_tokens":2048,"prefix_cache":False,"kv_cache_bytes":spec["kv_cache_bytes"]}
         result=state["models"].setdefault(name,{"trials":[]})
+        if completed_model(result,folder/name/"quality/outputs.jsonl",lambda r:valid_receipt(r,Path(r["path"]),ss,ps)):
+            verify_model_bundle(model,config["model_sha"]);print("VERIFIED_MODEL_REUSED "+name,flush=True);continue
         try:
             with Server(config) as server:
                 result["quality"]=asyncio.run(evaluate(server,folder/name/"quality"))
@@ -45,7 +49,7 @@ def main():
                         for rep in range(3):
                             ident=f"{name}-{label}-c{c}-r{rep}"
                             prior=next((t for t in reversed(result["trials"]) if t["id"]==ident and t["status"]=="PASS"),None)
-                            if prior and resume_valid(prior,Path(prior["path"])/"requests.jsonl",ss,ps):continue
+                            if prior and valid_receipt(prior,Path(prior["path"]),ss,ps):continue
                             target=folder/"performance"/ident
                             if target.exists():target=target.with_name(ident+"-retry-"+str(time.time_ns()))
                             rec=asyncio.run(measure(server,data[label]["prompts"][rep*32:(rep+1)*32],data[label]["output_tokens"],c,8700+rep,target,ps,ss))

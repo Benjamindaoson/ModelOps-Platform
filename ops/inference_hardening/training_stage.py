@@ -12,6 +12,7 @@ from pipelines.training.data_contract import sha256,validate_manifest,write_json
 from .runtime import ROOT,E,Server
 from .benchmark import gpu_poll
 from .quality import evaluate
+from .training_contracts import candidate_payload
 
 def cpu_poll(stop,rows,pid):
     try:proc=psutil.Process(pid);proc.cpu_percent()
@@ -26,6 +27,7 @@ def main():
     if state.get("status")=="PASS":
         for label,rec in state["runs"].items():
             verified_training_artifacts(rec["result"],E)
+            if sha256(Path(rec["result"]["adapter"]).parent/"resume.pt")!=rec["result"]["resume_sha256"]:raise ValueError("Saved optimizer/RNG state changed")
             if rec["quality"]["raw_sha"]!=sha256(folder/label/"quality/outputs.jsonl"):raise ValueError("Completed quality output changed")
         print("Verified completed managed training reused",flush=True);return
     basepath=ROOT/".tools/assets/qwen3b-base/modelops-files.json";dp=ROOT/"Evidence/v1/datasets/public/dolly-shortqa-v1/manifest.json"
@@ -43,6 +45,13 @@ def main():
                 if rec.get("status")=="PASS":
                     verified_training_artifacts(rec["result"],E)
                     print("TRAINING_REUSED "+label,flush=True);continue
+                if rec.get("result",{}).get("status")=="COMPLETED":
+                    verified_training_artifacts(rec["result"],E)
+                    version=tracking_client()[0].get_model_version(rec["mlflow_model"]["name"],rec["mlflow_model"]["version"])
+                    if version.tags.get("checkpoint_sha256")!=rec["result"]["checkpoint_sha256"]:raise ValueError("Completed MLflow version changed")
+                    rec["candidate"]=register(c,"/api/v1/models",candidate_payload(label,rec["result"],rec["job"]["id"],base["id"]))
+                    rec["status"]="PASS";rec["recovery"]="Reused verified64-update checkpoint; recovered Registry metadata only"
+                    write_json(sp,state);print("REGISTRY_RECOVERED "+label,flush=True);continue
                 if not rec.get("tracking"):
                     rec["tracking"]=create_training_run({**spec,"gradient_checkpointing":checkpointing,"condition":label});write_json(sp,state)
                 if not rec.get("job"):
@@ -73,7 +82,7 @@ def main():
                     rec["result"]=json.loads((output/"result.json").read_text());rec["controller_wall_s"]=time.time()-start
                     if rec["result"].get("gradient_checkpointing")!=checkpointing or rec["result"].get("gradient_accumulation_steps")!=2 or rec["result"].get("steps")!=64:raise ValueError("Actual managed configuration differs from frozen condition")
                     rec["mlflow_model"]=register_training(rec["result"],rec["tracking"],E,"ModelOps-Qwen3B-Hardening")
-                    rec["candidate"]=register(c,"/api/v1/models",{"name":"hardening-qwen3b-"+label,"version":1,"model_type":"llm","framework":"transformers","source":"Qwen/Qwen2.5-3B-Instruct","digest":rec["result"]["checkpoint_sha256"],"artifact_uri":Path(rec["result"]["checkpoint"]).as_uri(),"base_model":base["id"],"adapter_type":"qlora","adapter_uri":Path(rec["result"]["adapter"]).as_uri(),"training_run_id":rec["job"]["id"],"task_type":"bounded-shortqa"})
+                    rec["candidate"]=register(c,"/api/v1/models",candidate_payload(label,rec["result"],rec["job"]["id"],base["id"]))
                     rec["status"]="PASS"
                 finally:
                     stop.set();thread.join(8);cpu_thread.join(3);write_json(folder/(label+"-telemetry.json"),samples);write_json(folder/(label+"-cpu.json"),cpu)
@@ -122,7 +131,7 @@ def main():
             dataset=register(c,"/api/v1/datasets",{"name":"hardening-heldout-dolly-v1","version":1,"uri":held.as_uri(),"digest":sha256(held),"train_count":0,"heldout_count":24})
             baseline=json.loads((E/"quantization/progress.json").read_text()).get("models",{}).get("fp16",{}).get("quality",{})
             for label,rec in completed.items():
-                if rec.get("evaluation_attestation"):continue
+                if rec.get("evaluation_attestation",{}).get("verified") is True:continue
                 try:
                     cand=rec["quality"]["groups"]["dolly24"];base=baseline["groups"]["dolly24"]
                     if cand["errors"] or base["errors"]:raise ValueError("Cannot attest incomplete generations")

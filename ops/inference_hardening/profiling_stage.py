@@ -5,6 +5,7 @@ from pathlib import Path
 import httpx
 from .runtime import ROOT,E,Server
 from .contracts import digest,resume_valid
+from .resume import valid_receipt
 from .benchmark import measure
 
 def summarize_traces(folder):
@@ -47,7 +48,7 @@ def main():
         todo=[]
         for rep in range(3):
             prior=next((t for t in reversed(state["trials"]) if t["cache"]==cache and t["repeat"]==rep and t["status"]=="PASS"),None)
-            if prior and resume_valid(prior,Path(prior["path"])/"requests.jsonl",ss,ps):continue
+            if prior and valid_receipt(prior,Path(prior["path"]),ss,ps):continue
             todo.append(rep)
         if not todo:continue
         try:

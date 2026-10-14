@@ -1,0 +1,549 @@
+{
+  "status": "PASS",
+  "protocol": {
+    "base_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+    "batch_size": 2,
+    "comparison": "Only gradient_checkpointing False vs True; resume repeated False",
+    "dataset_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+    "gradient_accumulation_steps": 2,
+    "lora_alpha": 16,
+    "lora_rank": 8,
+    "lr": 1e-05,
+    "max_seq_length": 384,
+    "method": "qlora",
+    "precision": "bf16",
+    "resume_atol": 1e-06,
+    "resume_rtol": 0,
+    "seed": 9102,
+    "steps": 64
+  },
+  "runs": {
+    "checkpoint": {
+      "candidate": {
+        "adapter_type": "qlora",
+        "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/1b1b94fa-385b-4887-824e-80ffb9ddd3db/artifacts/adapter-latest",
+        "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/1b1b94fa-385b-4887-824e-80ffb9ddd3db/artifacts/merged/model.safetensors",
+        "base_model": "3e045b10-ce1b-4a34-9dfe-8e8b49a660a5",
+        "created_at": "2026-10-14T01:55:29.190748+00:00",
+        "created_by": "hardening-training",
+        "deployment_status": "registered",
+        "digest": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "digest_verified": false,
+        "evaluation_id": null,
+        "family": "llm",
+        "framework": "transformers",
+        "id": "2b3a9fff-9021-4e74-8ee1-bcd22b74f080",
+        "model_type": "llm",
+        "name": "hardening-qwen3b-checkpoint",
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "source": "Qwen/Qwen2.5-3B-Instruct",
+        "task_type": "bounded-shortqa",
+        "training_run_id": "1b1b94fa-385b-4887-824e-80ffb9ddd3db",
+        "version": 1
+      },
+      "controller_wall_s": 91.29723000526428,
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:53769/api/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "evaluation_attestation": {
+        "id": "42a191a8-206d-4246-a595-8714d960a5d6",
+        "metrics": {
+          "base_token_f1": 0.7404587371692635,
+          "candidate_token_f1": 0.7472546373475166,
+          "delta_token_f1": 0.006795900178253156
+        },
+        "passed": true,
+        "report_sha256": "8dfc2da84434b0cb4451856adfb89125823be113ef2c1aaa06cc57cf9dd822ea",
+        "verified": true
+      },
+      "evaluation_gate": {
+        "checks": {
+          "dolly24": true,
+          "frozen_data": true,
+          "squad128": true
+        },
+        "scope": "Bounded QA engineering admission; not broad model-quality proof",
+        "status": "PASS",
+        "threshold_delta": -0.02
+      },
+      "mlflow_model": {
+        "adapter_sha256": "28beb88827bff48fb6c8c0e2661b41182823adcf84a3ca4322793015d771bf31",
+        "checkpoint_sha256": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "name": "ModelOps-Qwen3B-Hardening",
+        "run_id": "b38bbf579fe5489e8c19b1757213558c",
+        "source": "runs:/b38bbf579fe5489e8c19b1757213558c/model",
+        "status": "READY",
+        "version": 2
+      },
+      "online_version_binding": {
+        "checks": {
+          "checkpoint_sha": true,
+          "model_name": true,
+          "owned": true,
+          "ready": true,
+          "run_id": true,
+          "version": true
+        },
+        "scope": "Verified artifact/owned native process binding; no provider endpoint attestation claimed",
+        "status": "PASS"
+      },
+      "recovery": "Reused verified64-update checkpoint; recovered Registry metadata only",
+      "status": "PASS",
+      "step_count": 64,
+      "steps_s": 1.1600097124350044,
+      "tokens_s": 828.2106843750795,
+      "unique_step_count": 64,
+      "version_mismatch_injection": {
+        "checks": {
+          "checkpoint_sha": false,
+          "model_name": true,
+          "owned": true,
+          "ready": true,
+          "run_id": true,
+          "version": true
+        },
+        "scope": "Verified artifact/owned native process binding; no provider endpoint attestation claimed",
+        "status": "FAIL"
+      },
+      "result": {
+        "adapter": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/1b1b94fa-385b-4887-824e-80ffb9ddd3db/artifacts/adapter-latest",
+        "adapter_sha256": "28beb88827bff48fb6c8c0e2661b41182823adcf84a3ca4322793015d771bf31",
+        "base_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "checkpoint": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/1b1b94fa-385b-4887-824e-80ffb9ddd3db/artifacts/merged/model.safetensors",
+        "checkpoint_sha256": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "config_sha": "d65ae4d286b18dd20e98e4b45aa437884ed88a2cee9290669aaa21800520ac85",
+        "data_preprocess_s": 0.2474452989999918,
+        "data_preprocess_samples_s": 258.6430223513849,
+        "dataset_sha256": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+        "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+        "gpu_peak_allocated_bytes": 4003744256,
+        "gradient_accumulation_steps": 2,
+        "gradient_checkpointing": true,
+        "method": "qlora",
+        "model_load_s": 5.905533194999407,
+        "parameter_delta_linf": 0.0003348530735820532,
+        "resume_sha256": "48698f3ffa37c5ee3502084a19715b207e4c78b83027cfd066a301c97745bdee",
+        "run_id": "1b1b94fa-385b-4887-824e-80ffb9ddd3db",
+        "source_sha256": "0750aa69fc36bdfac48cc9f84d95404ae9185d79c4a21246414f86d0b1b3c77c",
+        "status": "COMPLETED",
+        "steps": 64,
+        "torch": "2.8.0+cu128",
+        "total_parameters": 3100905472,
+        "trainable_fraction": 0.0048265850523804684,
+        "trainable_parameters": 14966784,
+        "training_wall_s": 55.67110796799989,
+        "wall_s": 76.60838968600001
+      },
+      "training_run_id": "1b1b94fa-385b-4887-824e-80ffb9ddd3db",
+      "mlflow_run_id": "b38bbf579fe5489e8c19b1757213558c",
+      "quality": {
+        "groups": {
+          "dolly24": {
+            "errors": 0,
+            "exact_match": 0.5416666666666666,
+            "samples": 24,
+            "token_f1": 0.7472546373475166
+          },
+          "squad128": {
+            "errors": 0,
+            "exact_match": 0.6640625,
+            "samples": 128,
+            "token_f1": 0.8119991872014233
+          }
+        },
+        "raw_sha": "3db45b41d386477bcd58b7b511d1b94a0b10a39a4281df0ceecb8d1ced30d55a",
+        "scope": "Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO.",
+        "spec": {
+          "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+          "data_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+          "dolly_heldout_sha": "62e1b045b8554dc5508e93c254cfb277e075617294356eaefbd5201f8830a636",
+          "dolly_manifest_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+          "max_new_tokens": 64,
+          "model_sha": "d099085907906ba880cddb7e363aad16a996c430395f961dd45a678521b20943",
+          "source_sha": "3b82ccc27c50f81b0fe08fcb4a026cf64955c6c4ffcb73cb6dcd65921e1104d6",
+          "temperature": 0
+        },
+        "status": "PASS",
+        "wall_s": 5.388043522999396
+      },
+      "quality_gate": {
+        "status": "PASS",
+        "checks": {
+          "squad128": true,
+          "dolly24": true,
+          "frozen_data": true
+        },
+        "threshold_delta": -0.02,
+        "scope": "Bounded QA engineering admission; not broad model-quality proof"
+      },
+      "steps_sha": "3f27cf4267289ec33ad3324a4340dcdf30eb88605dd988cdffc197382b09ea37"
+    },
+    "no-checkpoint": {
+      "candidate": {
+        "adapter_type": "qlora",
+        "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/554fc732-d269-42de-9e70-bb5d78fba368/artifacts/adapter-latest",
+        "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/554fc732-d269-42de-9e70-bb5d78fba368/artifacts/merged/model.safetensors",
+        "base_model": "3e045b10-ce1b-4a34-9dfe-8e8b49a660a5",
+        "created_at": "2026-10-14T01:55:25.503802+00:00",
+        "created_by": "hardening-training",
+        "deployment_status": "registered",
+        "digest": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "digest_verified": false,
+        "evaluation_id": null,
+        "family": "llm",
+        "framework": "transformers",
+        "id": "1c648f82-8507-462b-83c7-240a8dd875c6",
+        "model_type": "llm",
+        "name": "hardening-qwen3b-no-checkpoint",
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "source": "Qwen/Qwen2.5-3B-Instruct",
+        "task_type": "bounded-shortqa",
+        "training_run_id": "554fc732-d269-42de-9e70-bb5d78fba368",
+        "version": 1
+      },
+      "controller_wall_s": 70.87767601013184,
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:53769/api/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "evaluation_attestation": {
+        "id": "994f4d54-5268-480a-8d95-1998913aaa98",
+        "metrics": {
+          "base_token_f1": 0.7404587371692635,
+          "candidate_token_f1": 0.7461405553510817,
+          "delta_token_f1": 0.005681818181818232
+        },
+        "passed": true,
+        "report_sha256": "535a6b17a478b42644f16e0402f659e249345e8e22ae19f9c836c59aad27c6e4",
+        "verified": true
+      },
+      "evaluation_gate": {
+        "checks": {
+          "dolly24": true,
+          "frozen_data": true,
+          "squad128": true
+        },
+        "scope": "Bounded QA engineering admission; not broad model-quality proof",
+        "status": "PASS",
+        "threshold_delta": -0.02
+      },
+      "mlflow_model": {
+        "adapter_sha256": "28beb88827bff48fb6c8c0e2661b41182823adcf84a3ca4322793015d771bf31",
+        "checkpoint_sha256": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "name": "ModelOps-Qwen3B-Hardening",
+        "run_id": "5276c8bfb8644c5d9b9f196e2ef19f3e",
+        "source": "runs:/5276c8bfb8644c5d9b9f196e2ef19f3e/model",
+        "status": "READY",
+        "version": 1
+      },
+      "online_version_binding": {
+        "checks": {
+          "checkpoint_sha": true,
+          "model_name": true,
+          "owned": true,
+          "ready": true,
+          "run_id": true,
+          "version": true
+        },
+        "scope": "Verified artifact/owned native process binding; no provider endpoint attestation claimed",
+        "status": "PASS"
+      },
+      "recovery": "Reused verified64-update checkpoint; recovered Registry metadata only",
+      "status": "PASS",
+      "step_count": 64,
+      "steps_s": 1.8613590686560149,
+      "tokens_s": 1328.9522075494992,
+      "unique_step_count": 64,
+      "version_mismatch_injection": {
+        "checks": {
+          "checkpoint_sha": false,
+          "model_name": true,
+          "owned": true,
+          "ready": true,
+          "run_id": true,
+          "version": true
+        },
+        "scope": "Verified artifact/owned native process binding; no provider endpoint attestation claimed",
+        "status": "FAIL"
+      },
+      "result": {
+        "adapter": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/554fc732-d269-42de-9e70-bb5d78fba368/artifacts/adapter-latest",
+        "adapter_sha256": "28beb88827bff48fb6c8c0e2661b41182823adcf84a3ca4322793015d771bf31",
+        "base_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "checkpoint": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/554fc732-d269-42de-9e70-bb5d78fba368/artifacts/merged/model.safetensors",
+        "checkpoint_sha256": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "config_sha": "9a178f480635b1572cd3904a628dd9fca69ae172ff32b1ce9bdb1bf3435c02a8",
+        "data_preprocess_s": 0.2500355709998985,
+        "data_preprocess_samples_s": 255.9635804780192,
+        "dataset_sha256": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+        "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+        "gpu_peak_allocated_bytes": 8252517376,
+        "gradient_accumulation_steps": 2,
+        "gradient_checkpointing": false,
+        "method": "qlora",
+        "model_load_s": 6.499123626000255,
+        "parameter_delta_linf": 0.0003348530735820532,
+        "resume_sha256": "b6aa1780004d6e1a284aa9e113ed78159689359acb804235aa3991728244a5a4",
+        "run_id": "554fc732-d269-42de-9e70-bb5d78fba368",
+        "source_sha256": "0750aa69fc36bdfac48cc9f84d95404ae9185d79c4a21246414f86d0b1b3c77c",
+        "status": "COMPLETED",
+        "steps": 64,
+        "torch": "2.8.0+cu128",
+        "total_parameters": 3100905472,
+        "trainable_fraction": 0.0048265850523804684,
+        "trainable_parameters": 14966784,
+        "training_wall_s": 34.89086184700045,
+        "wall_s": 56.17742925600032
+      },
+      "training_run_id": "554fc732-d269-42de-9e70-bb5d78fba368",
+      "mlflow_run_id": "5276c8bfb8644c5d9b9f196e2ef19f3e",
+      "quality": {
+        "groups": {
+          "dolly24": {
+            "errors": 0,
+            "exact_match": 0.5416666666666666,
+            "samples": 24,
+            "token_f1": 0.7461405553510817
+          },
+          "squad128": {
+            "errors": 0,
+            "exact_match": 0.6640625,
+            "samples": 128,
+            "token_f1": 0.8119991872014233
+          }
+        },
+        "raw_sha": "c85380ab5bfbed62bd59c9a56b5954d071b0cf2d1897a1686b0f74af8fb1202d",
+        "scope": "Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO.",
+        "spec": {
+          "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+          "data_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+          "dolly_heldout_sha": "62e1b045b8554dc5508e93c254cfb277e075617294356eaefbd5201f8830a636",
+          "dolly_manifest_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+          "max_new_tokens": 64,
+          "model_sha": "d099085907906ba880cddb7e363aad16a996c430395f961dd45a678521b20943",
+          "source_sha": "3b82ccc27c50f81b0fe08fcb4a026cf64955c6c4ffcb73cb6dcd65921e1104d6",
+          "temperature": 0
+        },
+        "status": "PASS",
+        "wall_s": 5.399744018000092
+      },
+      "quality_gate": {
+        "status": "PASS",
+        "checks": {
+          "squad128": true,
+          "dolly24": true,
+          "frozen_data": true
+        },
+        "threshold_delta": -0.02,
+        "scope": "Bounded QA engineering admission; not broad model-quality proof"
+      },
+      "steps_sha": "3383546d391b69ba7b30747b1d17856d5fe9898d869df7796a7f72259e2365a2"
+    },
+    "resume": {
+      "candidate": {
+        "adapter_type": "qlora",
+        "adapter_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/db220418-938d-43c6-837c-b38c03249ea7/artifacts/adapter-latest",
+        "artifact_uri": "file:///data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/db220418-938d-43c6-837c-b38c03249ea7/artifacts/merged/model.safetensors",
+        "base_model": "3e045b10-ce1b-4a34-9dfe-8e8b49a660a5",
+        "created_at": "2026-10-14T01:55:32.876350+00:00",
+        "created_by": "hardening-training",
+        "deployment_status": "registered",
+        "digest": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "digest_verified": false,
+        "evaluation_id": null,
+        "family": "llm",
+        "framework": "transformers",
+        "id": "113fc9e1-de2f-4705-b609-735d490c1123",
+        "model_type": "llm",
+        "name": "hardening-qwen3b-resume",
+        "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "source": "Qwen/Qwen2.5-3B-Instruct",
+        "task_type": "bounded-shortqa",
+        "training_run_id": "db220418-938d-43c6-837c-b38c03249ea7",
+        "version": 1
+      },
+      "controller_wall_s": 83.39452457427979,
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:53769/api/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "evaluation_attestation": {
+        "id": "c08194ef-a0fb-4a92-a0f7-2a73f0436224",
+        "metrics": {
+          "base_token_f1": 0.7404587371692635,
+          "candidate_token_f1": 0.7415728191656984,
+          "delta_token_f1": 0.0011140819964349236
+        },
+        "passed": true,
+        "report_sha256": "081acfc9e7ebb0ea201f420b0182e5d3bbed4efcdc244ce0838cd7e26632f2fc",
+        "verified": true
+      },
+      "evaluation_gate": {
+        "checks": {
+          "dolly24": true,
+          "frozen_data": true,
+          "squad128": true
+        },
+        "scope": "Bounded QA engineering admission; not broad model-quality proof",
+        "status": "PASS",
+        "threshold_delta": -0.02
+      },
+      "mlflow_model": {
+        "adapter_sha256": "28beb88827bff48fb6c8c0e2661b41182823adcf84a3ca4322793015d771bf31",
+        "checkpoint_sha256": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "name": "ModelOps-Qwen3B-Hardening",
+        "run_id": "efdeebfa25ab4b52b9f61797270decc0",
+        "source": "runs:/efdeebfa25ab4b52b9f61797270decc0/model",
+        "status": "READY",
+        "version": 3
+      },
+      "online_version_binding": {
+        "checks": {
+          "checkpoint_sha": true,
+          "model_name": true,
+          "owned": true,
+          "ready": true,
+          "run_id": true,
+          "version": true
+        },
+        "scope": "Verified artifact/owned native process binding; no provider endpoint attestation claimed",
+        "status": "PASS"
+      },
+      "pause_receipt": {
+        "adapter": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/db220418-938d-43c6-837c-b38c03249ea7/artifacts/adapter-latest",
+        "adapter_sha256": "ecd4c86fca910672c93d6f0e3c381d3deb3116febf17fb230f68989af3c059f7",
+        "base_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "config_sha": "9a178f480635b1572cd3904a628dd9fca69ae172ff32b1ce9bdb1bf3435c02a8",
+        "data_preprocess_s": 0.24051889200018195,
+        "data_preprocess_samples_s": 266.09136383328917,
+        "dataset_sha256": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+        "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+        "gpu_peak_allocated_bytes": 8252517376,
+        "gradient_accumulation_steps": 2,
+        "gradient_checkpointing": false,
+        "method": "qlora",
+        "model_load_s": 5.859811639999862,
+        "parameter_delta_linf": 0.00014762145292479545,
+        "resume_sha256": "c844f18c721d1b5c5419aaf258f92459fbdc76bbb66b3e3d92226081f3140083",
+        "run_id": "db220418-938d-43c6-837c-b38c03249ea7",
+        "source_sha256": "0750aa69fc36bdfac48cc9f84d95404ae9185d79c4a21246414f86d0b1b3c77c",
+        "status": "PAUSED",
+        "steps": 17,
+        "torch": "2.8.0+cu128",
+        "total_parameters": 3100905472,
+        "trainable_fraction": 0.0048265850523804684,
+        "trainable_parameters": 14966784,
+        "training_wall_s": 9.73421179900015
+      },
+      "pause_requested": true,
+      "pause_requested_after_step": 16,
+      "recovery": "Reused verified64-update checkpoint; recovered Registry metadata only",
+      "resume_requested": true,
+      "status": "PASS",
+      "step_count": 64,
+      "steps_s": 1.8874511616003473,
+      "tokens_s": 1347.581146533848,
+      "unique_step_count": 64,
+      "version_mismatch_injection": {
+        "checks": {
+          "checkpoint_sha": false,
+          "model_name": true,
+          "owned": true,
+          "ready": true,
+          "run_id": true,
+          "version": true
+        },
+        "scope": "Verified artifact/owned native process binding; no provider endpoint attestation claimed",
+        "status": "FAIL"
+      },
+      "result": {
+        "adapter": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/db220418-938d-43c6-837c-b38c03249ea7/artifacts/adapter-latest",
+        "adapter_sha256": "28beb88827bff48fb6c8c0e2661b41182823adcf84a3ca4322793015d771bf31",
+        "base_sha256": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "checkpoint": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/runtime/lab/db220418-938d-43c6-837c-b38c03249ea7/artifacts/merged/model.safetensors",
+        "checkpoint_sha256": "36fba8e48edd183b7859aa84e22c8d67b36a367ddc4bdd4aa47b090b4ffbd3ea",
+        "config_sha": "9a178f480635b1572cd3904a628dd9fca69ae172ff32b1ce9bdb1bf3435c02a8",
+        "data_preprocess_s": 0.2494422260006104,
+        "data_preprocess_samples_s": 256.5724377389231,
+        "dataset_sha256": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+        "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+        "gpu_peak_allocated_bytes": 8261075968,
+        "gradient_accumulation_steps": 2,
+        "gradient_checkpointing": false,
+        "method": "qlora",
+        "model_load_s": 6.050388616999953,
+        "parameter_delta_linf": 0.0003348530735820532,
+        "resume_sha256": "9637ce6e7c7beacc1e86aada68c1262f57048fd7e56d749f9bc2d76918606a92",
+        "run_id": "db220418-938d-43c6-837c-b38c03249ea7",
+        "source_sha256": "0750aa69fc36bdfac48cc9f84d95404ae9185d79c4a21246414f86d0b1b3c77c",
+        "status": "COMPLETED",
+        "steps": 64,
+        "torch": "2.8.0+cu128",
+        "total_parameters": 3100905472,
+        "trainable_fraction": 0.0048265850523804684,
+        "trainable_parameters": 14966784,
+        "training_wall_s": 25.280619236000348,
+        "wall_s": 46.27538257900051
+      },
+      "training_run_id": "db220418-938d-43c6-837c-b38c03249ea7",
+      "mlflow_run_id": "efdeebfa25ab4b52b9f61797270decc0",
+      "quality": {
+        "groups": {
+          "dolly24": {
+            "errors": 0,
+            "exact_match": 0.5416666666666666,
+            "samples": 24,
+            "token_f1": 0.7415728191656984
+          },
+          "squad128": {
+            "errors": 0,
+            "exact_match": 0.6640625,
+            "samples": 128,
+            "token_f1": 0.8119991872014233
+          }
+        },
+        "raw_sha": "d94b9b9a603ca7f828b42e1d45180cb23d6b3dda76fc5b6b7b461a0d8ef2e9cd",
+        "scope": "Existing normalized token-overlap scoring; multi-reference max. Bounded QA, not semantic quality or production SLO.",
+        "spec": {
+          "calibration_sha": "8c5dbdaf124f67ca13e57749e362f14d0bb08375ea4759a76c537cd0bf732fe6",
+          "data_sha": "c3b62d5834e451da694ca420216d3d794cbfd0735eec24302763f9d3ccd52c78",
+          "dolly_heldout_sha": "62e1b045b8554dc5508e93c254cfb277e075617294356eaefbd5201f8830a636",
+          "dolly_manifest_sha": "71a383c9cd4a77204ba0d1c65b6fd10966e6c8ba6f98c04d35ca1641e242b687",
+          "max_new_tokens": 64,
+          "model_sha": "d099085907906ba880cddb7e363aad16a996c430395f961dd45a678521b20943",
+          "source_sha": "3b82ccc27c50f81b0fe08fcb4a026cf64955c6c4ffcb73cb6dcd65921e1104d6",
+          "temperature": 0
+        },
+        "status": "PASS",
+        "wall_s": 5.387609219999831
+      },
+      "quality_gate": {
+        "status": "PASS",
+        "checks": {
+          "squad128": true,
+          "dolly24": true,
+          "frozen_data": true
+        },
+        "threshold_delta": -0.02,
+        "scope": "Bounded QA engineering admission; not broad model-quality proof"
+      },
+      "steps_sha": "59d63301c3cd95764360d46b6fdea579d1f571929daf985686e7f8759822ead4"
+    }
+  },
+  "resume_consistency": {
+    "max_abs_error": 0.0,
+    "max_loss_error": 0.0,
+    "same_keys": true,
+    "sample_sequence_equal": true,
+    "status": "PASS"
+  },
+  "failures": [
+    {
+      "condition": "no-checkpoint",
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:53769/api/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "time": 1791942357.5214834
+    },
+    {
+      "condition": "checkpoint",
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:53769/api/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "time": 1791942453.6102326
+    },
+    {
+      "condition": "resume",
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:53769/api/v1/models'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "time": 1791942541.5695105
+    }
+  ]
+}

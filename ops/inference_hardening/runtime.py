@@ -18,6 +18,11 @@ def wait_port_release(port,timeout=15):
         if time.monotonic()>=deadline:raise RuntimeError("Loopback port is still occupied; no unknown process was adopted or stopped")
         time.sleep(.1)
 
+def runtime_temp_dir(root):
+    path=Path(root)/".tmp"
+    if len(os.fsencode(str(path)))+1+36>107:raise ValueError("Project path exceeds Unix IPC socket limit; use an authorized shorter project checkout")
+    return path
+
 class Server:
     def __init__(self,config):
         self.config=config;self.p=None;self.owned=None;self.load_s=None
@@ -34,7 +39,7 @@ class Server:
                    VLLM_CACHE_ROOT=str(ROOT/".tools/hardening-cache/vllm"))
         cache=ROOT/".tools/hardening-cache"
         for key,name in [("TRITON_CACHE_DIR","triton"),("TORCHINDUCTOR_CACHE_DIR","inductor"),("HF_HOME","hf"),("TMPDIR","tmp")]:
-            path=cache/name;path.mkdir(parents=True,exist_ok=True);env[key]=str(path)
+            path=runtime_temp_dir(ROOT) if key=="TMPDIR" else cache/name;path.mkdir(parents=True,exist_ok=True);env[key]=str(path)
         env.pop("LD_LIBRARY_PATH",None)
         env["TORCH_EXTENSIONS_DIR"]=str(ROOT/".tools/hardening-cache/torch");env["MAX_JOBS"]="2"
         if self.config.get("profile"):env["VLLM_TORCH_PROFILER_DIR"]=str(E/"profiling"/ident)

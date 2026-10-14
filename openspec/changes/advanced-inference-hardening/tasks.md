@@ -1,7 +1,7 @@
-- [ ] Environment and assets
-- [ ] Dual engines and workload matrix
-- [ ] Actual INT4 conversion and quality/performance
-- [ ] Profiling and measured optimization
-- [ ] Training efficiency and independent resume
-- [ ] Release/failure regression
-- [ ] CI, reports and PR25 publication
+- [x] Environment and assets
+- [x] Dual engines and workload matrix
+- [x] Actual INT4 conversion and quality/performance
+- [x] Profiling and measured optimization
+- [x] Training efficiency and independent resume
+- [x] Release/failure regression
+- [x] CI, reports and PR25 publication

@@ -4,9 +4,27 @@
 
 ModelOps gives model-owning teams a traceable path from a dataset version to a tested model release: **QLoRA training → MLflow tracking/registry → evaluation and release gate → vLLM serving → benchmark → monitoring → release/rollback**. It extends the existing FastAPI control plane and Next.js console rather than replacing them with a training notebook or chatbot.
 
-> **Validation status:** the real single-host LLM lifecycle is validated on RTX3090. GPU Docker execution is **SKIPPED** on the current rented container, and enterprise production HA/security deployment is not certified. Every implemented feature is separated from its runtime evidence.
+> **Validation status:** historical lifecycle evidence is on RTX3090; current advanced native GPU evidence below is separately validated. GPU Docker execution is **SKIPPED** on the current rented container, and enterprise production HA/security deployment is not certified. Every implemented feature is separated from its runtime evidence.
 
 [中文](README.zh-CN.md) · [Final evidence report](docs/evidence/final-validation-report.md) · [Architecture](docs/FINAL_ARCHITECTURE.md) · [Matched model benchmark](benchmark/model-comparison.md)
+
+
+<!-- INFERENCE_HARDENING_BEGIN -->
+## Advanced GPU evidence — 2026-10-14
+
+Single-host engineering validation: **PASS**. The current driver reports RTX4080 SUPER, CC8.9; old RTX3090 results below remain historical and are not mixed.
+
+- **Two engines:** vLLM0.10.2 / SGLang0.4.10, 90 matched points and2,880 actual requests, three repeats at each workload/concurrency. Same pinned model/tokenizer/FP16/sampling/cache protocol.
+- **Real quantization:** own GPTQ and AWQ W4A16 conversion, not downloaded ready-made weights. With the same3GiB KV budget, GPTQ C32 decode throughput is 2988.09 vs 1903.93 tokens/s (1.57x); peak visible GPU memory is 6163 vs 10161MiB (39.3% lower).
+- **Quality gate:** GPTQ passed the frozen engineering policy on128 QA +24 smoke samples. AWQ failed quality and is rejected. This is not broad task-quality certification.
+- **GPU profile:** real PyTorch/CUDA traces and a repeated-context prefix-cache A/B: 2.28–2.30x throughput, 96/96 output texts identical. No custom kernel or measured HBM bandwidth claim.
+- **Managed training:** two64-update BF16/NF4 QLoRA configurations plus a controlled interruption/resume. Checkpointing reduced Torch peak allocation by 51.5%, with measured speed trade-offs. Resume weights/loss/sample sequence matched exactly.
+- **Reliability:** actual loader, timeout, streaming, owned crash/restart and CUDA OOM faults; hash/version/quality/performance/telemetry guards fail closed. Native Prometheus/Grafana retained.
+- **Boundaries:** GPU Docker and Nsight remain SKIPPED; no production business SLO, multi-node scale or domain-learning improvement is claimed.
+
+[Current acceptance](docs/evidence/inference-hardening/validation_report.md) · [Engine results](benchmark/engine-comparison.md) · [Quantization](benchmark/quantization-comparison.md) · [GPU profile](docs/GPU_PERFORMANCE_PROFILING.md) · [Training/resume](experiments/training/optimization-report.md) · [Reproduction](deploy/llm-validation/native-hardening/README.md)
+
+<!-- INFERENCE_HARDENING_END -->
 
 ## Production validation platform — 2026-10-13
 

@@ -1,11 +1,14 @@
 """Actual fail-closed loading/API faults and regressions against saved measurements."""
-import json,time,copy
+import json,time,copy,re
 from pathlib import Path
 from .runtime import ROOT,E,Server
 from .contracts import digest
 from pipelines.training.data_contract import verify_model_bundle
 from ops.dev_control import control_session
 from ops.model_release_gate.hardening import validate_observed_trial,quality_decision,version_decision
+
+def classified_quantization_failure(log):
+    return any(("ValueError:" in line or "Value error," in line) and "Cannot find the config file for gptq" in line for line in log.splitlines())
 
 def main():
     folder=E/"release";folder.mkdir(exist_ok=True);out=folder/"regression.json";spec={"source_sha":digest(Path(__file__)),"model_sha":digest(ROOT/".tools/assets/qwen3b-base/modelops-files.json")}
@@ -27,10 +30,11 @@ def main():
         with control_session(ROOT,"hardening-negative-rollback","Evidence/inference-hardening") as c:
             models=c.get("/api/v1/models");models.raise_for_status();base=next(x for x in models.json() if x["name"]=="hardening-qwen3b-base")
             existing=c.get("/api/v1/deployments");existing.raise_for_status()
-            match=next((x for x in existing.json() if x["name"]=="hardening-rollback-negative" and x.get("intent")!="deleted"),None)
+            name="hardening-rollback-"+spec["source_sha"][:8]+"-"+str(len(existing.json()))
+            match=next((x for x in existing.json() if x["name"]==name and x.get("intent")!="deleted"),None)
             if match:d=match
             else:
-                r=c.post("/api/v1/deployments",json={"name":"hardening-rollback-negative","artifact_id":base["id"],"engine":"vllm","replicas":0,"gpu":1});r.raise_for_status();d=r.json()
+                r=c.post("/api/v1/deployments",json={"name":name,"artifact_id":base["id"],"engine":"vllm","replicas":0,"gpu":1});r.raise_for_status();d=r.json()
             statuses=[]
             for _ in range(2):statuses.append(c.post("/api/v1/deployments/"+d["id"]+"/rollback",json={"replicas":0,"expected_generation":d["generation"]}).status_code)
             records.append({"case":"rollback-target-unavailable","status":"PASS" if statuses==[409,409] else "FAIL","http_status":statuses,"scope":"Actual control-plane API; replicas0, no GPU deployment"})
@@ -41,7 +45,7 @@ def main():
         with Server(cfg):records.append({"case":"incompatible-model-load","status":"FAIL","reason":"Incorrect GPTQ declaration unexpectedly loaded FP16 package"})
     except Exception as exc:
         log=E/"servers/fault-incompatible-gptq/server.log";text=log.read_text() if log.exists() else ""
-        expected=any(x in text.lower() for x in ["quantization","gptq","quantize"])
+        expected=classified_quantization_failure(text)
         records.append({"case":"incompatible-model-load","status":"PASS" if expected else "FAIL","actual_error":str(exc),"log":str(log),"log_sha":digest(log) if log.exists() else None,"scope":"Real native loader rejects wrong quantization metadata; official weights unchanged"})
     # Manifest hash fault verifies real official bytes, without copying/corrupting model weights.
     actual=digest(ROOT/".tools/assets/qwen3b-base/modelops-files.json")

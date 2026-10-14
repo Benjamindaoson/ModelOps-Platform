@@ -1,4 +1,121 @@
 {
+  "regression": {
+    "identity": {
+      "source_sha": "30d7609f0a2e5c50267cd0608e9761e970e782b2ea77333589e2f5b2bb110c0f",
+      "model_sha": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c"
+    },
+    "status": "PASS",
+    "cases": [
+      {
+        "case": "missing-telemetry",
+        "status": "PASS",
+        "scope": "Faulted audit input against real saved GPU trial",
+        "decision": {
+          "status": "FAIL",
+          "checks": {
+            "version": true,
+            "requests": true,
+            "telemetry": false,
+            "latency": true,
+            "throughput": true,
+            "baseline_identity": true
+          },
+          "scope": "Engineering regression predicate only; no business SLO certified"
+        }
+      },
+      {
+        "case": "latency-regression",
+        "status": "PASS",
+        "scope": "Faulted audit input against real saved GPU trial",
+        "decision": {
+          "status": "FAIL",
+          "checks": {
+            "version": true,
+            "requests": true,
+            "telemetry": true,
+            "latency": false,
+            "throughput": true,
+            "baseline_identity": true
+          },
+          "scope": "Engineering regression predicate only; no business SLO certified"
+        }
+      },
+      {
+        "case": "throughput-regression",
+        "status": "PASS",
+        "scope": "Faulted audit input against real saved GPU trial",
+        "decision": {
+          "status": "FAIL",
+          "checks": {
+            "version": true,
+            "requests": true,
+            "telemetry": true,
+            "latency": true,
+            "throughput": false,
+            "baseline_identity": true
+          },
+          "scope": "Engineering regression predicate only; no business SLO certified"
+        }
+      },
+      {
+        "case": "wrong-loaded-version",
+        "status": "PASS",
+        "scope": "Faulted audit input against real saved GPU trial",
+        "decision": {
+          "status": "FAIL",
+          "checks": {
+            "version": false,
+            "requests": true,
+            "telemetry": true,
+            "latency": true,
+            "throughput": true,
+            "baseline_identity": true
+          },
+          "scope": "Engineering regression predicate only; no business SLO certified"
+        }
+      },
+      {
+        "case": "quality-regression",
+        "status": "PASS",
+        "scope": "Faulted metric input, not a fabricated model result",
+        "decision": {
+          "status": "FAIL",
+          "checks": {
+            "squad128": false,
+            "dolly24": true,
+            "frozen_data": true
+          },
+          "threshold_delta": -0.02,
+          "scope": "Bounded QA engineering admission; not broad model-quality proof"
+        }
+      },
+      {
+        "case": "rollback-target-unavailable",
+        "status": "PASS",
+        "http_status": [
+          409,
+          409
+        ],
+        "scope": "Actual control-plane API; replicas0, no GPU deployment"
+      },
+      {
+        "case": "incompatible-model-load",
+        "status": "PASS",
+        "actual_error": "Model server exited; inspect /data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/servers/fault-incompatible-gptq/server.log",
+        "log": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening/servers/fault-incompatible-gptq/server.log",
+        "log_sha": "14ed90f4c7bd34cc769b3e51970fd592ae496d7829d4f267bffe6874bcef6b0c",
+        "scope": "Real native loader rejects wrong quantization metadata; official weights unchanged"
+      },
+      {
+        "case": "artifact-hash-mismatch",
+        "status": "PASS",
+        "actual": "d103a4c22820105e2698beccfbe641a3f02d3c7d517d280da8226de13d15ee7c",
+        "expected": "fault-injected-wrong-hash",
+        "scope": "Actual immutable loader rejects bad manifest identity; original artifact unchanged"
+      }
+    ],
+    "threshold_scope": "Engineering baseline regression15%, bounded QA delta-.02; no production business SLO"
+  },
   "gpu_faults": {
     "identity": {
       "source_sha": "0f9904de3e09947868b31abd43204a9752d6309d0cfcadd825995ab6739442ba",

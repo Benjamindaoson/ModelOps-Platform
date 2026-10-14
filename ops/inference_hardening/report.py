@@ -30,7 +30,7 @@ def aggregate(rows,keys):
             "output_tokens_s_mean":statistics.mean(r["output_tokens_s"] for r in rs),"output_tokens_s_min":min(r["output_tokens_s"] for r in rs),"output_tokens_s_max":max(r["output_tokens_s"] for r in rs),
             "latency":{k:{f"p{int(q*100)}":percentile([v[k] for v in raw],q) for q in [.5,.95,.99]} for k in ["ttft_ms","tpot_ms","e2e_ms"]},
             "peak_gpu_mib":max(r["gpu"]["peak_used_mib"] for r in rs),"mean_gpu_util_percent":statistics.mean(r["gpu"]["mean_util_percent"] for r in rs),
-            "mean_power_w":statistics.mean(r["gpu"]["mean_power_w"] for r in rs),"model_sha":rs[0]["config"]["model_sha"],"config":rs[0]["config"],"receipts":[{k:r[k] for k in ["path","raw_sha","gpu_sha","protocol_sha","source_sha"]} for r in rs]})
+            "mean_power_w":statistics.mean(r["gpu"]["mean_power_w"] for r in rs),"load_readiness_s":rs[0]["server_load_s"],"model_sha":rs[0]["config"]["model_sha"],"config":rs[0]["config"],"receipts":[{k:r[k] for k in ["path","raw_sha","gpu_sha","protocol_sha","source_sha"]} for r in rs]})
     return out,bad
 def main():
     P.mkdir(parents=True,exist_ok=True)
@@ -60,6 +60,8 @@ def main():
     tp=E/"pytest-final.log" if (E/"pytest-final.log").exists() else E/"pytest-retry.log";tests=tp.read_text().splitlines()[-1] if tp.exists() else "N/A"
     phases={"environment":env.get("status"),"engines":engine["status"],"tuning":tu.get("status","BLOCKED"),"quantization":quant["status"],"profiling":pr.get("status","BLOCKED"),"training":training["status"],"faults":fault.get("status","BLOCKED"),"release":read(E/"release/regression.json").get("status","BLOCKED"),"gpu_docker":"SKIPPED","nsight":"SKIPPED"}
     summary={"status":"PASS" if all(phases[k]=="PASS" for k in ["environment","engines","tuning","quantization","profiling","training","faults","release"]) else "BLOCKED","phases":phases,"tests":tests,"source_revision":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),"measured_sources":read(E/"measurement-source.json"),"private_artifacts":str(E),"scope":"No business SLO, broad quality, Kubernetes GPU or FP8 claims. No main merge."}
+    summary["independent_audit"]=read(E/"independent-audit.json")
+    if summary["independent_audit"].get("status")!="PASS":summary["status"]="BLOCKED"
     save(E/"validation.json",summary);save(P/"validation.json",summary)
     text=["# Advanced LLM inference and training validation",f"\n**Status: {summary['status']}**\n",f"Hardware: {env.get('gpu_name')}, CC {env.get('compute_capability')}. Old RTX3090 metrics excluded.",f"\nTests: {tests}\n","|Phase|Actual state|","|---|---|"]+[f"|{k}|{v}|" for k,v in phases.items()]
     text+=["\nReproduce in the cloud project environment: python -m ops.run_inference_hardening --stage all. Completed raw/hash-verified points are reused. Private optimizer/RNG state is trusted local input only.","\nRead JSON for exact model/data/source/telemetry identities. Raw generations, calibration, weights and traces stay private. Engineering quality thresholds are fixed before measurement; a runnable candidate can still fail quality admission."]

@@ -3,6 +3,7 @@ import asyncio,json,time,traceback
 from pathlib import Path
 from .runtime import ROOT,E,Server
 from .contracts import digest,resume_valid
+from .resume import valid_receipt
 from .benchmark import measure
 from .quality import evaluate
 def main():
@@ -24,7 +25,7 @@ def main():
             todo=[]
             for rep in range(3):
                 prior=next((r for r in reversed(state["trials"]) if r["engine"]==engine and r["variant"]==variant and r["repeat"]==rep and r["status"]=="PASS"),None)
-                if prior and resume_valid(prior,Path(prior["path"])/"requests.jsonl",refs[rep]["source_sha"],refs[rep]["protocol_sha"]):continue
+                if prior and valid_receipt(prior,Path(prior["path"]),refs[rep]["source_sha"],refs[rep]["protocol_sha"]):continue
                 todo.append(rep)
             if not todo:continue
             try:
