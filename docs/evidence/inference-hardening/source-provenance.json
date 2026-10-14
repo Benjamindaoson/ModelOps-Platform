@@ -1,0 +1,13 @@
+{
+  "cloud_code_commit": "339be4e4816622349a8449144c26aa22351627ba",
+  "public_code_commit": "bba717ec312a6ab43e87dddaef23f8227fbc82ce",
+  "source_tree_sha": "1f24aca64394f171dc926ccb83507f17d3fd1ce0",
+  "same_source_tree": true,
+  "public_url": "https://github.com/Benjamindaoson/ModelOps-Platform/commit/bba717ec312a6ab43e87dddaef23f8227fbc82ce",
+  "branch": "codex/llm-production-validation",
+  "pull_request": "https://github.com/Benjamindaoson/ModelOps-Platform/pull/25",
+  "force_push": false,
+  "main_merged": false,
+  "private_artifacts": "/data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/inference-hardening",
+  "raw_data_published": false
+}

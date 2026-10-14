@@ -38,3 +38,7 @@ Read JSON for exact model/data/source/telemetry identities. Raw generations, cal
 - 贯通真实TrainingJob、MLflow版本、Checkpoint、在线加载和评估证据，补齐Hash/版本/质量/性能/缺失监控的关闭式准入；完成实际服务与CUDA故障/恢复检查，并以493项软件测试和私有原始证据支持发布审查。
 
 These are single-host engineering results, not business production SLO, multi-node scale, custom kernel authorship or domain-learning improvement. The review was performed in this side conversation without independent subagents.
+
+## Code identity
+
+Cloud code commit: 339be4e4816622349a8449144c26aa22351627ba. Public source commit: [bba717ec312a6ab43e87dddaef23f8227fbc82ce](https://github.com/Benjamindaoson/ModelOps-Platform/commit/bba717ec312a6ab43e87dddaef23f8227fbc82ce). Trees match exactly; Git histories were not force-rewritten. [Publication provenance](source-provenance.json).
