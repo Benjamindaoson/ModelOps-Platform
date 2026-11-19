@@ -2,6 +2,17 @@
 
 **AI Model Training, Serving & Lifecycle Infrastructure — v1.0 RC**
 
+## CV-aligned engineering summary
+
+**Project focus:** Model training, evaluation, serving, lifecycle governance, and release/rollback infrastructure.
+
+- Implemented a FastAPI control plane, model registry, training orchestration, evaluation gates, deployment revisions, and model lifecycle workflows.
+- Validated four real GPU training jobs on rented NVIDIA RTX 4090 24GB resources, totaling 160 optimizer updates; demonstrated pause/resume recovery from step 2 to step 64.
+- Loaded a trained Qwen checkpoint into vLLM, invoked it, promoted the model version, and verified rollback.
+- Measured 40/40 successful synthetic C4 requests, 6.435 requests/s, 183.712 output tokens/s, and 34.763 ms TTFT P95.
+
+**Evidence boundary:** These are bounded engineering and synthetic-workload results, not production SLOs, production-scale capacity, or evidence of general model-quality improvement. The production infrastructure acceptance gate remains open.
+
 A Kubernetes-native, open-source engineering platform for managing the lifecycle of enterprise models: **register → train → evaluate → deploy → benchmark → observe → release/roll back**. ModelOps serves model-owning teams, not end-user chat applications. It supports a hybrid architecture in which self-hosted engines and external providers can be governed through a common gateway.
 
 > **Engineering preview, not independently certified production infrastructure.** The repository contains a real FastAPI control plane, Next.js operator console, Kubernetes Operator, Argo training orchestration, gateway and monitoring integrations, and automation tests. A passing CPU test **does not prove** GPU-serving performance, model quality, multizone high availability or deployment into an enterprise production environment. See [evidence and gaps](#validation-and-evidence).
@@ -13,7 +24,7 @@ Model-owning teams need to know which dataset produced a checkpoint, whether tha
 | Capability | Implemented | Validated in this sprint | Not yet validated |
 |---|---|---|---|
 | Model Registry | LLM/VLM/VLA/Embedding ModelArtifact, immutable model identities, lineage, migrations, ownership and observed deployment state | Reversible SQLite migrations; four legacy VLA versions imported by verified references | VLM native serving; production PostgreSQL runtime |
-| Training | Argo/LLaMA-Factory contracts; native Transformers LoRA/QLoRA; retained SmolVLA/LeRobot Flow Matching adapter; six observed job states | Four real RTX 3090 jobs, 160 optimizer updates; Adapter/Checkpoint hashes; pause at step 2 and recovery to step 64 | New SmolVLA jobs through unified REST; Argo GPU scheduling and native full SFT |
+| Training | Argo/LLaMA-Factory contracts; native Transformers LoRA/QLoRA; retained SmolVLA/LeRobot Flow Matching adapter; six observed job states | Four real GPU jobs on rented NVIDIA RTX 4090 24GB instances, 160 optimizer updates; Adapter/Checkpoint hashes; pause at step 2 and recovery to step 64 | New SmolVLA jobs through unified REST; Argo GPU scheduling and native full SFT |
 | Lifecycle | Evaluation attestation, separate release principal, registered checkpoint, deployment revisions and rollback | Trained Qwen loaded into vLLM, invoked, promoted and rolled back; 384D CPU embedding; 50×7 frozen VLA prediction | GPU Kubernetes rollout, real enterprise OIDC sign-off, TEI/SGLang runtime |
 | Inference | Official vLLM benchmark, GPU samples, explicit model/engine/quantization/cache/custom-policy CRD | 40/40 synthetic C4 requests; 6.43 req/s; 183.7 output tokens/s; TTFT P95 34.8 ms | Production workload SLO, hardware-matched acceleration gain and maximum capacity |
 | Operations | Protected tenant metrics, audit, recovery/reconciliation, fail-closed production gates | 180 Python tests plus two optional runtime skips; Operator unit/envtest and GitHub CPU kind; PostgreSQL schema CI; Helm; Console types/build; real metadata backup/restore | Full object-store/cluster disaster recovery, real OIDC and multizone HA |
