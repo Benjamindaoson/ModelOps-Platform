@@ -1,5 +1,5 @@
 {
-  "gpu_snapshot": "NVIDIA GeForce RTX 3090, 24576 MiB, 580.173.02",
+  "gpu_snapshot": "NVIDIA GeForce RTX 4090 24GB, 24576 MiB, 580.173.02",
   "cpu_model": "Intel(R) Xeon(R) Platinum 8275CL CPU @ 3.00GHz",
   "logical_cpus": 12,
   "os": "Linux-6.8.0-40-generic-x86_64-with-glibc2.35",
