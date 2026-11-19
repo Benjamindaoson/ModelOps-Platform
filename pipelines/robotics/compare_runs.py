@@ -44,7 +44,7 @@ def compare(native_dir, native_config, managed_dir):
     pause_wall = pause["state"]["result"]["wall_s"]
     managed_wall = pause_wall + m["wall_s"]
     return {
-        "scope": "real RTX3090 same recipe and seed, 20 optimizer updates, one deliberate ModelOps pause/resume",
+        "scope": "real rented RTX4090 24GB same recipe and seed, 20 optimizer updates, one deliberate ModelOps pause/resume",
         "recipe_match": match,
         "sample_indices_exact": exposure_match,
         "adapter_sha256_exact": n["adapter_sha256"] == m["adapter_sha256"],
