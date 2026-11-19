@@ -72,7 +72,7 @@ GitHub Actions 还会运行 Go/Helm 契约测试、Web 控制台端到端测试�
 
 ## 剩余重点
 
-优先把无 GPU 的真实跨组件全链路和安全/恢复验收做完，然后用 RTX 3090 测试同权重 vLLM/SGLang、量化、KV Cache、批处理策略，保存原始请求/显存/延迟数据；再跑真实 LoRA/QLoRA 微调、独立留出集评估、质量审核、Canary 与回滚。多 GPU 和多节点 HA 是后续独立测试，不把它们混入单卡成绩。
+优先把无 GPU 的真实跨组件全链路和安全/恢复验收做完，然后用 RTX 4090 测试同权重 vLLM/SGLang、量化、KV Cache、批处理策略，保存原始请求/显存/延迟数据；再跑真实 LoRA/QLoRA 微调、独立留出集评估、质量审核、Canary 与回滚。多 GPU 和多节点 HA 是后续独立测试，不把它们混入单卡成绩。
 
 相关文档：[跨组件验收计划](docs/INTEGRATION_ROADMAP_2026-10-12.md) · [训练任务生命周期](docs/TRAINING_JOB_LIFECYCLE.md) · [备份恢复](docs/BACKUP_RECOVERY_V2.md) · [推理测试](benchmarks/inference/README.md)。
 
