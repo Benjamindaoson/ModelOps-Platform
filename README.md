@@ -93,7 +93,7 @@ No unsupported production uptime, speedup, cost, model quality or GPU utilizatio
 
 1. Real CI kind API/Operator/Gateway lifecycle, concurrency/reconciliation, role isolation and failure propagation.
 2. Parameterized Argo Run → actual checkpoint → heldout → signed quality gate → model release with rollback.
-3. **RTX 3090** controlled vLLM/SGLang comparisons with identical weights/workload and attached raw telemetry.
+3. **RTX 4090** controlled vLLM/SGLang comparisons with identical weights/workload and attached raw telemetry.
 4. Production OIDC, DB/S3 restore drill, immutable image digests and multi-node chaos testing.
 
 See [integration gates](docs/INTEGRATION_ROADMAP_2026-10-12.md), [training lifecycle](docs/TRAINING_JOB_LIFECYCLE.md), [verified backup design](docs/BACKUP_RECOVERY_V2.md), and [benchmark guide](benchmarks/inference/README.md).
