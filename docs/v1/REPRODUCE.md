@@ -10,7 +10,7 @@ python3 -m venv .gpu-venv
 .gpu-venv/bin/python -m pip install torch==2.8.0 transformers==4.55.4 peft==0.17.1 accelerate==1.10.1 bitsandbytes==0.47.0 datasets==4.0.0 vllm==0.10.2 psutil httpx pyyaml prometheus-client
 .venv/bin/python -m ops.bootstrap_v1_assets
 ```
-The observed CPU/GPU distributions are recorded in requirements-cpu.lock and requirements-gpu.lock. They are environment snapshots; install the project itself from the current checkout. CUDA 12.8 and an RTX 3090 were used. The worker fails if no CUDA device is available.
+The observed CPU/GPU distributions are recorded in requirements-cpu.lock and requirements-gpu.lock. They are environment snapshots; install the project itself from the current checkout. CUDA 12.8 and an RTX 4090 were used. The worker fails if no CUDA device is available.
 
 ## Frozen data and real training
 ```bash
