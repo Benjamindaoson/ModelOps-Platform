@@ -7,7 +7,7 @@ The repository now includes a real single-host model lifecycle and the existing 
 - Private evidence: /data/ModelOps-Platform/tmp/v1-production-readiness/Evidence/v1
 - Existing branch: codex/v1-production-readiness
 - Source histories: main 73e6a246; SmolVLA 9b2df487; published M06 92d9ee614; preserved local merge 4a1df727.
-- New GPU jobs: 4; actual optimizer updates: 160; RTX 3090, Torch 2.8.0+cu128.
+- New GPU jobs: 4; actual optimizer updates: 160; RTX 4090, Torch 2.8.0+cu128.
 - Dataset splits: frozen 64 training / 24 source-disjoint heldout examples per task. No larger-model training.
 
 ## Seven-phase execution
