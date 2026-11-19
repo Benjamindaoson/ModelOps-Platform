@@ -24,7 +24,7 @@ def main():
     recovery=load("resume-validation.json")
     recovery_result=json.loads((E/"runtime/lab"/recovery["job_id"]/"artifacts/result.json").read_text())
     runs.append(recovery_result)
-    training={"status":"PASS","gpu":"NVIDIA GeForce RTX 3090","new_jobs":len(runs),
+    training={"status":"PASS","gpu":"NVIDIA GeForce RTX 4090 24GB","new_jobs":len(runs),
         "actual_optimizer_updates":sum(r["steps"] for r in runs),"runs":runs,
         "recovery":{"paused_at_step":recovery["paused_at_step"],"completed_steps":recovery["steps"],
             "exact_update_sequence":recovery["update_numbers_exact"]},
