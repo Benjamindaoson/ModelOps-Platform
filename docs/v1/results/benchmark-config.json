@@ -16,7 +16,7 @@
   "python": "3.12.15",
   "os": "Linux-6.8.0-40-generic-x86_64-with-glibc2.35",
   "git_sha": "4a1df7275130a0d834cf2cf902a7abc2f7bbcf7a",
-  "gpu_snapshot": "NVIDIA GeForce RTX 3090, 24576 MiB, 580.173.02",
+  "gpu_snapshot": "NVIDIA GeForce RTX 4090 24GB, 24576 MiB, 580.173.02",
   "command": [
     "vllm",
     "bench",
