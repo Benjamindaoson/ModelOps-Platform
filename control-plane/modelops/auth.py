@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Callable
+from urllib.error import URLError
+
+
 
 import jwt
 from fastapi import HTTPException, Request, status
@@ -28,17 +30,25 @@ class Principal:
 class Verifier:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.jwks = PyJWKClient(settings.oidc_jwks_url) if settings.auth_mode == "oidc" else None
+        self.jwks = (PyJWKClient(
+            settings.oidc_jwks_url, timeout=5, lifespan=300,
+            cache_jwk_set=True, cache_keys=False,
+        ) if settings.auth_mode == "oidc" else None)
 
     def verify(self, token: str) -> Principal:
         try:
             if self.settings.auth_mode == "dev":
                 claims = jwt.decode(token, self.settings.jwt_secret, algorithms=["HS256"],
-                                    audience="modelops-dev", issuer="modelops-local")
+                                    audience="modelops-dev", issuer="modelops-local",
+                                    options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+                                    leeway=10)
             else:
                 key = self.jwks.get_signing_key_from_jwt(token)
                 claims = jwt.decode(token, key.key, algorithms=["RS256"],
-                                    audience=self.settings.oidc_audience, issuer=self.settings.oidc_issuer)
+                                    audience=self.settings.oidc_audience,
+                                    issuer=self.settings.oidc_issuer,
+                                    options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+                                    leeway=10)
             subject, tenant, role = claims.get("sub"), claims.get("tenant"), claims.get("role")
             if (not isinstance(subject, str) or not subject.strip() or
                 not isinstance(tenant, str) or not tenant.strip() or
@@ -47,12 +57,13 @@ class Verifier:
             if re.fullmatch(r"[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?", tenant) is None:
                 raise ValueError("Invalid tenant claim")
             return Principal(subject=subject, tenant=tenant, role=role)
-        except (jwt.PyJWTError, ValueError, KeyError) as exc:
+        except (jwt.PyJWTError, ValueError, KeyError, URLError, TimeoutError, OSError) as exc:
             raise HTTPException(status_code=401, detail="Invalid bearer token") from exc
 
 
 def require_principal(request: Request) -> Principal:
     header = request.headers.get("Authorization", "")
-    if not header.startswith("Bearer ") or not header[7:].strip():
+    if (len(header) > 8192 or not header.startswith("Bearer ")
+        or not header[7:].strip() or " " in header[7:].strip()):
         raise HTTPException(status_code=401, detail="Bearer token required")
     return request.app.state.verifier.verify(header[7:].strip())
